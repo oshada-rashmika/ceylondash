@@ -31,8 +31,9 @@ class _PasswordInputFieldState extends State<PasswordInputField> {
   void initState() {
     super.initState();
     _focus.addListener(() {
-      if (_hasFocus != _focus.hasFocus)
+      if (_hasFocus != _focus.hasFocus) {
         setState(() => _hasFocus = _focus.hasFocus);
+      }
     });
     widget.controller.addListener(_evaluate);
   }

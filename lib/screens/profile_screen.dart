@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
 import '../services/database_service.dart';
-import '../services/storage_service.dart';
 import '../models/user_model.dart';
+import '../utils/validators.dart';
+import '../widgets/email_input_field.dart';
 import '../widgets/top_snackbar.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -19,13 +18,10 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   final DatabaseService _db = DatabaseService();
-  final StorageService _storage = StorageService();
-  final ImagePicker _picker = ImagePicker();
 
   StreamSubscription<UserModel?>? _userSub;
   UserModel? _user;
   bool _loading = true;
-  bool _uploading = false;
 
   late final AnimationController _animCtrl;
   late final Animation<double> _fade;
@@ -72,8 +68,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     super.dispose();
   }
 
-  // ───── helpers ─────
-
   String get _initials {
     final name = _user?.name ?? '';
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -81,121 +75,418 @@ class _ProfileScreenState extends State<ProfileScreen>
     return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
   }
 
-  String? get _photoUrl => _user?.photoUrl;
+  void _showEditPhoneSheet() {
+    final raw = _user?.phone ?? '';
+    final existing = raw.startsWith('+94')
+        ? Validators.extractPhoneDigits(raw.substring(3))
+        : Validators.extractPhoneDigits(raw);
+    final phoneCtrl = TextEditingController(text: existing);
+    final formKey = GlobalKey<FormState>();
+    bool saving = false;
 
-  // ───── image actions ─────
-
-  Future<void> _pickAndUpload() async {
-    final xFile = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 1024,
-    );
-    if (xFile == null) return;
-
-    final file = File(xFile.path);
-    if (!StorageService.isFileSizeValid(file)) {
-      if (mounted) {
-        TopSnackbar.show(
-          context,
-          message: 'Image must be less than 5 MB.',
-          type: SnackbarType.error,
-        );
-      }
-      return;
-    }
-
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    setState(() => _uploading = true);
-    try {
-      final url = await _storage.uploadProfilePicture(uid, file);
-      await _db.updateUserFields(uid, {'photoUrl': url});
-      if (mounted) {
-        TopSnackbar.show(
-          context,
-          message: 'Profile photo updated!',
-          type: SnackbarType.success,
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        TopSnackbar.show(
-          context,
-          message: 'Upload failed. Please try again.',
-          type: SnackbarType.error,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _uploading = false);
-    }
-  }
-
-  Future<void> _removePhoto() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    setState(() => _uploading = true);
-    try {
-      await _storage.deleteProfilePicture(uid);
-      await _db.updateUserFields(uid, {'photoUrl': FieldValue.delete()});
-      if (mounted) {
-        TopSnackbar.show(
-          context,
-          message: 'Photo removed.',
-          type: SnackbarType.success,
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        TopSnackbar.show(
-          context,
-          message: 'Could not remove photo.',
-          type: SnackbarType.error,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _uploading = false);
-    }
-  }
-
-  void _showAvatarActions() {
-    final hasPhoto = _photoUrl != null && _photoUrl!.isNotEmpty;
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AvatarActionSheet(
-        hasPhoto: hasPhoto,
-        onView: () {
-          Navigator.pop(context);
-          _openFullScreenPhoto();
-        },
-        onUpload: () {
-          Navigator.pop(context);
-          _pickAndUpload();
-        },
-        onRemove: () {
-          Navigator.pop(context);
-          _removePhoto();
-        },
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _sheetHandle(),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Update Phone Number',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildPhoneField(phoneCtrl),
+                  const SizedBox(height: 20),
+                  _sheetButton(
+                    label: 'Save',
+                    saving: saving,
+                    onPressed: () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setSheetState(() => saving = true);
+                      final uid = FirebaseAuth.instance.currentUser?.uid;
+                      if (uid == null) return;
+                      final digits = Validators.extractPhoneDigits(
+                        phoneCtrl.text,
+                      );
+                      try {
+                        await _db.updateUserFields(uid, {
+                          'phone': '+94$digits',
+                        });
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (mounted) {
+                          TopSnackbar.show(
+                            context,
+                            message: 'Phone number updated!',
+                            type: SnackbarType.success,
+                          );
+                        }
+                      } catch (_) {
+                        setSheetState(() => saving = false);
+                        if (mounted) {
+                          TopSnackbar.show(
+                            context,
+                            message: 'Failed to update phone number.',
+                            type: SnackbarType.error,
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  void _openFullScreenPhoto() {
-    if (_photoUrl == null || _photoUrl!.isEmpty) return;
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: false,
-        barrierColor: Colors.black87,
-        barrierDismissible: true,
-        transitionDuration: const Duration(milliseconds: 350),
-        reverseTransitionDuration: const Duration(milliseconds: 300),
-        pageBuilder: (_, anim, secondAnim) => FadeTransition(
-          opacity: anim,
-          child: _FullScreenPhoto(
-            photoUrl: _photoUrl!,
-            heroTag: 'profile-avatar',
+  Widget _buildPhoneField(TextEditingController ctrl) {
+    return TextFormField(
+      controller: ctrl,
+      keyboardType: TextInputType.phone,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(9),
+      ],
+      validator: Validators.validateSriLankaPhone,
+      style: const TextStyle(
+        color: Colors.black87,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 1.2,
+      ),
+      decoration: InputDecoration(
+        labelText: 'Phone Number',
+        labelStyle: const TextStyle(
+          color: Colors.black45,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        hintText: 'XX XXX XXXX',
+        hintStyle: TextStyle(color: Colors.grey.shade400, letterSpacing: 1.5),
+        prefixIcon: Container(
+          padding: const EdgeInsets.only(left: 16, right: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.cyan.withAlpha(20),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '+94',
+                  style: TextStyle(
+                    color: Colors.cyan,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(width: 1, height: 24, color: Colors.grey.shade300),
+            ],
+          ),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Colors.cyan, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.red.shade300),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.red.shade400, width: 2),
+        ),
+        errorStyle: TextStyle(color: Colors.red.shade400, fontSize: 12),
+      ),
+    );
+  }
+
+  void _showEditEmailSheet() {
+    final emailCtrl = TextEditingController(
+      text: _user?.email ?? FirebaseAuth.instance.currentUser?.email ?? '',
+    );
+    final formKey = GlobalKey<FormState>();
+    bool saving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _sheetHandle(),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Update Email',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'A verification link will be sent to your new email. '
+                    'You\'ll be signed out after updating.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Colors.black45),
+                  ),
+                  const SizedBox(height: 20),
+                  EmailInputField(controller: emailCtrl),
+                  const SizedBox(height: 20),
+                  _sheetButton(
+                    label: 'Update Email',
+                    saving: saving,
+                    onPressed: () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setSheetState(() => saving = true);
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      _performEmailUpdate(emailCtrl.text.trim());
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _performEmailUpdate(String newEmail) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await user.verifyBeforeUpdateEmail(newEmail);
+      await _db.updateUserFields(user.uid, {'email': newEmail});
+      await FirebaseAuth.instance.signOut();
+
+      TopSnackbar.schedulePending(
+        message:
+            'Verification email sent to your new address. '
+            'Please verify it before logging in.',
+      );
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        _showReauthSheet(newEmail);
+      } else {
+        if (mounted) {
+          TopSnackbar.show(
+            context,
+            message: e.message ?? 'Email update failed.',
+            type: SnackbarType.error,
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        TopSnackbar.show(
+          context,
+          message: 'Email update failed. Please try again.',
+          type: SnackbarType.error,
+        );
+      }
+    }
+  }
+
+  void _showReauthSheet(String newEmail) {
+    final passwordCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool saving = false;
+    bool obscure = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _sheetHandle(),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Re-authenticate',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'For security, please enter your current '
+                    'password to continue.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: Colors.black45),
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: passwordCtrl,
+                    obscureText: obscure,
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Password is required' : null,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: const TextStyle(
+                        color: Colors.black45,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline_rounded,
+                        color: Colors.black38,
+                        size: 20,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscure
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                          color: Colors.black38,
+                          size: 20,
+                        ),
+                        onPressed: () =>
+                            setSheetState(() => obscure = !obscure),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 18,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: Colors.cyan,
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: Colors.red.shade300),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Colors.red.shade400,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _sheetButton(
+                    label: 'Confirm',
+                    saving: saving,
+                    onPressed: () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setSheetState(() => saving = true);
+                      try {
+                        final user = FirebaseAuth.instance.currentUser!;
+                        final cred = EmailAuthProvider.credential(
+                          email: user.email!,
+                          password: passwordCtrl.text,
+                        );
+                        await user.reauthenticateWithCredential(cred);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        await _performEmailUpdate(newEmail);
+                      } on FirebaseAuthException catch (e) {
+                        setSheetState(() => saving = false);
+                        if (mounted) {
+                          TopSnackbar.show(
+                            context,
+                            message: e.message ?? 'Authentication failed.',
+                            type: SnackbarType.error,
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -209,7 +500,45 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  // ───── build ─────
+  Widget _sheetHandle() => Container(
+    width: 40,
+    height: 4,
+    decoration: BoxDecoration(
+      color: Colors.black12,
+      borderRadius: BorderRadius.circular(2),
+    ),
+  );
+
+  Widget _sheetButton({
+    required String label,
+    required bool saving,
+    required VoidCallback onPressed,
+  }) => SizedBox(
+    width: double.infinity,
+    height: 52,
+    child: ElevatedButton(
+      onPressed: saving ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.cyan,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        elevation: 0,
+      ),
+      child: saving
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.white,
+              ),
+            )
+          : Text(
+              label,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -220,67 +549,123 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
     }
 
+    final name = _user?.name ?? 'Customer';
+    final email =
+        _user?.email ?? FirebaseAuth.instance.currentUser?.email ?? '—';
+    final phone = _user?.phone ?? '—';
+    final address = _user?.address ?? '—';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FB),
-      body: FadeTransition(
-        opacity: _fade,
-        child: SlideTransition(
-          position: _slide,
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _buildSliverAppBar(),
-              SliverToBoxAdapter(child: _buildNameSection()),
-              SliverToBoxAdapter(child: _buildInfoSection()),
-              SliverToBoxAdapter(child: _buildSettingsSection()),
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ───── sliver app bar ─────
-
-  Widget _buildSliverAppBar() {
-    return SliverAppBar(
-      expandedHeight: 280,
-      pinned: true,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black87,
-      surfaceTintColor: Colors.white,
-      elevation: 0,
-      title: const Text(
-        'Profile',
-        style: TextStyle(fontWeight: FontWeight.w700),
-      ),
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.white, Color(0xFFF7F9FB)],
-            ),
-          ),
-          child: SafeArea(
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fade,
+          child: SlideTransition(
+            position: _slide,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 48),
-                _buildAvatar(),
-                if (_uploading) ...[
-                  const SizedBox(height: 12),
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.cyan,
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Profile',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
-                ],
+                ),
+                const SizedBox(height: 28),
+
+                _buildAvatar(),
+                const SizedBox(height: 16),
+
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  email,
+                  style: const TextStyle(fontSize: 14, color: Colors.black45),
+                ),
+                const SizedBox(height: 24),
+
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4, bottom: 10),
+                          child: Text(
+                            'Personal Info',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black38,
+                            ),
+                          ),
+                        ),
+                        _InfoTile(
+                          icon: Icons.phone_rounded,
+                          label: 'Phone',
+                          value: phone,
+                          onEdit: _showEditPhoneSheet,
+                        ),
+                        _InfoTile(
+                          icon: Icons.email_rounded,
+                          label: 'Email',
+                          value: email,
+                          onEdit: _showEditEmailSheet,
+                        ),
+                        _InfoTile(
+                          icon: Icons.location_on_rounded,
+                          label: 'Address',
+                          value: address,
+                        ),
+                        const Spacer(),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4, bottom: 10),
+                          child: Text(
+                            'Settings',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black38,
+                            ),
+                          ),
+                        ),
+                        _SettingsTile(
+                          icon: Icons.lock_rounded,
+                          label: 'Account Security',
+                          onTap: () {},
+                        ),
+                        _SettingsTile(
+                          icon: Icons.notifications_rounded,
+                          label: 'Notifications',
+                          onTap: () {},
+                        ),
+                        const SizedBox(height: 8),
+                        _SettingsTile(
+                          icon: Icons.logout_rounded,
+                          label: 'Sign Out',
+                          isDestructive: true,
+                          onTap: _signOut,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -289,319 +674,31 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // ───── avatar ─────
-
   Widget _buildAvatar() {
-    final hasPhoto = _photoUrl != null && _photoUrl!.isNotEmpty;
-    return GestureDetector(
-      onTap: _showAvatarActions,
-      child: Stack(
-        alignment: Alignment.bottomRight,
-        children: [
-          Hero(
-            tag: 'profile-avatar',
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.cyan, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.cyan.withAlpha(50),
-                    blurRadius: 24,
-                    spreadRadius: 4,
-                  ),
-                ],
-              ),
-              child: ClipOval(
-                child: hasPhoto
-                    ? Image.network(
-                        _photoUrl!,
-                        fit: BoxFit.cover,
-                        width: 110,
-                        height: 110,
-                        errorBuilder: (ctx, err, stack) => _initialsWidget(),
-                      )
-                    : _initialsWidget(),
-              ),
-            ),
-          ),
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: Colors.cyan,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2.5),
-            ),
-            child: const Icon(
-              Icons.camera_alt_rounded,
-              size: 16,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _initialsWidget() {
     return Container(
-      color: Colors.cyan,
-      alignment: Alignment.center,
-      child: Text(
-        _initials,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: 40,
-        ),
-      ),
-    );
-  }
-
-  // ───── name section ─────
-
-  Widget _buildNameSection() {
-    final name = _user?.name ?? 'Customer';
-    final email =
-        _user?.email ?? FirebaseAuth.instance.currentUser?.email ?? '—';
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
-        children: [
-          Text(
-            name,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            email,
-            style: const TextStyle(fontSize: 14, color: Colors.black45),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ───── info tiles ─────
-
-  Widget _buildInfoSection() {
-    final phone = _user?.phone ?? '—';
-    final email =
-        _user?.email ?? FirebaseAuth.instance.currentUser?.email ?? '—';
-    final address = _user?.address ?? '—';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 10),
-            child: Text(
-              'Personal Info',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black38,
-              ),
-            ),
-          ),
-          _InfoTile(icon: Icons.phone_rounded, label: 'Phone', value: phone),
-          _InfoTile(icon: Icons.email_rounded, label: 'Email', value: email),
-          _InfoTile(
-            icon: Icons.location_on_rounded,
-            label: 'Address',
-            value: address,
-            iconColor: Colors.cyan,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ───── settings section ─────
-
-  Widget _buildSettingsSection() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 10),
-            child: Text(
-              'Settings',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black38,
-              ),
-            ),
-          ),
-          _SettingsTile(
-            icon: Icons.lock_rounded,
-            label: 'Account Security',
-            onTap: () {},
-          ),
-          _SettingsTile(
-            icon: Icons.notifications_rounded,
-            label: 'Notifications',
-            onTap: () {},
-          ),
-          const SizedBox(height: 8),
-          _SettingsTile(
-            icon: Icons.logout_rounded,
-            label: 'Sign Out',
-            isDestructive: true,
-            onTap: _signOut,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// Supporting widgets
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class _AvatarActionSheet extends StatelessWidget {
-  final bool hasPhoto;
-  final VoidCallback onView;
-  final VoidCallback onUpload;
-  final VoidCallback onRemove;
-
-  const _AvatarActionSheet({
-    required this.hasPhoto,
-    required this.onView,
-    required this.onUpload,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(16),
+      width: 110,
+      height: 110,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.black12,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (hasPhoto)
-              _SheetOption(
-                icon: Icons.visibility_rounded,
-                label: 'View Photo',
-                onTap: onView,
-              ),
-            _SheetOption(
-              icon: Icons.photo_library_rounded,
-              label: hasPhoto ? 'Update Photo' : 'Upload Profile Picture',
-              onTap: onUpload,
-            ),
-            if (hasPhoto)
-              _SheetOption(
-                icon: Icons.delete_outline_rounded,
-                label: 'Remove Photo',
-                isDestructive: true,
-                onTap: onRemove,
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetOption extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool isDestructive;
-
-  const _SheetOption({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.isDestructive = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isDestructive ? Colors.red : Colors.black87;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          child: Row(
-            children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(width: 16),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            ],
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.cyan, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyan.withAlpha(50),
+            blurRadius: 24,
+            spreadRadius: 4,
           ),
-        ),
+        ],
       ),
-    );
-  }
-}
-
-class _FullScreenPhoto extends StatelessWidget {
-  final String photoUrl;
-  final String heroTag;
-
-  const _FullScreenPhoto({required this.photoUrl, required this.heroTag});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pop(context),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: Hero(
-            tag: heroTag,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                photoUrl,
-                fit: BoxFit.contain,
-                errorBuilder: (ctx, err, stack) => const Icon(
-                  Icons.broken_image_rounded,
-                  size: 64,
-                  color: Colors.white54,
-                ),
-              ),
+      child: ClipOval(
+        child: Container(
+          color: Colors.cyan,
+          alignment: Alignment.center,
+          child: Text(
+            _initials,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 40,
             ),
           ),
         ),
@@ -614,13 +711,13 @@ class _InfoTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final Color? iconColor;
+  final VoidCallback? onEdit;
 
   const _InfoTile({
     required this.icon,
     required this.label,
     required this.value,
-    this.iconColor,
+    this.onEdit,
   });
 
   @override
@@ -648,7 +745,7 @@ class _InfoTile extends StatelessWidget {
               color: const Color(0xFFE0F7FA),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: iconColor ?? Colors.cyan, size: 22),
+            child: Icon(icon, color: Colors.cyan, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -675,6 +772,23 @@ class _InfoTile extends StatelessWidget {
               ],
             ),
           ),
+          if (onEdit != null)
+            GestureDetector(
+              onTap: onEdit,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0F7FA),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.edit_rounded,
+                  color: Colors.cyan,
+                  size: 18,
+                ),
+              ),
+            ),
         ],
       ),
     );

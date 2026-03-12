@@ -19,8 +19,9 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
   void initState() {
     super.initState();
     _focus.addListener(() {
-      if (_hasFocus != _focus.hasFocus)
+      if (_hasFocus != _focus.hasFocus) {
         setState(() => _hasFocus = _focus.hasFocus);
+      }
     });
   }
 
