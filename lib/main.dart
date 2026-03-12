@@ -8,6 +8,7 @@ import 'screens/role_selection_screen.dart';
 import 'screens/customer_register_screen.dart';
 import 'screens/seller_register_screen.dart';
 import 'screens/rider_register_screen.dart';
+import 'widgets/slide_page_route.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,22 +27,27 @@ class CeylonDashApp extends StatelessWidget {
       title: 'Ceylon Dash',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.black,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white,
         primaryColor: Colors.cyan,
-        colorScheme: const ColorScheme.dark(
+        colorScheme: const ColorScheme.light(
           primary: Colors.cyan,
           secondary: Colors.cyanAccent,
-          surface: Colors.black,
+          surface: Colors.white,
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
           elevation: 0,
+          surfaceTintColor: Colors.white,
         ),
-        snackBarTheme: const SnackBarThemeData(
-          backgroundColor: Color(0xFF1A1A1A),
-          contentTextStyle: TextStyle(color: Colors.white),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: Colors.black87,
+          contentTextStyle: const TextStyle(color: Colors.white),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       ),
       home: StreamBuilder<User?>(
@@ -49,7 +55,7 @@ class CeylonDashApp extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
-              backgroundColor: Colors.black,
+              backgroundColor: Colors.white,
               body: Center(
                 child: CircularProgressIndicator(color: Colors.cyan),
               ),
@@ -61,27 +67,38 @@ class CeylonDashApp extends StatelessWidget {
           return const LoginScreen();
         },
       ),
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/admin-login': (context) => const AdminLoginScreen(),
-        '/role-selection': (context) => const RoleSelectionScreen(),
-        '/register/customer': (context) => const CustomerRegisterScreen(),
-        '/register/seller': (context) => const SellerRegisterScreen(),
-        '/register/rider': (context) => const RiderRegisterScreen(),
-        '/home': (context) => const HomePlaceholderScreen(),
+      onGenerateRoute: (settings) {
+        final routes = <String, Widget>{
+          '/login': const LoginScreen(),
+          '/admin-login': const AdminLoginScreen(),
+          '/role-selection': const RoleSelectionScreen(),
+          '/register/customer': const CustomerRegisterScreen(),
+          '/register/seller': const SellerRegisterScreen(),
+          '/register/rider': const RiderRegisterScreen(),
+          '/home': const HomePlaceholderScreen(),
+        };
+        final page = routes[settings.name];
+        if (page != null) {
+          return SlidePageRoute(page: page);
+        }
+        return null;
       },
     );
   }
 }
+
 class HomePlaceholderScreen extends StatelessWidget {
   const HomePlaceholderScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Ceylon Dash'),
+        title: const Text(
+          'Ceylon Dash',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.cyan),
@@ -101,7 +118,7 @@ class HomePlaceholderScreen extends StatelessWidget {
       body: const Center(
         child: Text(
           'Welcome to Ceylon Dash!',
-          style: TextStyle(color: Colors.white, fontSize: 20),
+          style: TextStyle(color: Colors.black87, fontSize: 20),
         ),
       ),
     );

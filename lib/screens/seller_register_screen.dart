@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
-import '../widgets/custom_text_field.dart';
+import '../utils/validators.dart';
+import '../widgets/premium_text_field.dart';
+import '../widgets/phone_input_field.dart';
+import '../widgets/email_input_field.dart';
+import '../widgets/password_input_field.dart';
 import '../widgets/custom_button.dart';
 
 class SellerRegisterScreen extends StatefulWidget {
@@ -13,7 +17,8 @@ class SellerRegisterScreen extends StatefulWidget {
   State<SellerRegisterScreen> createState() => _SellerRegisterScreenState();
 }
 
-class _SellerRegisterScreenState extends State<SellerRegisterScreen> {
+class _SellerRegisterScreenState extends State<SellerRegisterScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   final _dbService = DatabaseService();
@@ -25,8 +30,39 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen> {
   final _socialsCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  bool _obscurePassword = true;
   bool _isLoading = false;
+
+  late final AnimationController _entranceCtrl;
+  late final List<Animation<double>> _fades;
+  late final List<Animation<Offset>> _slides;
+
+  static const _count = 9;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _fades = List.generate(_count, (i) {
+      final s = i * 0.07;
+      return CurvedAnimation(
+        parent: _entranceCtrl,
+        curve: Interval(s, (s + 0.3).clamp(0, 1), curve: Curves.easeOut),
+      );
+    });
+    _slides = List.generate(_count, (i) {
+      final s = i * 0.07;
+      return Tween(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+        CurvedAnimation(
+          parent: _entranceCtrl,
+          curve: Interval(s, (s + 0.3).clamp(0, 1), curve: Curves.easeOutCubic),
+        ),
+      );
+    });
+    _entranceCtrl.forward();
+  }
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
@@ -41,7 +77,7 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen> {
       final user = UserModel(
         uid: cred.user!.uid,
         name: _ownerNameCtrl.text.trim(),
-        phone: _phoneCtrl.text.trim(),
+        phone: '+94${_phoneCtrl.text.trim()}',
         role: 'seller',
         fcmToken: '',
         email: _emailCtrl.text.trim(),
@@ -59,7 +95,14 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen> {
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AuthService.friendlyAuthError(e))),
+          SnackBar(
+            content: Text(AuthService.friendlyAuthError(e)),
+            backgroundColor: Colors.black87,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
         );
       }
     } finally {
@@ -69,6 +112,7 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen> {
 
   @override
   void dispose() {
+    _entranceCtrl.dispose();
     _ownerNameCtrl.dispose();
     _businessNameCtrl.dispose();
     _businessAddressCtrl.dispose();
@@ -79,98 +123,138 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen> {
     super.dispose();
   }
 
+  Widget _anim(int i, Widget child) => FadeTransition(
+    opacity: _fades[i],
+    child: SlideTransition(position: _slides[i], child: child),
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.cyan),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.black87),
         elevation: 0,
-        title: const Text(
-          'Seller Registration',
-          style: TextStyle(color: Colors.white),
-        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
           child: Form(
             key: _formKey,
             child: Column(
               children: [
-                const Icon(Icons.store_outlined, size: 56, color: Colors.cyan),
-                const SizedBox(height: 24),
-
-                CustomTextField(
-                  controller: _ownerNameCtrl,
-                  label: 'Owner Name',
-                  validator: (v) =>
-                      AuthService.validateRequired(v, 'Owner Name'),
-                ),
-                const SizedBox(height: 14),
-
-                CustomTextField(
-                  controller: _businessNameCtrl,
-                  label: 'Business Name',
-                  validator: (v) =>
-                      AuthService.validateRequired(v, 'Business Name'),
-                ),
-                const SizedBox(height: 14),
-
-                CustomTextField(
-                  controller: _businessAddressCtrl,
-                  label: 'Business Address',
-                  validator: (v) =>
-                      AuthService.validateRequired(v, 'Business Address'),
-                ),
-                const SizedBox(height: 14),
-
-                CustomTextField(
-                  controller: _phoneCtrl,
-                  label: 'Phone Number',
-                  keyboardType: TextInputType.phone,
-                  validator: AuthService.validatePhone,
-                ),
-                const SizedBox(height: 14),
-
-                CustomTextField(
-                  controller: _socialsCtrl,
-                  label: 'Socials (optional)',
-                ),
-                const SizedBox(height: 14),
-
-                CustomTextField(
-                  controller: _emailCtrl,
-                  label: 'Email',
-                  keyboardType: TextInputType.emailAddress,
-                  validator: AuthService.validateEmail,
-                ),
-                const SizedBox(height: 14),
-
-                CustomTextField(
-                  controller: _passwordCtrl,
-                  label: 'Password',
-                  obscureText: _obscurePassword,
-                  validator: AuthService.validatePassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
+                _anim(
+                  0,
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.cyan.withAlpha(18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.store_outlined,
+                      size: 40,
                       color: Colors.cyan,
                     ),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                CustomButton(
-                  text: 'Create Seller Account',
-                  isLoading: _isLoading,
-                  onPressed: _handleRegister,
+                const SizedBox(height: 16),
+                _anim(
+                  0,
+                  const Text(
+                    'Seller Registration',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 28),
+
+                _anim(
+                  1,
+                  PremiumTextField(
+                    controller: _ownerNameCtrl,
+                    label: 'Owner Name',
+                    prefixIcon: const Icon(
+                      Icons.person_outline,
+                      color: Colors.black38,
+                      size: 20,
+                    ),
+                    validator: (v) =>
+                        Validators.validateRequired(v, 'Owner Name'),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                _anim(
+                  2,
+                  PremiumTextField(
+                    controller: _businessNameCtrl,
+                    label: 'Business Name',
+                    prefixIcon: const Icon(
+                      Icons.business_outlined,
+                      color: Colors.black38,
+                      size: 20,
+                    ),
+                    validator: (v) =>
+                        Validators.validateRequired(v, 'Business Name'),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                _anim(
+                  3,
+                  PremiumTextField(
+                    controller: _businessAddressCtrl,
+                    label: 'Business Address',
+                    prefixIcon: const Icon(
+                      Icons.location_on_outlined,
+                      color: Colors.black38,
+                      size: 20,
+                    ),
+                    validator: (v) =>
+                        Validators.validateRequired(v, 'Business Address'),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                _anim(4, PhoneInputField(controller: _phoneCtrl)),
+                const SizedBox(height: 14),
+
+                _anim(
+                  5,
+                  PremiumTextField(
+                    controller: _socialsCtrl,
+                    label: 'Socials (optional)',
+                    prefixIcon: const Icon(
+                      Icons.link_outlined,
+                      color: Colors.black38,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                _anim(6, EmailInputField(controller: _emailCtrl)),
+                const SizedBox(height: 14),
+
+                _anim(7, PasswordInputField(controller: _passwordCtrl)),
+                const SizedBox(height: 28),
+
+                _anim(
+                  8,
+                  CustomButton(
+                    text: 'Create Seller Account',
+                    isLoading: _isLoading,
+                    onPressed: _handleRegister,
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

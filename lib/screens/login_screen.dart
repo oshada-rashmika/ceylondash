@@ -1,8 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../widgets/custom_text_field.dart';
+import '../widgets/email_input_field.dart';
+import '../widgets/password_input_field.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/slide_page_route.dart';
+import 'role_selection_screen.dart';
+import 'admin_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,18 +15,50 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  bool _obscurePassword = true;
   bool _rememberMe = false;
   bool _isLoading = false;
+
+  late final AnimationController _entranceCtrl;
+  late final List<Animation<double>> _fadeAnims;
+  late final List<Animation<Offset>> _slideAnims;
+
+  static const _itemCount =
+      7; // logo, title, subtitle, email, password, row, buttons
 
   @override
   void initState() {
     super.initState();
+    _entranceCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+
+    _fadeAnims = List.generate(_itemCount, (i) {
+      final start = i * 0.1;
+      final end = (start + 0.4).clamp(0.0, 1.0);
+      return CurvedAnimation(
+        parent: _entranceCtrl,
+        curve: Interval(start, end, curve: Curves.easeOut),
+      );
+    });
+    _slideAnims = List.generate(_itemCount, (i) {
+      final start = i * 0.1;
+      final end = (start + 0.4).clamp(0.0, 1.0);
+      return Tween(begin: const Offset(0, 0.15), end: Offset.zero).animate(
+        CurvedAnimation(
+          parent: _entranceCtrl,
+          curve: Interval(start, end, curve: Curves.easeOutCubic),
+        ),
+      );
+    });
+
+    _entranceCtrl.forward();
     _loadRememberedCredentials();
   }
 
@@ -54,7 +90,14 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AuthService.friendlyAuthError(e))),
+          SnackBar(
+            content: Text(AuthService.friendlyAuthError(e)),
+            backgroundColor: Colors.black87,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
         );
       }
     } finally {
@@ -66,7 +109,14 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter your email first')),
+        SnackBar(
+          content: const Text('Enter your email first'),
+          backgroundColor: Colors.black87,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
       );
       return;
     }
@@ -74,7 +124,14 @@ class _LoginScreenState extends State<LoginScreen> {
       await _authService.sendPasswordReset(email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password reset email sent')),
+          SnackBar(
+            content: const Text('Password reset email sent'),
+            backgroundColor: Colors.cyan.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -88,127 +145,191 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _entranceCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
 
+  Widget _staggered(int index, Widget child) {
+    return FadeTransition(
+      opacity: _fadeAnims[index],
+      child: SlideTransition(position: _slideAnims[index], child: child),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
+            padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.delivery_dining, size: 80, color: Colors.cyan),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Ceylon Dash',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+                  // ── Logo ──
+                  _staggered(
+                    0,
+                    Hero(
+                      tag: 'ceylon-logo',
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.cyan.withAlpha(18),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.delivery_dining,
+                          size: 52,
+                          color: Colors.cyan,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Sign in to continue',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 36),
-
-                  CustomTextField(
-                    controller: _emailCtrl,
-                    label: 'Email',
-                    keyboardType: TextInputType.emailAddress,
-                    validator: AuthService.validateEmail,
-                  ),
-                  const SizedBox(height: 16),
-
-                  CustomTextField(
-                    controller: _passwordCtrl,
-                    label: 'Password',
-                    obscureText: _obscurePassword,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Password is required';
-                      return null;
-                    },
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.cyan,
-                      ),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  Row(
-                    children: [
-                      Theme(
-                        data: Theme.of(context).copyWith(
-                          checkboxTheme: CheckboxThemeData(
-                            fillColor: WidgetStateProperty.resolveWith(
-                              (states) => states.contains(WidgetState.selected)
-                                  ? Colors.cyan
-                                  : Colors.transparent,
-                            ),
-                            side: const BorderSide(color: Colors.cyan),
-                          ),
-                        ),
-                        child: Checkbox(
-                          value: _rememberMe,
-                          onChanged: (v) => setState(() => _rememberMe = v ?? false),
-                        ),
-                      ),
-                      const Text('Remember me',
-                          style: TextStyle(color: Colors.white70, fontSize: 13)),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: _handleForgotPassword,
-                        child: const Text(
-                          'Forgot password?',
-                          style: TextStyle(color: Colors.cyan, fontSize: 13),
-                        ),
-                      ),
-                    ],
                   ),
                   const SizedBox(height: 20),
 
-                  CustomButton(
-                    text: 'Login',
-                    isLoading: _isLoading,
-                    onPressed: _handleLogin,
-                  ),
-                  const SizedBox(height: 14),
-
-                  CustomButton(
-                    text: 'Admin Login',
-                    isOutlined: true,
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/admin-login'),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Don't have an account?",
-                          style: TextStyle(color: Colors.white70)),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/role-selection'),
-                        child: const Text('Register',
-                            style: TextStyle(color: Colors.cyan)),
+                  // ── Title ──
+                  _staggered(
+                    1,
+                    const Text(
+                      'Ceylon Dash',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
                       ),
-                    ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // ── Subtitle ──
+                  _staggered(
+                    2,
+                    Text(
+                      'Sign in to continue',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // ── Email ──
+                  _staggered(3, EmailInputField(controller: _emailCtrl)),
+                  const SizedBox(height: 16),
+
+                  // ── Password ──
+                  _staggered(
+                    4,
+                    PasswordInputField(
+                      controller: _passwordCtrl,
+                      showRequirements: false,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // ── Remember / Forgot ──
+                  _staggered(
+                    5,
+                    Row(
+                      children: [
+                        SizedBox(
+                          height: 28,
+                          width: 28,
+                          child: Checkbox(
+                            value: _rememberMe,
+                            onChanged: (v) =>
+                                setState(() => _rememberMe = v ?? false),
+                            activeColor: Colors.cyan,
+                            side: BorderSide(color: Colors.grey.shade400),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Remember me',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: _handleForgotPassword,
+                          child: const Text(
+                            'Forgot password?',
+                            style: TextStyle(
+                              color: Colors.cyan,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // ── Buttons ──
+                  _staggered(
+                    6,
+                    Column(
+                      children: [
+                        CustomButton(
+                          text: 'Sign In',
+                          isLoading: _isLoading,
+                          onPressed: _handleLogin,
+                        ),
+                        const SizedBox(height: 12),
+                        CustomButton(
+                          text: 'Admin Login',
+                          isOutlined: true,
+                          icon: Icons.admin_panel_settings_outlined,
+                          onPressed: () => Navigator.push(
+                            context,
+                            SlidePageRoute(page: const AdminLoginScreen()),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Don't have an account?",
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                SlidePageRoute(
+                                  page: const RoleSelectionScreen(),
+                                ),
+                              ),
+                              child: const Text(
+                                'Register',
+                                style: TextStyle(
+                                  color: Colors.cyan,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
