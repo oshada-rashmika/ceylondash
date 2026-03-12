@@ -1,0 +1,93 @@
+# --- Universal ---
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# --- IDEs & Editors ---
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# --- Dart/Flutter ---
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+pubspec.lock
+**/doc/api/
+/build/
+/coverage/
+
+# --- Android ---
+/android/.gradle/
+/android/captures/
+/android/gradlew
+/android/gradlew.bat
+/android/local.properties
+/android/GeneratedPluginRegistrant.java
+/android/.cxx/
+/android/key.properties
+/android/**/*.keystore
+/android/**/*.jks
+/android/app/debug
+/android/app/profile
+/android/app/release
+gradle-wrapper.jar
+
+# --- iOS/macOS ---
+**/Flutter/ephemeral/
+**/Pods/
+**/dgph
+*.mode1v3
+*.mode2v3
+*.moved-aside
+*.pbxuser
+*.perspectivev3
+**/*sync/
+.sconsign.dblite
+.tags*
+**/.vagrant/
+**/DerivedData/
+Icon?
+**/.symlinks/
+profile
+xcuserdata
+**/.generated/
+Flutter/App.framework
+Flutter/Flutter.framework
+Flutter/Flutter.podspec
+Flutter/Generated.xcconfig
+Flutter/app.flx
+Flutter/app.zip
+Flutter/flutter_assets/
+Flutter/flutter_export_environment.sh
+ServiceDefinitions.json
+Runner/GeneratedPluginRegistrant.*
+# Exceptions to above rules
+!default.mode1v3
+!default.mode2v3
+!default.pbxuser
+!default.perspectivev3
+
+# --- Linux ---
+linux/flutter/ephemeral
+
+# --- Symbolication/Obfuscation ---
+app.*.symbols
+app.*.map.json
+
+# --- Environment files ---
+.env
+.env.local
+.env.example
