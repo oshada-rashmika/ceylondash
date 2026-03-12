@@ -17,6 +17,19 @@ class DatabaseService {
     return null;
   }
 
+  /// Real-time stream of the user document.
+  Stream<UserModel?> streamUser(String uid) {
+    return _db.collection('users').doc(uid).snapshots().map((doc) {
+      if (doc.exists) return UserModel.fromFirestore(doc);
+      return null;
+    });
+  }
+
+  /// Update specific fields on the user document.
+  Future<void> updateUserFields(String uid, Map<String, dynamic> fields) async {
+    await _db.collection('users').doc(uid).update(fields);
+  }
+
   Future<String> createOrder(OrderModel order) async {
     DocumentReference docRef = await _db
         .collection('orders')
