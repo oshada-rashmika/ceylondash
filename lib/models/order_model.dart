@@ -12,6 +12,7 @@ class OrderModel {
   final String dropoffAddress;
   final Map<String, dynamic> verification;
   final Map<String, dynamic> timestamps;
+  final Map<String, dynamic> rawData;
 
   OrderModel({
     required this.id,
@@ -25,6 +26,7 @@ class OrderModel {
     required this.dropoffAddress,
     required this.verification,
     required this.timestamps,
+    required this.rawData,
   });
 
   factory OrderModel.fromFirestore(DocumentSnapshot doc) {
@@ -41,7 +43,71 @@ class OrderModel {
       dropoffAddress: data['dropoffAddress'] ?? '',
       verification: data['verification'] ?? {},
       timestamps: data['timestamps'] ?? {},
+      rawData: data,
     );
+  }
+
+  bool matchesQuery(String query) {
+    final normalizedQuery = query.trim().toLowerCase();
+    if (normalizedQuery.isEmpty) return true;
+
+    final searchableText = <String>{
+      id,
+      externalPlatformRef,
+      status,
+      dropoffAddress,
+      ..._extractSearchStrings(rawData),
+    }.where((value) => value.trim().isNotEmpty).join(' ').toLowerCase();
+
+    return searchableText.contains(normalizedQuery);
+  }
+
+  static Set<String> _extractSearchStrings(Object? value, {String? key}) {
+    final results = <String>{};
+
+    if (value is String) {
+      final normalizedKey = key?.toLowerCase() ?? '';
+      if (normalizedKey.isEmpty || _isSearchFriendlyKey(normalizedKey)) {
+        results.add(value);
+      }
+      return results;
+    }
+
+    if (value is Iterable) {
+      for (final entry in value) {
+        results.addAll(_extractSearchStrings(entry, key: key));
+      }
+      return results;
+    }
+
+    if (value is Map) {
+      value.forEach((entryKey, entryValue) {
+        results.addAll(
+          _extractSearchStrings(entryValue, key: entryKey.toString()),
+        );
+      });
+    }
+
+    return results;
+  }
+
+  static bool _isSearchFriendlyKey(String key) {
+    const keywords = {
+      'item',
+      'items',
+      'name',
+      'title',
+      'product',
+      'products',
+      'status',
+      'address',
+      'store',
+      'seller',
+      'external',
+      'ref',
+    };
+
+    return keywords.any(key.contains);
   }
 
   Map<String, dynamic> toMap() {

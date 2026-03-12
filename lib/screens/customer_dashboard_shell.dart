@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'customer_dashboard_screen.dart';
+import 'chat_list_screen.dart';
 import 'quick_actions_screen.dart';
 
 class CustomerDashboardShell extends StatefulWidget {
@@ -12,15 +13,16 @@ class CustomerDashboardShell extends StatefulWidget {
 class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    CustomerDashboardScreen(),
-    QuickActionsScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      const CustomerDashboardScreen(),
+      const QuickActionsScreen(),
+      ChatListScreen(isActive: _currentIndex == 2),
+    ];
+
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -48,6 +50,13 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
                   isSelected: _currentIndex == 1,
                   onTap: () => setState(() => _currentIndex = 1),
                 ),
+                _NavItem(
+                  icon: Icons.chat_bubble_outline_rounded,
+                  activeIcon: Icons.chat_rounded,
+                  label: 'Chat',
+                  isSelected: _currentIndex == 2,
+                  onTap: () => setState(() => _currentIndex = 2),
+                ),
               ],
             ),
           ),
@@ -74,34 +83,37 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64,
-        height: 48,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                isSelected ? activeIcon : icon,
-                key: ValueKey(isSelected),
-                size: 24,
-                color: isSelected ? Colors.cyan : Colors.black38,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 72,
+          height: 48,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  isSelected ? activeIcon : icon,
+                  key: ValueKey(isSelected),
+                  size: 24,
+                  color: isSelected ? Colors.cyan : Colors.black38,
+                ),
               ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? Colors.cyan : Colors.black38,
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? Colors.cyan : Colors.black38,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

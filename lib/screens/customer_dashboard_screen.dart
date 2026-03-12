@@ -55,8 +55,18 @@ String _formatTimestamp(dynamic ts) {
     }
   }
   final months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
   final amPm = dt.hour >= 12 ? 'PM' : 'AM';
@@ -75,6 +85,8 @@ class CustomerDashboardScreen extends StatefulWidget {
 class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
     with SingleTickerProviderStateMixin {
   final DatabaseService _db = DatabaseService();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   UserModel? _user;
   bool _userLoading = true;
 
@@ -82,6 +94,8 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
   List<OrderModel> _activeOrders = [];
   List<OrderModel> _recentOrders = [];
   bool _ordersLoading = true;
+  Timer? _searchDebounce;
+  String _searchQuery = '';
 
   late final AnimationController _staggerCtrl;
   static const _sections = 3; // header, active, recent
@@ -115,8 +129,16 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
         ),
       );
     });
+    _searchController.addListener(_handleSearchTextChanged);
+    _searchFocusNode.addListener(_handleSearchFocusChanged);
     _loadUser();
   }
+
+  List<OrderModel> get _filteredActiveOrders => _filterOrders(_activeOrders);
+
+  List<OrderModel> get _filteredRecentOrders => _filterOrders(_recentOrders);
+
+  bool get _isSearching => _searchQuery.trim().isNotEmpty;
 
   Future<void> _loadUser() async {
     final fbUser = FirebaseAuth.instance.currentUser;
@@ -138,26 +160,65 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
     _ordersSub = _db.streamCustomerOrders(uid).listen((orders) {
       if (!mounted) return;
       setState(() {
-        _activeOrders =
-            orders.where((o) => _activeStatuses.contains(o.status)).toList();
-        _recentOrders =
-            orders.where((o) => _recentStatuses.contains(o.status)).toList();
+        _activeOrders = orders
+            .where((o) => _activeStatuses.contains(o.status))
+            .toList();
+        _recentOrders = orders
+            .where((o) => _recentStatuses.contains(o.status))
+            .toList();
         _ordersLoading = false;
       });
+    });
+  }
+
+  List<OrderModel> _filterOrders(List<OrderModel> orders) {
+    if (!_isSearching) return orders;
+    return orders.where((order) => order.matchesQuery(_searchQuery)).toList();
+  }
+
+  void _handleSearchTextChanged() {
+    if (mounted) setState(() {});
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() {
+        _searchQuery = _searchController.text.trim();
+      });
+    });
+  }
+
+  void _handleSearchFocusChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchController.clear();
+    if (!mounted) return;
+    setState(() {
+      _searchQuery = '';
     });
   }
 
   @override
   void dispose() {
     _ordersSub?.cancel();
+    _searchDebounce?.cancel();
+    _searchController
+      ..removeListener(_handleSearchTextChanged)
+      ..dispose();
+    _searchFocusNode
+      ..removeListener(_handleSearchFocusChanged)
+      ..dispose();
     _staggerCtrl.dispose();
     super.dispose();
   }
 
   Widget _anim(int i, Widget child) => FadeTransition(
-        opacity: _fades[i],
-        child: SlideTransition(position: _slides[i], child: child),
-      );
+    opacity: _fades[i],
+    child: SlideTransition(position: _slides[i], child: child),
+  );
 
   void _openProfile() {
     Navigator.push(context, SlidePageRoute(page: const ProfileScreen()));
@@ -200,91 +261,210 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
     final name = _user?.name ?? 'Customer';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Hello,',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.black38,
-                    fontWeight: FontWeight.w400,
-                  ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Hello,',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.black38,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                        letterSpacing: -0.3,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black87,
-                    letterSpacing: -0.3,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+              ),
+              _ProfileAvatar(name: name, onTap: _openProfile),
+            ],
           ),
-          _ProfileAvatar(name: name, onTap: _openProfile),
+          const SizedBox(height: 20),
+          _buildSearchBar(),
         ],
       ),
     );
   }
 
+  Widget _buildSearchBar() {
+    final hasText = _searchController.text.isNotEmpty;
+    final hasFocus = _searchFocusNode.hasFocus;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: hasFocus ? Colors.cyan : Colors.black12,
+          width: hasFocus ? 1.6 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: hasFocus
+                ? Colors.cyan.withAlpha(24)
+                : Colors.black.withAlpha(10),
+            blurRadius: hasFocus ? 18 : 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        focusNode: _searchFocusNode,
+        cursorColor: Colors.cyan,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: 'Search orders by ID, item, or status',
+          hintStyle: const TextStyle(
+            color: Colors.black38,
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: Colors.black38,
+            size: 20,
+          ),
+          suffixIcon: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            transitionBuilder: (child, animation) => ScaleTransition(
+              scale: animation,
+              child: FadeTransition(opacity: animation, child: child),
+            ),
+            child: hasText
+                ? IconButton(
+                    key: const ValueKey('clear-search'),
+                    onPressed: _clearSearch,
+                    splashRadius: 18,
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.black45,
+                      size: 18,
+                    ),
+                  )
+                : const SizedBox(key: ValueKey('empty-search-suffix')),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 16,
+          ),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
   Widget _buildActiveSection() {
+    final activeOrders = _filteredActiveOrders;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'Active Orders',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
-              letterSpacing: -0.2,
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              const Text(
+                'Active Orders',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              if (_isSearching) ...[
+                const SizedBox(width: 10),
+                Text(
+                  '${activeOrders.length} match${activeOrders.length == 1 ? '' : 'es'}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.cyan,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         const SizedBox(height: 14),
         if (_ordersLoading)
           ..._buildShimmers(2)
-        else if (_activeOrders.isEmpty)
-          _buildEmpty(Icons.receipt_long_outlined, 'No Active Orders')
+        else if (activeOrders.isEmpty)
+          _buildEmpty(
+            Icons.receipt_long_outlined,
+            _isSearching ? 'No Active Order Matches' : 'No Active Orders',
+          )
         else
-          ..._activeOrders.map((o) => _ActiveOrderCard(order: o)),
+          ...activeOrders.map((o) => _ActiveOrderCard(order: o)),
       ],
     );
   }
 
   Widget _buildRecentSection() {
+    final recentOrders = _filteredRecentOrders;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'Recent Orders',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
-              letterSpacing: -0.2,
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              const Text(
+                'Recent Orders',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              if (_isSearching) ...[
+                const SizedBox(width: 10),
+                Text(
+                  '${recentOrders.length} match${recentOrders.length == 1 ? '' : 'es'}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.cyan,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         const SizedBox(height: 14),
         if (_ordersLoading)
           ..._buildShimmers(2)
-        else if (_recentOrders.isEmpty)
-          _buildEmpty(Icons.history_outlined, 'No Recent Orders')
+        else if (recentOrders.isEmpty)
+          _buildEmpty(
+            Icons.history_outlined,
+            _isSearching ? 'No Recent Order Matches' : 'No Recent Orders',
+          )
         else
-          ..._recentOrders.take(5).map((o) => _RecentOrderTile(order: o)),
+          ...(_isSearching ? recentOrders : recentOrders.take(5)).map(
+            (o) => _RecentOrderTile(order: o),
+          ),
       ],
     );
   }
@@ -310,7 +490,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
   }
 
   List<Widget> _buildShimmers(int count) {
-    return List.generate(count, (_) {
+    return List.generate(count, (index) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
         child: _ShimmerBlock(height: 80, borderRadius: 14),
@@ -351,7 +531,7 @@ class _ShimmerBlockState extends State<_ShimmerBlock>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, __) {
+      builder: (context, child) {
         final v = _ctrl.value;
         return Container(
           height: widget.height,
@@ -396,9 +576,10 @@ class _ProfileAvatarState extends State<_ProfileAvatar>
       lowerBound: 0.0,
       upperBound: 1.0,
     );
-    _scale = Tween(begin: 1.0, end: 0.9).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _scale = Tween(
+      begin: 1.0,
+      end: 0.9,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -470,9 +651,10 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
       vsync: this,
       duration: const Duration(milliseconds: 100),
     );
-    _scale = Tween(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _scale = Tween(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -512,9 +694,7 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          o.dropoffAddress.isNotEmpty
-                              ? o.dropoffAddress
-                              : o.id,
+                          o.dropoffAddress.isNotEmpty ? o.dropoffAddress : o.id,
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
@@ -587,8 +767,7 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                           Expanded(
                             child: Container(
                               height: 2,
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 2),
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
                               color: i < current
                                   ? Colors.cyan
                                   : const Color(0xFFE8E8E8),
@@ -645,10 +824,7 @@ class _RecentOrderTile extends StatelessWidget {
                 if (ts.isNotEmpty)
                   Text(
                     ts,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black26,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.black26),
                   ),
               ],
             ),
