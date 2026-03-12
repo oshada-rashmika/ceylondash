@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../widgets/email_input_field.dart';
 import '../widgets/password_input_field.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/top_snackbar.dart';
 import '../widgets/slide_page_route.dart';
 import 'role_selection_screen.dart';
 import 'admin_login_screen.dart';
@@ -60,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     _entranceCtrl.forward();
     _loadRememberedCredentials();
+    TopSnackbar.showPendingIfAny(context);
   }
 
   Future<void> _loadRememberedCredentials() async {
@@ -76,7 +78,22 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _isLoading = true);
     try {
-      await _authService.signIn(_emailCtrl.text, _passwordCtrl.text);
+      final cred = await _authService.signIn(
+        _emailCtrl.text,
+        _passwordCtrl.text,
+      );
+
+      if (cred.user != null && !cred.user!.emailVerified) {
+        await _authService.signOut();
+        if (mounted) {
+          TopSnackbar.show(
+            context,
+            message: 'Please verify your email to continue.',
+            type: SnackbarType.error,
+          );
+        }
+        return;
+      }
 
       if (_rememberMe) {
         await _authService.saveCredentials(_emailCtrl.text, _passwordCtrl.text);
@@ -89,15 +106,18 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AuthService.friendlyAuthError(e)),
-            backgroundColor: Colors.black87,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        TopSnackbar.show(
+          context,
+          message: AuthService.friendlyAuthError(e),
+          type: SnackbarType.error,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        TopSnackbar.show(
+          context,
+          message: 'An unexpected error occurred. Please try again.',
+          type: SnackbarType.error,
         );
       }
     } finally {
@@ -108,36 +128,36 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _handleForgotPassword() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Enter your email first'),
-          backgroundColor: Colors.black87,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      TopSnackbar.show(
+        context,
+        message: 'Enter your email first',
+        type: SnackbarType.warning,
       );
       return;
     }
     try {
       await _authService.sendPasswordReset(email);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Password reset email sent'),
-            backgroundColor: Colors.cyan.shade700,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        TopSnackbar.show(
+          context,
+          message: 'Password reset email sent',
+          type: SnackbarType.success,
         );
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AuthService.friendlyAuthError(e))),
+        TopSnackbar.show(
+          context,
+          message: AuthService.friendlyAuthError(e),
+          type: SnackbarType.error,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        TopSnackbar.show(
+          context,
+          message: 'An unexpected error occurred. Please try again.',
+          type: SnackbarType.error,
         );
       }
     }

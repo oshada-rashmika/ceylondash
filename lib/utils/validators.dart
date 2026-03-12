@@ -1,8 +1,5 @@
-/// Reusable, pure validation utilities for all form inputs.
 class Validators {
   Validators._();
-
-  // ── Email ──────────────────────────────────────────────────────────────
 
   static final _emailRegex = RegExp(
     r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
@@ -14,10 +11,7 @@ class Validators {
     return null;
   }
 
-  /// Returns true when the string looks like a structurally valid email.
   static bool isEmailValid(String value) => _emailRegex.hasMatch(value.trim());
-
-  // ── Password ───────────────────────────────────────────────────────────
 
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) return 'Password is required';
@@ -37,14 +31,10 @@ class Validators {
   static bool hasNumber(String v) => RegExp(r'[0-9]').hasMatch(v);
   static bool hasSpecialChar(String v) =>
       RegExp(r'[!@#\$%\^&\*\(\)_\+\-=\[\]\{\};:,\.<>\?/\\|`~]').hasMatch(v);
-
-  // ── Phone (Sri Lanka +94) ─────────────────────────────────────────────
-
-  /// Strips everything except digits from the raw input (after +94 prefix).
+  
   static String extractPhoneDigits(String raw) =>
       raw.replaceAll(RegExp(r'\D'), '');
-
-  /// Validates that exactly 9 digits follow the +94 prefix.
+  
   static String? validateSriLankaPhone(String? digits) {
     if (digits == null || digits.isEmpty) return 'Phone number is required';
     final clean = extractPhoneDigits(digits);
@@ -52,15 +42,12 @@ class Validators {
     return null;
   }
 
-  /// Formats 9 raw digits into the display pattern: XX XXX XXXX
   static String formatPhoneDisplay(String digits) {
     final d = extractPhoneDigits(digits);
     if (d.length <= 2) return d;
     if (d.length <= 5) return '${d.substring(0, 2)} ${d.substring(2)}';
     return '${d.substring(0, 2)} ${d.substring(2, 5)} ${d.substring(5)}';
   }
-
-  // ── Generic ────────────────────────────────────────────────────────────
 
   static String? validateRequired(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) return '$fieldName is required';

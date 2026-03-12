@@ -8,6 +8,7 @@ import '../widgets/premium_text_field.dart';
 import '../widgets/email_input_field.dart';
 import '../widgets/password_input_field.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/top_snackbar.dart';
 
 class RiderRegisterScreen extends StatefulWidget {
   const RiderRegisterScreen({super.key});
@@ -87,21 +88,34 @@ class _RiderRegisterScreenState extends State<RiderRegisterScreen>
         isAvailable: false,
       );
       await _dbService.createUser(user);
+      await _authService.sendVerificationEmail();
 
       if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        TopSnackbar.show(
+          context,
+          message: 'Verification email sent! Check your inbox.',
+          type: SnackbarType.success,
+        );
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/verify-email',
+          (route) => false,
+        );
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AuthService.friendlyAuthError(e)),
-            backgroundColor: Colors.black87,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        TopSnackbar.show(
+          context,
+          message: AuthService.friendlyAuthError(e),
+          type: SnackbarType.error,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        TopSnackbar.show(
+          context,
+          message: 'An unexpected error occurred. Please try again.',
+          type: SnackbarType.error,
         );
       }
     } finally {

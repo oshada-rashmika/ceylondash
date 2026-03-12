@@ -5,6 +5,7 @@ import '../services/database_service.dart';
 import '../widgets/email_input_field.dart';
 import '../widgets/password_input_field.dart';
 import '../widgets/custom_button.dart';
+import '../widgets/top_snackbar.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -68,15 +69,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
       if (user == null || user.role != 'admin') {
         await _authService.signOut();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Access denied. Admin privileges required.'),
-              backgroundColor: Colors.black87,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
+          TopSnackbar.show(
+            context,
+            message: 'Access denied. Admin privileges required.',
+            type: SnackbarType.error,
           );
         }
         return;
@@ -87,15 +83,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AuthService.friendlyAuthError(e)),
-            backgroundColor: Colors.black87,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        TopSnackbar.show(
+          context,
+          message: AuthService.friendlyAuthError(e),
+          type: SnackbarType.error,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        TopSnackbar.show(
+          context,
+          message: 'An unexpected error occurred. Please try again.',
+          type: SnackbarType.error,
         );
       }
     } finally {

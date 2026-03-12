@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-
-/// Premium text field with animated focus glow and clean white-theme styling.
 class PremiumTextField extends StatefulWidget {
   final TextEditingController controller;
   final String label;

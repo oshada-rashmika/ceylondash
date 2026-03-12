@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/validators.dart';
 
-/// Email input field with real-time validation indicator (animated checkmark).
 class EmailInputField extends StatefulWidget {
   final TextEditingController controller;
   final String? Function(String?)? validator;

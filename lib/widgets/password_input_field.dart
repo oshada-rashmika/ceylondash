@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/validators.dart';
 
-/// Password input with visibility toggle and real-time requirement tracker.
 class PasswordInputField extends StatefulWidget {
   final TextEditingController controller;
   final String? Function(String?)? validator;
@@ -137,7 +136,7 @@ class _PasswordInputFieldState extends State<PasswordInputField> {
             ),
           ),
         ),
-        // ── Requirement tracker ──
+
         AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
           secondChild: Padding(
@@ -163,7 +162,7 @@ class _PasswordInputFieldState extends State<PasswordInputField> {
   }
 }
 
-/// Single password-requirement indicator pill.
+
 class _Req extends StatelessWidget {
   final String label;
   final bool met;

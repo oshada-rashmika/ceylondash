@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/validators.dart';
-
-/// Sri Lanka phone input with locked +94 prefix, 9-digit limit, and auto-formatting.
 class PhoneInputField extends StatefulWidget {
   final TextEditingController controller;
   final String? Function(String?)? validator;
@@ -34,9 +32,7 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
 
   void _onChanged(String raw) {
     final digits = Validators.extractPhoneDigits(raw);
-    // Cap at 9 digits
     final capped = digits.length > 9 ? digits.substring(0, 9) : digits;
-    // Store raw digits in the controller for submission
     widget.controller.text = capped;
   }
 

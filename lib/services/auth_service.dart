@@ -136,4 +136,23 @@ class AuthService {
         return 'Authentication failed. Please try again.';
     }
   }
+
+  Future<void> sendVerificationEmail() async {
+    try {
+      await _auth.currentUser?.sendEmailVerification(
+        ActionCodeSettings(
+          url: 'https://ceylondash-2fe58.firebaseapp.com/emailVerified',
+          handleCodeInApp: false,
+          androidPackageName: 'com.example.ceylondash',
+          androidInstallApp: true,
+          androidMinimumVersion: '1',
+          iOSBundleId: 'com.example.ceylondash',
+        ),
+      );
+    } on FirebaseAuthException {
+      rethrow;
+    }
+  }
+
+  bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
 }
