@@ -6,9 +6,20 @@ class UserModel {
   final String phone;
   final String role;
   final String fcmToken;
-  final String? courierId;
+  final String? email;
+
+  //Rider
+  final String? courierCompany;
+  final String? nic;
   final GeoPoint? currentLocation;
   final bool? isAvailable;
+
+  //Seller
+  final String? businessName;
+  final String? businessAddress;
+  final String? socials;
+
+  final String? courierId;
 
   UserModel({
     required this.uid,
@@ -16,9 +27,15 @@ class UserModel {
     required this.phone,
     required this.role,
     required this.fcmToken,
-    this.courierId,
+    this.email,
+    this.courierCompany,
+    this.nic,
     this.currentLocation,
     this.isAvailable,
+    this.businessName,
+    this.businessAddress,
+    this.socials,
+    this.courierId,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -29,9 +46,15 @@ class UserModel {
       phone: data['phone'] ?? '',
       role: data['role'] ?? 'customer',
       fcmToken: data['fcmToken'] ?? '',
-      courierId: data['courierId'],
+      email: data['email'],
+      courierCompany: data['courierCompany'],
+      nic: data['nic'],
       currentLocation: data['currentLocation'],
       isAvailable: data['isAvailable'],
+      businessName: data['businessName'],
+      businessAddress: data['businessAddress'],
+      socials: data['socials'],
+      courierId: data['courierId'],
     );
   }
 
@@ -42,9 +65,15 @@ class UserModel {
       'phone': phone,
       'role': role,
       'fcmToken': fcmToken,
-      if (courierId != null) 'courierId': courierId,
+      if (email != null) 'email': email,
+      if (courierCompany != null) 'courierCompany': courierCompany,
+      if (nic != null) 'nic': nic,
       if (currentLocation != null) 'currentLocation': currentLocation,
       if (isAvailable != null) 'isAvailable': isAvailable,
+      if (businessName != null) 'businessName': businessName,
+      if (businessAddress != null) 'businessAddress': businessAddress,
+      if (socials != null) 'socials': socials,
+      if (courierId != null) 'courierId': courierId,
     };
   }
 }
