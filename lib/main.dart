@@ -13,6 +13,7 @@ import 'screens/rider_register_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'screens/customer_dashboard_shell.dart';
 import 'screens/profile_screen.dart';
+import 'splash_screen.dart';
 import 'widgets/slide_page_route.dart';
 import 'widgets/top_snackbar.dart';
 
@@ -113,26 +114,7 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           ),
         ),
       ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              backgroundColor: Colors.white,
-              body: Center(
-                child: CircularProgressIndicator(color: Colors.cyan),
-              ),
-            );
-          }
-          if (snapshot.hasData) {
-            if (snapshot.data!.emailVerified) {
-              return const CustomerDashboardShell();
-            }
-            return const VerificationPendingScreen();
-          }
-          return const LoginScreen();
-        },
-      ),
+      home: const SplashScreen(),
       onGenerateRoute: (settings) {
         final routes = <String, Widget>{
           '/login': const LoginScreen(),
