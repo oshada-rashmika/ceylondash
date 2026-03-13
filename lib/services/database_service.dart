@@ -1,9 +1,44 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/order_model.dart';
 import '../models/user_model.dart';
+import '../models/promotion_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  Future<int> getUserOrderCount(String uid) async {
+    final snap = await _db
+        .collection('orders')
+        .where('customerId', isEqualTo: uid)
+        .count()
+        .get();
+    return snap.count ?? 0;
+  }
+
+  Future<List<PromotionModel>> getSeasonalPromotions(String userAddress) async {
+    final currentMonth = DateTime.now().month;
+    final snap = await _db.collection('promotions').where('type', isEqualTo: 'seasonal').get();
+    
+    final promotions = <PromotionModel>[];
+    for (final doc in snap.docs) {
+      final promo = PromotionModel.fromMap(doc.id, doc.data());
+      
+      bool monthMatches = true;
+      if (promo.activeMonths != null && promo.activeMonths!.isNotEmpty) {
+        monthMatches = promo.activeMonths!.contains(currentMonth);
+      }
+
+      bool regionMatches = true;
+      if (promo.targetRegion != null && promo.targetRegion!.isNotEmpty) {
+        regionMatches = userAddress.toLowerCase().contains(promo.targetRegion!.toLowerCase());
+      }
+      
+      if (monthMatches && regionMatches) {
+        promotions.add(promo);
+      }
+    }
+    return promotions;
+  }
 
   Future<void> createUser(UserModel user) async {
     await _db.collection('users').doc(user.uid).set(user.toMap());

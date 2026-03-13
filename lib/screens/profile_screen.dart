@@ -9,7 +9,9 @@ import '../services/database_service.dart';
 import '../utils/validators.dart';
 import '../widgets/email_input_field.dart';
 import '../widgets/top_snackbar.dart';
+import '../widgets/slide_page_route.dart';
 import 'map_selection_screen.dart';
+import 'promotions_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -1052,11 +1054,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ),
                           ),
-                          _SettingsTile(
-                            icon: Icons.sell_rounded,
-                            label: 'Promotions',
-                            onTap: () => _showComingSoon('Promotions'),
-                          ),
+                          if (_user?.role == 'customer')
+                            _SettingsTile(
+                              icon: Icons.sell_rounded,
+                              label: 'Promotions',
+                              onTap: () {
+                                if (_user == null) return;
+                                Navigator.push(
+                                  context,
+                                  SlidePageRoute(page: PromotionsScreen(user: _user!)),
+                                );
+                              },
+                            ),
                           _SettingsTile(
                             icon: Icons.settings_rounded,
                             label: 'Settings',
