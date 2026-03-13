@@ -222,13 +222,13 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
 
     if (_userLoading) {
       return const Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFFF9F9FB),
         body: Center(child: CircularProgressIndicator(color: Colors.cyan)),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9F9FB),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
@@ -325,7 +325,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
           BoxShadow(
             color: hasFocus
                 ? Colors.cyan.withOpacity(0.1)
-                : Colors.black.withOpacity(0.04),
+                : Colors.black.withValues(alpha: 0.03),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -500,8 +500,21 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
 
   Widget _buildEmpty(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: Center(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
         child: Column(
           children: [
             Container(
@@ -727,7 +740,7 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
@@ -913,7 +926,7 @@ class _RecentOrderTileState extends State<_RecentOrderTile> with SingleTickerPro
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),

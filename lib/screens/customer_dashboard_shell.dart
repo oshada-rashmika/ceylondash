@@ -73,7 +73,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> with Si
 
     return Scaffold(
       extendBody: true,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9F9FB),
       body: Stack(
         children: [
           IndexedStack(index: _currentIndex, children: screens),
@@ -170,8 +170,9 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> with Si
       shape: const CircularNotchedRectangle(),
       notchMargin: 8.0,
       color: Colors.white,
-      elevation: 20,
-      shadowColor: Colors.black.withOpacity(0.1),
+      surfaceTintColor: Colors.white,
+      elevation: 16,
+      shadowColor: Colors.black.withValues(alpha: 0.08),
       child: SizedBox(
         height: 60,
         child: Row(
