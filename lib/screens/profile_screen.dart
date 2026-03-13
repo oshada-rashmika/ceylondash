@@ -958,7 +958,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                         onPressed: () {
                           HapticFeedback.lightImpact();
-                          Navigator.pop(context);
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else {
+                            Navigator.pushReplacementNamed(context, '/home'); 
+                          }
                         },
                       ),
                       const SizedBox(width: 8),
