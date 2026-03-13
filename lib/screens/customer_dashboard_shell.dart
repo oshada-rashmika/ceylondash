@@ -1,11 +1,13 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'customer_dashboard_screen.dart';
 import 'chat_list_screen.dart';
 import 'quick_actions_screen.dart';
+import 'profile_screen.dart';
 
 class CustomerDashboardShell extends StatefulWidget {
   const CustomerDashboardShell({super.key});
@@ -14,13 +16,50 @@ class CustomerDashboardShell extends StatefulWidget {
   State<CustomerDashboardShell> createState() => _CustomerDashboardShellState();
 }
 
-class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
+class _CustomerDashboardShellState extends State<CustomerDashboardShell> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+
+  late final AnimationController _menuCtrl;
+  late final Animation<double> _menuAnim;
+  bool _isMenuOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _menuCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _menuAnim = CurvedAnimation(
+      parent: _menuCtrl,
+      curve: Curves.easeOutBack,
+      reverseCurve: Curves.easeInBack,
+    );
+  }
+
+  @override
+  void dispose() {
+    _menuCtrl.dispose();
+    super.dispose();
+  }
 
   void _onNavTap(int index) {
     if (_currentIndex == index) return;
+    if (_isMenuOpen) _toggleMenu();
     HapticFeedback.lightImpact();
     setState(() => _currentIndex = index);
+  }
+
+  void _toggleMenu() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+      if (_isMenuOpen) {
+        _menuCtrl.forward();
+      } else {
+        _menuCtrl.reverse();
+      }
+    });
   }
 
   @override
@@ -29,174 +68,178 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
       const CustomerDashboardScreen(),
       const QuickActionsScreen(),
       ChatListScreen(isActive: _currentIndex == 2),
+      const ProfileScreen(),
     ];
 
     return Scaffold(
-      extendBody: true, // Crucial for glassmorphism effect
+      extendBody: true,
       backgroundColor: Colors.white,
-      body: IndexedStack(index: _currentIndex, children: screens),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(36),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.65),
-                  borderRadius: BorderRadius.circular(36),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.4),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
+      body: Stack(
+        children: [
+          IndexedStack(index: _currentIndex, children: screens),
+          if (_isMenuOpen || _menuCtrl.isAnimating)
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _menuCtrl,
+                builder: (context, child) {
+                  return IgnorePointer(
+                    ignoring: !_isMenuOpen,
+                    child: GestureDetector(
+                      onTap: _toggleMenu,
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(
+                          sigmaX: 5.0 * _menuCtrl.value,
+                          sigmaY: 5.0 * _menuCtrl.value,
+                        ),
+                        child: Container(
+                          color: Colors.black.withOpacity(0.3 * _menuCtrl.value),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _NavItem(
-                      icon: Icons.space_dashboard_outlined,
-                      activeIcon: Icons.space_dashboard_rounded,
-                      label: 'Home',
-                      isSelected: _currentIndex == 0,
-                      onTap: () => _onNavTap(0),
-                    ),
-                    _NavItem(
-                      icon: Icons.grid_view_outlined,
-                      activeIcon: Icons.grid_view_rounded,
-                      label: 'Actions',
-                      isSelected: _currentIndex == 1,
-                      onTap: () => _onNavTap(1),
-                    ),
-                    _NavItem(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      activeIcon: Icons.chat_rounded,
-                      label: 'Chat',
-                      isSelected: _currentIndex == 2,
-                      onTap: () => _onNavTap(2),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
+        ],
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: _buildRadialFab(),
+      bottomNavigationBar: _buildBottomAppBar(),
+    );
+  }
+
+  Widget _buildRadialFab() {
+    return AnimatedBuilder(
+      animation: _menuAnim,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            ..._buildRadialItems(),
+            Transform.rotate(
+              angle: _menuAnim.value * math.pi / 4,
+              child: FloatingActionButton(
+                onPressed: _toggleMenu,
+                backgroundColor: Colors.cyan,
+                elevation: 4 + (4 * _menuAnim.value),
+                shape: const CircleBorder(),
+                child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildRadialItems() {
+    if (_menuAnim.value == 0) return [];
+
+    final double radius = 100.0;
+    final angles = [-5 * math.pi / 6, -math.pi / 2, -math.pi / 6];
+    final icons = [Icons.support_agent_rounded, Icons.local_offer_rounded, Icons.qr_code_scanner_rounded];
+
+    return List.generate(3, (index) {
+      final theta = angles[index];
+      final double dx = math.cos(theta) * radius * _menuAnim.value;
+      final double dy = math.sin(theta) * radius * _menuAnim.value;
+
+      return Transform.translate(
+        offset: Offset(dx, dy),
+        child: Transform.scale(
+          scale: _menuAnim.value,
+          child: FloatingActionButton.small(
+            heroTag: 'fab_rad_$index',
+            backgroundColor: Colors.white,
+            elevation: 4,
+            shape: const CircleBorder(),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _toggleMenu();
+            },
+            child: Icon(icons[index], color: Colors.cyan.shade700),
           ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildBottomAppBar() {
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 8.0,
+      color: Colors.white,
+      elevation: 20,
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: SizedBox(
+        height: 60,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(Icons.space_dashboard_outlined, Icons.space_dashboard_rounded, 0, 'Home'),
+                  _buildNavItem(Icons.receipt_long_outlined, Icons.receipt_long_rounded, 1, 'Orders'),
+                ],
+              ),
+            ),
+            const SizedBox(width: 48), // Cutout space
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_rounded, 2, 'Chat'),
+                  _buildNavItem(Icons.person_outline_rounded, Icons.person_rounded, 3, 'Profile'),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
-}
 
-class _NavItem extends StatefulWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
+  Widget _buildNavItem(IconData icon, IconData activeIcon, int index, String label) {
+    final isSelected = _currentIndex == index;
 
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  State<_NavItem> createState() => _NavItemState();
-}
-
-class _NavItemState extends State<_NavItem>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pressCtrl;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _pressCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 150),
-    );
-    _scale = Tween(
-      begin: 1.0,
-      end: 0.92,
-    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOutCubic));
-  }
-
-  @override
-  void dispose() {
-    _pressCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) {
-        HapticFeedback.lightImpact();
-        _pressCtrl.forward();
-      },
-      onTapUp: (_) {
-        _pressCtrl.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _pressCtrl.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.fastOutSlowIn,
-          padding: EdgeInsets.symmetric(
-            horizontal: widget.isSelected ? 20 : 16,
-            vertical: 10,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: widget.isSelected
-                ? Colors.cyan.withOpacity(0.15)
-                : Colors.transparent,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) => ScaleTransition(
-                  scale: animation,
-                  child: child,
-                ),
-                child: Icon(
-                  widget.isSelected ? widget.activeIcon : widget.icon,
-                  key: ValueKey(widget.isSelected),
-                  size: 24,
-                  color: widget.isSelected ? Colors.cyan.shade700 : Colors.black54,
-                ),
+      onTap: () => _onNavTap(index),
+      child: SizedBox(
+        width: 60,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) => ScaleTransition(
+                scale: animation,
+                child: child,
               ),
-              if (widget.isSelected) ...[
-                const SizedBox(width: 8),
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                    color: Colors.cyan.shade700,
-                  ),
-                ),
-              ],
-            ],
-          ),
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                key: ValueKey(isSelected),
+                size: 26,
+                color: isSelected ? Colors.cyan.shade700 : Colors.black45,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? Colors.cyan.shade700 : Colors.black45,
+                letterSpacing: -0.2,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );

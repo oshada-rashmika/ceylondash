@@ -627,12 +627,6 @@ class _ProfileAvatarState extends State<_ProfileAvatar>
     super.dispose();
   }
 
-  String get _initials {
-    final parts = widget.name.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -655,24 +649,21 @@ class _ProfileAvatarState extends State<_ProfileAvatar>
             height: 52,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.cyan.shade600,
+              color: Colors.white,
+              border: Border.all(color: Colors.black.withOpacity(0.05)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.cyan.withOpacity(0.2),
+                  color: Colors.black.withOpacity(0.04),
                   blurRadius: 16,
-                  offset: const Offset(0, 6),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             alignment: Alignment.center,
-            child: Text(
-              _initials,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                letterSpacing: 0.5,
-              ),
+            child: Icon(
+              Icons.person_outline_rounded,
+              color: Colors.cyan.shade700,
+              size: 26,
             ),
           ),
         ),
