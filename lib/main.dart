@@ -10,6 +10,8 @@ import 'screens/role_selection_screen.dart';
 import 'screens/customer_register_screen.dart';
 import 'screens/seller_register_screen.dart';
 import 'screens/rider_register_screen.dart';
+import 'screens/seller_dashboard_screen.dart';
+import 'screens/rider_dashboard_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'screens/customer_dashboard_shell.dart';
 import 'screens/profile_screen.dart';
@@ -143,6 +145,8 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           '/register/rider': const RiderRegisterScreen(),
           '/verify-email': const VerificationPendingScreen(),
           '/home': const CustomerDashboardShell(),
+          '/seller-dashboard': const SellerDashboardScreen(),
+          '/rider-dashboard': const RiderDashboardScreen(),
           '/profile': const ProfileScreen(),
         };
         final page = routes[settings.name];
