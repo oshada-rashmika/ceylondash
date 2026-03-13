@@ -163,7 +163,6 @@ class _PasswordInputFieldState extends State<PasswordInputField> {
   }
 }
 
-
 class _Req extends StatelessWidget {
   final String label;
   final bool met;

@@ -16,7 +16,8 @@ class CustomerDashboardShell extends StatefulWidget {
   State<CustomerDashboardShell> createState() => _CustomerDashboardShellState();
 }
 
-class _CustomerDashboardShellState extends State<CustomerDashboardShell> with SingleTickerProviderStateMixin {
+class _CustomerDashboardShellState extends State<CustomerDashboardShell>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
 
   late final AnimationController _menuCtrl;
@@ -92,7 +93,9 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> with Si
                           sigmaY: 5.0 * _menuCtrl.value,
                         ),
                         child: Container(
-                          color: Colors.black.withOpacity(0.3 * _menuCtrl.value),
+                          color: Colors.black.withOpacity(
+                            0.3 * _menuCtrl.value,
+                          ),
                         ),
                       ),
                     ),
@@ -124,7 +127,11 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> with Si
                 backgroundColor: Colors.cyan,
                 elevation: 4 + (4 * _menuAnim.value),
                 shape: const CircleBorder(),
-                child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
               ),
             ),
           ],
@@ -138,7 +145,11 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> with Si
 
     final double radius = 100.0;
     final angles = [-5 * math.pi / 6, -math.pi / 2, -math.pi / 6];
-    final icons = [Icons.support_agent_rounded, Icons.local_offer_rounded, Icons.qr_code_scanner_rounded];
+    final icons = [
+      Icons.support_agent_rounded,
+      Icons.local_offer_rounded,
+      Icons.qr_code_scanner_rounded,
+    ];
 
     return List.generate(3, (index) {
       final theta = angles[index];
@@ -182,8 +193,18 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> with Si
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildNavItem(Icons.space_dashboard_outlined, Icons.space_dashboard_rounded, 0, 'Home'),
-                  _buildNavItem(Icons.receipt_long_outlined, Icons.receipt_long_rounded, 1, 'Orders'),
+                  _buildNavItem(
+                    Icons.space_dashboard_outlined,
+                    Icons.space_dashboard_rounded,
+                    0,
+                    'Home',
+                  ),
+                  _buildNavItem(
+                    Icons.receipt_long_outlined,
+                    Icons.receipt_long_rounded,
+                    1,
+                    'Orders',
+                  ),
                 ],
               ),
             ),
@@ -192,8 +213,18 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> with Si
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildNavItem(Icons.chat_bubble_outline_rounded, Icons.chat_rounded, 2, 'Chat'),
-                  _buildNavItem(Icons.person_outline_rounded, Icons.person_rounded, 3, 'Profile'),
+                  _buildNavItem(
+                    Icons.chat_bubble_outline_rounded,
+                    Icons.chat_rounded,
+                    2,
+                    'Chat',
+                  ),
+                  _buildNavItem(
+                    Icons.person_outline_rounded,
+                    Icons.person_rounded,
+                    3,
+                    'Profile',
+                  ),
                 ],
               ),
             ),
@@ -203,7 +234,12 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> with Si
     );
   }
 
-  Widget _buildNavItem(IconData icon, IconData activeIcon, int index, String label) {
+  Widget _buildNavItem(
+    IconData icon,
+    IconData activeIcon,
+    int index,
+    String label,
+  ) {
     final isSelected = _currentIndex == index;
 
     return GestureDetector(
@@ -217,10 +253,8 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> with Si
           children: [
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, animation) => ScaleTransition(
-                scale: animation,
-                child: child,
-              ),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
               child: Icon(
                 isSelected ? activeIcon : icon,
                 key: ValueKey(isSelected),

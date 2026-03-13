@@ -31,10 +31,10 @@ class Validators {
   static bool hasNumber(String v) => RegExp(r'[0-9]').hasMatch(v);
   static bool hasSpecialChar(String v) =>
       RegExp(r'[!@#\$%\^&\*\(\)_\+\-=\[\]\{\};:,\.<>\?/\\|`~]').hasMatch(v);
-  
+
   static String extractPhoneDigits(String raw) =>
       raw.replaceAll(RegExp(r'\D'), '');
-  
+
   static String? validateSriLankaPhone(String? digits) {
     if (digits == null || digits.isEmpty) return 'Phone number is required';
     final clean = extractPhoneDigits(digits);
