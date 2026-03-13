@@ -233,7 +233,11 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
-                transform: Matrix4.translationValues(0, _isDragging ? -15 : 0, 0),
+                transform: Matrix4.translationValues(
+                  0,
+                  _isDragging ? -15 : 0,
+                  0,
+                ),
                 child: const Icon(
                   Icons.location_on_rounded,
                   size: 54,

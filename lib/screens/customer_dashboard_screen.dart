@@ -9,6 +9,7 @@ import '../models/user_model.dart';
 import '../models/order_model.dart';
 import '../widgets/slide_page_route.dart';
 import 'profile_screen.dart';
+import 'order_detail_screen.dart';
 
 const _activeStatuses = {'processing', 'placed', 'preparing', 'on_the_way'};
 const _recentStatuses = {'delivered', 'cancelled'};
@@ -58,7 +59,18 @@ String _formatTimestamp(dynamic ts) {
     }
   }
   final months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
   final amPm = dt.hour >= 12 ? 'PM' : 'AM';
@@ -222,18 +234,20 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
 
     if (_userLoading) {
       return const Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xFFF9F9FB),
         body: Center(child: CircularProgressIndicator(color: Colors.cyan)),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9F9FB),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: CustomScrollView(
-            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
             slivers: [
               SliverToBoxAdapter(child: SizedBox(height: topPad + 32)),
               SliverToBoxAdapter(child: _anim(0, _buildHeader())),
@@ -241,7 +255,9 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               SliverToBoxAdapter(child: _anim(1, _buildActiveSection())),
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
               SliverToBoxAdapter(child: _anim(2, _buildRecentSection())),
-              const SliverToBoxAdapter(child: SizedBox(height: 140)), // Padding for floating nav bar
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 140),
+              ), // Padding for floating nav bar
             ],
           ),
         ),
@@ -325,7 +341,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
           BoxShadow(
             color: hasFocus
                 ? Colors.cyan.withOpacity(0.1)
-                : Colors.black.withOpacity(0.04),
+                : Colors.black.withValues(alpha: 0.03),
             blurRadius: 24,
             offset: const Offset(0, 10),
           ),
@@ -350,11 +366,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
           ),
           prefixIcon: const Padding(
             padding: EdgeInsets.only(left: 8.0),
-            child: Icon(
-              Icons.search_rounded,
-              color: Colors.black38,
-              size: 22,
-            ),
+            child: Icon(Icons.search_rounded, color: Colors.black38, size: 22),
           ),
           suffixIcon: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
@@ -410,7 +422,10 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               if (_isSearching) ...[
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.cyan.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -464,7 +479,10 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               if (_isSearching) ...[
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(12),
@@ -500,8 +518,21 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
 
   Widget _buildEmpty(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: Center(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
         child: Column(
           children: [
             Container(
@@ -627,12 +658,6 @@ class _ProfileAvatarState extends State<_ProfileAvatar>
     super.dispose();
   }
 
-  String get _initials {
-    final parts = widget.name.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -655,24 +680,21 @@ class _ProfileAvatarState extends State<_ProfileAvatar>
             height: 52,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.cyan.shade600,
+              color: Colors.white,
+              border: Border.all(color: Colors.black.withOpacity(0.05)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.cyan.withOpacity(0.2),
+                  color: Colors.black.withOpacity(0.04),
                   blurRadius: 16,
-                  offset: const Offset(0, 6),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             alignment: Alignment.center,
-            child: Text(
-              _initials,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                letterSpacing: 0.5,
-              ),
+            child: Icon(
+              Icons.person_outline_rounded,
+              color: Colors.cyan.shade700,
+              size: 26,
             ),
           ),
         ),
@@ -721,10 +743,16 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
 
     return GestureDetector(
       onTapDown: (_) {
-        HapticFeedback.lightImpact();
+        HapticFeedback.selectionClick();
         _ctrl.forward();
       },
-      onTapUp: (_) => _ctrl.reverse(),
+      onTapUp: (_) {
+        _ctrl.reverse();
+        Navigator.push(
+          context,
+          SlidePageRoute(page: OrderDetailScreen(order: o)),
+        );
+      },
       onTapCancel: () => _ctrl.reverse(),
       child: ScaleTransition(
         scale: _scale,
@@ -736,7 +764,7 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
@@ -747,13 +775,20 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.cyan.withOpacity(0.1),
-                      shape: BoxShape.circle,
+                  Hero(
+                    tag: 'order_status_icon_${o.id}',
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.cyan.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _orderIcon(o.status),
+                        color: Colors.cyan.shade600,
+                        size: 24,
+                      ),
                     ),
-                    child: Icon(_orderIcon(o.status), color: Colors.cyan.shade600, size: 24),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -761,7 +796,9 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          o.dropoffAddress.isNotEmpty ? o.dropoffAddress : o.id,
+                          o.orderName.isNotEmpty
+                              ? o.orderName
+                              : 'Order #${o.id.substring(0, 5)}',
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
@@ -815,7 +852,8 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                     child: Row(
                       children: [
                         Semantics(
-                          label: '${_statusLabels[i]} ${active ? "done" : "pending"}',
+                          label:
+                              '${_statusLabels[i]} ${active ? "done" : "pending"}',
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             width: 32,
@@ -831,7 +869,7 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                                         color: Colors.cyan.withOpacity(0.3),
                                         blurRadius: 10,
                                         offset: const Offset(0, 4),
-                                      )
+                                      ),
                                     ]
                                   : null,
                             ),
@@ -877,7 +915,8 @@ class _RecentOrderTile extends StatefulWidget {
   State<_RecentOrderTile> createState() => _RecentOrderTileState();
 }
 
-class _RecentOrderTileState extends State<_RecentOrderTile> with SingleTickerProviderStateMixin {
+class _RecentOrderTileState extends State<_RecentOrderTile>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   late final Animation<double> _scale;
 
@@ -907,10 +946,16 @@ class _RecentOrderTileState extends State<_RecentOrderTile> with SingleTickerPro
 
     return GestureDetector(
       onTapDown: (_) {
-        HapticFeedback.lightImpact();
+        HapticFeedback.selectionClick();
         _ctrl.forward();
       },
-      onTapUp: (_) => _ctrl.reverse(),
+      onTapUp: (_) {
+        _ctrl.reverse();
+        Navigator.push(
+          context,
+          SlidePageRoute(page: OrderDetailScreen(order: widget.order)),
+        );
+      },
       onTapCancel: () => _ctrl.reverse(),
       child: ScaleTransition(
         scale: _scale,
@@ -922,7 +967,7 @@ class _RecentOrderTileState extends State<_RecentOrderTile> with SingleTickerPro
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -930,18 +975,23 @@ class _RecentOrderTileState extends State<_RecentOrderTile> with SingleTickerPro
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: cancelled 
-                      ? Colors.black.withOpacity(0.04) 
-                      : Colors.cyan.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  cancelled ? Icons.cancel_rounded : Icons.check_circle_rounded,
-                  size: 22,
-                  color: cancelled ? Colors.black38 : Colors.cyan.shade600,
+              Hero(
+                tag: 'order_status_icon_${widget.order.id}',
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: cancelled
+                        ? Colors.black.withOpacity(0.04)
+                        : Colors.cyan.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    cancelled
+                        ? Icons.cancel_rounded
+                        : Icons.check_circle_rounded,
+                    size: 22,
+                    color: cancelled ? Colors.black38 : Colors.cyan.shade600,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -950,9 +1000,9 @@ class _RecentOrderTileState extends State<_RecentOrderTile> with SingleTickerPro
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.order.dropoffAddress.isNotEmpty
-                          ? widget.order.dropoffAddress
-                          : widget.order.id,
+                      widget.order.orderName.isNotEmpty
+                          ? widget.order.orderName
+                          : 'Order #${widget.order.id.substring(0, 5)}',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -972,7 +1022,7 @@ class _RecentOrderTileState extends State<_RecentOrderTile> with SingleTickerPro
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ]
+                    ],
                   ],
                 ),
               ),

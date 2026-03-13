@@ -42,9 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     _slide = Tween<Offset>(
       begin: const Offset(0, 0.06),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic),
-    );
+    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
     _bindUser();
   }
 
@@ -57,33 +55,35 @@ class _ProfileScreenState extends State<ProfileScreen>
       return;
     }
 
-    _userSub = _db.streamUser(uid).listen(
-      (user) {
-        if (!mounted) return;
+    _userSub = _db
+        .streamUser(uid)
+        .listen(
+          (user) {
+            if (!mounted) return;
 
-        setState(() {
-          _user = user;
-          _loading = false;
-        });
+            setState(() {
+              _user = user;
+              _loading = false;
+            });
 
-        if (!_animCtrl.isCompleted) {
-          _animCtrl.forward();
-        }
-      },
-      onError: (_) {
-        if (!mounted) return;
+            if (!_animCtrl.isCompleted) {
+              _animCtrl.forward();
+            }
+          },
+          onError: (_) {
+            if (!mounted) return;
 
-        setState(() {
-          _loading = false;
-        });
+            setState(() {
+              _loading = false;
+            });
 
-        TopSnackbar.show(
-          context,
-          message: 'Failed to load profile details.',
-          type: SnackbarType.error,
+            TopSnackbar.show(
+              context,
+              message: 'Failed to load profile details.',
+              type: SnackbarType.error,
+            );
+          },
         );
-      },
-    );
   }
 
   @override
@@ -111,8 +111,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   String get _displayEmail {
-    final email = (_user?.email ?? FirebaseAuth.instance.currentUser?.email ?? '')
-        .trim();
+    final email =
+        (_user?.email ?? FirebaseAuth.instance.currentUser?.email ?? '').trim();
     return email.isEmpty ? '—' : email;
   }
 
@@ -169,9 +169,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     double? latitude,
     double? longitude,
   }) async {
-    final payload = <String, dynamic>{
-      'address': address,
-    };
+    final payload = <String, dynamic>{'address': address};
 
     if (latitude != null) {
       payload['latitude'] = latitude;
@@ -328,9 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                 final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const MapSelectionScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const MapSelectionScreen()),
                 );
 
                 if (!mounted || result == null) return;
@@ -472,7 +468,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditEmailSheet() {
-    final emailCtrl = TextEditingController(text: _displayEmail == '—' ? '' : _displayEmail);
+    final emailCtrl = TextEditingController(
+      text: _displayEmail == '—' ? '' : _displayEmail,
+    );
     final formKey = GlobalKey<FormState>();
     bool saving = false;
 
@@ -766,7 +764,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> _signOut() async {
     if (_isSigningOut) return;
 
-    final shouldSignOut = await showDialog<bool>(
+    final shouldSignOut =
+        await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             shape: RoundedRectangleBorder(
@@ -863,10 +862,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: Colors.black.withValues(alpha: 0.08),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 18,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
@@ -887,13 +883,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _sheetHandle() => Container(
-        width: 48,
-        height: 5,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(3),
-        ),
-      );
+    width: 48,
+    height: 5,
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(3),
+    ),
+  );
 
   Widget _sheetButton({
     required String label,
@@ -938,9 +934,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (_loading) {
       return const Scaffold(
         backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.cyan),
-        ),
+        body: Center(child: CircularProgressIndicator(color: Colors.cyan)),
       );
     }
 
@@ -1046,38 +1040,40 @@ class _ProfileScreenState extends State<ProfileScreen>
                             padding: EdgeInsets.only(left: 4, bottom: 12),
                             child: Text(
                               'ACCOUNT',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black38,
-                              letterSpacing: 1.2,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.black38,
+                                letterSpacing: 1.2,
+                              ),
                             ),
                           ),
-                        ),
-                        _SettingsTile(
-                          icon: Icons.sell_rounded,
-                          label: 'Promotions',
-                          onTap: () => _showComingSoon('Promotions'),
-                        ),
-                        _SettingsTile(
-                          icon: Icons.settings_rounded,
-                          label: 'Settings',
-                          onTap: () => _showComingSoon('Settings'),
-                        ),
-                        const SizedBox(height: 8),
-                        _SettingsTile(
-                          icon: Icons.logout_rounded,
-                          label: _isSigningOut ? 'Signing Out...' : 'Sign Out',
-                          isDestructive: true,
-                          onTap: _signOut,
-                        ),
-                        const SizedBox(height: 24),
-                      ],
+                          _SettingsTile(
+                            icon: Icons.sell_rounded,
+                            label: 'Promotions',
+                            onTap: () => _showComingSoon('Promotions'),
+                          ),
+                          _SettingsTile(
+                            icon: Icons.settings_rounded,
+                            label: 'Settings',
+                            onTap: () => _showComingSoon('Settings'),
+                          ),
+                          const SizedBox(height: 8),
+                          _SettingsTile(
+                            icon: Icons.logout_rounded,
+                            label: _isSigningOut
+                                ? 'Signing Out...'
+                                : 'Sign Out',
+                            isDestructive: true,
+                            onTap: _signOut,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
             ),
           ),
         ),
@@ -1143,9 +1139,10 @@ class _AddressOptionTileState extends State<_AddressOptionTile>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scale = Tween<double>(begin: 1, end: 0.95).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -1260,9 +1257,10 @@ class _InfoTileState extends State<_InfoTile>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scale = Tween<double>(begin: 1, end: 0.96).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1,
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -1305,8 +1303,9 @@ class _InfoTileState extends State<_InfoTile>
             ],
           ),
           child: Row(
-            crossAxisAlignment:
-                widget.allowExpandedText ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+            crossAxisAlignment: widget.allowExpandedText
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
             children: [
               Container(
                 width: 48,
@@ -1320,7 +1319,9 @@ class _InfoTileState extends State<_InfoTile>
               const SizedBox(width: 16),
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(top: widget.allowExpandedText ? 2 : 0),
+                  padding: EdgeInsets.only(
+                    top: widget.allowExpandedText ? 2 : 0,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1403,9 +1404,10 @@ class _SettingsTileState extends State<_SettingsTile>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scale = Tween<double>(begin: 1, end: 0.95).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween<double>(
+      begin: 1,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
   @override
