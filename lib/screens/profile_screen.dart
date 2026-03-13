@@ -12,6 +12,7 @@ import '../widgets/top_snackbar.dart';
 import '../widgets/slide_page_route.dart';
 import 'map_selection_screen.dart';
 import 'promotions_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -514,10 +515,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Form(
-                    key: formKey,
-                    child: EmailInputField(controller: emailCtrl),
-                  ),
+                  EmailInputField(controller: emailCtrl),
                   const SizedBox(height: 24),
                   _sheetButton(
                     label: 'Update Email',
@@ -754,15 +752,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Future<void> _showComingSoon(String label) async {
-    HapticFeedback.lightImpact();
-    TopSnackbar.show(
-      context,
-      message: '$label is coming soon.',
-      type: SnackbarType.success,
-    );
-  }
-
   Future<void> _signOut() async {
     if (_isSigningOut) return;
 
@@ -963,7 +952,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           if (Navigator.canPop(context)) {
                             Navigator.pop(context);
                           } else {
-                            Navigator.pushReplacementNamed(context, '/home'); 
+                            Navigator.pushReplacementNamed(context, '/home');
                           }
                         },
                       ),
@@ -1062,14 +1051,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 if (_user == null) return;
                                 Navigator.push(
                                   context,
-                                  SlidePageRoute(page: PromotionsScreen(user: _user!)),
+                                  SlidePageRoute(
+                                    page: PromotionsScreen(user: _user!),
+                                  ),
                                 );
                               },
                             ),
                           _SettingsTile(
                             icon: Icons.settings_rounded,
                             label: 'Settings',
-                            onTap: () => _showComingSoon('Settings'),
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              Navigator.push(
+                                context,
+                                SlidePageRoute(page: const SettingsScreen()),
+                              );
+                            },
                           ),
                           const SizedBox(height: 8),
                           _SettingsTile(
