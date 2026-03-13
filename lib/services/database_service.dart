@@ -55,7 +55,8 @@ class DatabaseService {
   }
 
   Future<void> createUser(UserModel user) async {
-    await _db.collection('users').doc(user.uid).set(user.toMap());
+    await _db.collection('users').doc(user.uid).set(user.toJson());
+    print('🔥 Firestore User Created: ${user.uid}');
   }
 
   Future<UserModel?> getUser(String uid) async {

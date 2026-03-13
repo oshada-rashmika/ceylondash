@@ -88,7 +88,14 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen>
             ? null
             : _socialsCtrl.text.trim(),
       );
-      await _dbService.createUser(user);
+
+      try {
+        await _dbService.createUser(user);
+      } catch (e) {
+        await cred.user?.delete();
+        rethrow;
+      }
+
       await _authService.sendVerificationEmail();
 
       if (mounted) {

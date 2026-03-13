@@ -60,6 +60,7 @@ class _EmailInputFieldState extends State<EmailInputField> {
         controller: widget.controller,
         focusNode: _focus,
         keyboardType: TextInputType.emailAddress,
+        textCapitalization: TextCapitalization.none,
         validator: widget.validator ?? Validators.validateEmail,
         style: const TextStyle(
           color: Colors.black87,

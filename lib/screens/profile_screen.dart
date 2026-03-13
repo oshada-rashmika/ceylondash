@@ -125,8 +125,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   String get _displayAddress {
-    final address = (_user?.address ?? '').trim();
-    return address.isEmpty ? 'No address added yet' : address;
+    final address = _user?.address?.trim() ?? '';
+    if (address.isNotEmpty) return address;
+
+    final businessAddress = _user?.businessAddress?.trim() ?? '';
+    if (businessAddress.isNotEmpty) return businessAddress;
+
+    return 'No address yet';
   }
 
   Future<void> _updateUserFields(
@@ -200,7 +205,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditAddressTextSheet() {
-    final addressCtrl = TextEditingController(text: _user?.address ?? '');
+    final currentAddress = (_user?.address?.isNotEmpty == true)
+        ? _user!.address
+        : _user?.businessAddress;
+    final addressCtrl = TextEditingController(text: currentAddress ?? '');
     final formKey = GlobalKey<FormState>();
     bool saving = false;
 
