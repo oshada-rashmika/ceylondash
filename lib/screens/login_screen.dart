@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/database_service.dart';
 import '../widgets/email_input_field.dart';
 import '../widgets/password_input_field.dart';
 import '../widgets/custom_button.dart';
@@ -8,6 +9,8 @@ import '../widgets/top_snackbar.dart';
 import '../widgets/slide_page_route.dart';
 import 'role_selection_screen.dart';
 import 'admin_login_screen.dart';
+import 'seller_dashboard_screen.dart';
+import 'rider_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
+  final _dbService = DatabaseService();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _rememberMe = false;
@@ -101,8 +105,35 @@ class _LoginScreenState extends State<LoginScreen>
         await _authService.clearRememberedCredentials();
       }
 
-      if (mounted) {
+      final userModel = await _dbService.getUser(cred.user!.uid);
+
+      if (!mounted) return;
+
+      if (userModel == null || userModel.role.isEmpty) {
+        await _authService.signOut();
+        if (!mounted) return;
+        TopSnackbar.show(
+          context,
+          message: 'User role not found or invalid.',
+          type: SnackbarType.error,
+        );
+        return;
+      }
+
+      if (userModel.role == 'seller') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SellerDashboardScreen()));
+      } else if (userModel.role == 'rider') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const RiderDashboardScreen()));
+      } else if (userModel.role == 'customer') {
         Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        await _authService.signOut();
+        if (!mounted) return;
+        TopSnackbar.show(
+          context,
+          message: 'User role not found or invalid.',
+          type: SnackbarType.error,
+        );
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {

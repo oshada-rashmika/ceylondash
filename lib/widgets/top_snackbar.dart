@@ -14,7 +14,7 @@ class TopSnackbar {
   static _PendingSnackbar? _pending;
 
   TopSnackbar._();
-  
+
   static void schedulePending({
     required String message,
     SnackbarType type = SnackbarType.success,
