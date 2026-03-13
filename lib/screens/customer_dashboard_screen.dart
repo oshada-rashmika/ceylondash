@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/database_service.dart';
 import '../models/user_model.dart';
@@ -55,18 +56,7 @@ String _formatTimestamp(dynamic ts) {
     }
   }
   final months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
   final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
   final amPm = dt.hour >= 12 ? 'PM' : 'AM';
@@ -241,15 +231,15 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
             slivers: [
-              SliverToBoxAdapter(child: SizedBox(height: topPad + 20)),
+              SliverToBoxAdapter(child: SizedBox(height: topPad + 32)),
               SliverToBoxAdapter(child: _anim(0, _buildHeader())),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              const SliverToBoxAdapter(child: SizedBox(height: 48)),
               SliverToBoxAdapter(child: _anim(1, _buildActiveSection())),
-              const SliverToBoxAdapter(child: SizedBox(height: 28)),
+              const SliverToBoxAdapter(child: SizedBox(height: 48)),
               SliverToBoxAdapter(child: _anim(2, _buildRecentSection())),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              const SliverToBoxAdapter(child: SizedBox(height: 140)), // Padding for floating nav bar
             ],
           ),
         ),
@@ -259,33 +249,38 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
 
   Widget _buildHeader() {
     final name = _user?.name ?? 'Customer';
+    final firstName = name.split(' ').first;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Hello,',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.black38,
-                        fontWeight: FontWeight.w400,
+                    Text(
+                      _getGreeting(),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
-                      name,
+                      firstName,
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 34,
                         fontWeight: FontWeight.w800,
-                        color: Colors.black87,
-                        letterSpacing: -0.3,
+                        color: Colors.black,
+                        letterSpacing: -1.2,
+                        height: 1.1,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -296,11 +291,18 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               _ProfileAvatar(name: name, onTap: _openProfile),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
           _buildSearchBar(),
         ],
       ),
     );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 17) return 'Good Afternoon,';
+    return 'Good Evening,';
   }
 
   Widget _buildSearchBar() {
@@ -308,22 +310,22 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
     final hasFocus = _searchFocusNode.hasFocus;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: hasFocus ? Colors.cyan : Colors.black12,
-          width: hasFocus ? 1.6 : 1,
+          color: hasFocus ? Colors.cyan.withOpacity(0.5) : Colors.transparent,
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
             color: hasFocus
-                ? Colors.cyan.withAlpha(24)
-                : Colors.black.withAlpha(10),
-            blurRadius: hasFocus ? 18 : 10,
-            offset: const Offset(0, 6),
+                ? Colors.cyan.withOpacity(0.1)
+                : Colors.black.withOpacity(0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -332,20 +334,28 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
         focusNode: _searchFocusNode,
         cursorColor: Colors.cyan,
         textInputAction: TextInputAction.search,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Colors.black87,
+        ),
         decoration: InputDecoration(
-          hintText: 'Search orders by ID, item, or status',
+          hintText: 'Search orders...',
           hintStyle: const TextStyle(
             color: Colors.black38,
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
           ),
-          prefixIcon: const Icon(
-            Icons.search_rounded,
-            color: Colors.black38,
-            size: 20,
+          prefixIcon: const Padding(
+            padding: EdgeInsets.only(left: 8.0),
+            child: Icon(
+              Icons.search_rounded,
+              color: Colors.black38,
+              size: 22,
+            ),
           ),
           suffixIcon: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 180),
+            duration: const Duration(milliseconds: 200),
             transitionBuilder: (child, animation) => ScaleTransition(
               scale: animation,
               child: FadeTransition(opacity: animation, child: child),
@@ -353,19 +363,22 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
             child: hasText
                 ? IconButton(
                     key: const ValueKey('clear-search'),
-                    onPressed: _clearSearch,
-                    splashRadius: 18,
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      _clearSearch();
+                    },
+                    splashRadius: 24,
                     icon: const Icon(
-                      Icons.close_rounded,
-                      color: Colors.black45,
-                      size: 18,
+                      Icons.cancel_rounded,
+                      color: Colors.black26,
+                      size: 20,
                     ),
                   )
                 : const SizedBox(key: ValueKey('empty-search-suffix')),
           ),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 16,
+            horizontal: 20,
+            vertical: 18,
           ),
           border: InputBorder.none,
         ),
@@ -386,27 +399,34 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               const Text(
                 'Active Orders',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                  letterSpacing: -0.2,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                  letterSpacing: -0.8,
                 ),
               ),
               if (_isSearching) ...[
-                const SizedBox(width: 10),
-                Text(
-                  '${activeOrders.length} match${activeOrders.length == 1 ? '' : 'es'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.cyan,
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.cyan.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${activeOrders.length}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.cyan,
+                    ),
                   ),
                 ),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 20),
         if (_ordersLoading)
           ..._buildShimmers(2)
         else if (activeOrders.isEmpty)
@@ -433,32 +453,39 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               const Text(
                 'Recent Orders',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                  letterSpacing: -0.2,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                  letterSpacing: -0.8,
                 ),
               ),
               if (_isSearching) ...[
-                const SizedBox(width: 10),
-                Text(
-                  '${recentOrders.length} match${recentOrders.length == 1 ? '' : 'es'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.cyan,
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${recentOrders.length}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black54,
+                    ),
                   ),
                 ),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 20),
         if (_ordersLoading)
           ..._buildShimmers(2)
         else if (recentOrders.isEmpty)
           _buildEmpty(
-            Icons.history_outlined,
+            Icons.history_rounded,
             _isSearching ? 'No Recent Order Matches' : 'No Recent Orders',
           )
         else
@@ -471,20 +498,30 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
 
   Widget _buildEmpty(IconData icon, String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Colors.black26),
-          const SizedBox(width: 10),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black26,
-              fontWeight: FontWeight.w500,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Center(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.03),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 32, color: Colors.black26),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              text,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black38,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -492,8 +529,8 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
   List<Widget> _buildShimmers(int count) {
     return List.generate(count, (index) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
-        child: _ShimmerBlock(height: 80, borderRadius: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: _ShimmerBlock(height: 140, borderRadius: 24),
       );
     });
   }
@@ -517,7 +554,7 @@ class _ShimmerBlockState extends State<_ShimmerBlock>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1500),
     )..repeat();
   }
 
@@ -540,10 +577,10 @@ class _ShimmerBlockState extends State<_ShimmerBlock>
             gradient: LinearGradient(
               begin: Alignment(-1.0 + 2.0 * v, 0),
               end: Alignment(2.0 * v, 0),
-              colors: const [
-                Color(0xFFF5F5F5),
-                Color(0xFFECECEC),
-                Color(0xFFF5F5F5),
+              colors: [
+                Colors.black.withOpacity(0.02),
+                Colors.black.withOpacity(0.05),
+                Colors.black.withOpacity(0.02),
               ],
             ),
           ),
@@ -572,14 +609,14 @@ class _ProfileAvatarState extends State<_ProfileAvatar>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
+      duration: const Duration(milliseconds: 150),
       lowerBound: 0.0,
       upperBound: 1.0,
     );
     _scale = Tween(
       begin: 1.0,
       end: 0.9,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -597,7 +634,10 @@ class _ProfileAvatarState extends State<_ProfileAvatar>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
+      onTapDown: (_) {
+        HapticFeedback.lightImpact();
+        _ctrl.forward();
+      },
       onTapUp: (_) {
         _ctrl.reverse();
         widget.onTap();
@@ -609,19 +649,27 @@ class _ProfileAvatarState extends State<_ProfileAvatar>
           label: 'Open profile',
           button: true,
           child: Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.cyan,
+              color: Colors.cyan.shade600,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.cyan.withOpacity(0.2),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             alignment: Alignment.center,
             child: Text(
               _initials,
               style: const TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
                 fontSize: 18,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -649,12 +697,12 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 100),
+      duration: const Duration(milliseconds: 150),
     );
     _scale = Tween(
       begin: 1.0,
-      end: 0.97,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -670,25 +718,42 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
     final ts = _formatTimestamp(o.timestamps['createdAt']);
 
     return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
+      onTapDown: (_) {
+        HapticFeedback.lightImpact();
+        _ctrl.forward();
+      },
       onTapUp: (_) => _ctrl.reverse(),
       onTapCancel: () => _ctrl.reverse(),
       child: ScaleTransition(
         scale: _scale,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFFF7F9FB),
-            borderRadius: BorderRadius.circular(14),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(_orderIcon(o.status), color: Colors.cyan, size: 22),
-                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.cyan.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(_orderIcon(o.status), color: Colors.cyan.shade600, size: 24),
+                  ),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,20 +761,22 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                         Text(
                           o.dropoffAddress.isNotEmpty ? o.dropoffAddress : o.id,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Colors.black87,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: Colors.black,
+                            letterSpacing: -0.3,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (ts.isNotEmpty) ...[
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 4),
                           Text(
                             ts,
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black38,
+                              fontSize: 13,
+                              color: Colors.black45,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -718,25 +785,26 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
+                      horizontal: 12,
+                      vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.cyan.withAlpha(20),
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.cyan.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       _readableStatus(o.status),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.cyan,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.cyan.shade700,
+                        letterSpacing: -0.2,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 24),
               Row(
                 children: List.generate(_statusSteps.length, (i) {
                   final active = i <= current;
@@ -745,32 +813,45 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                     child: Row(
                       children: [
                         Semantics(
-                          label:
-                              '${_statusLabels[i]} ${active ? "done" : "pending"}',
-                          child: Container(
-                            width: 28,
-                            height: 28,
+                          label: '${_statusLabels[i]} ${active ? "done" : "pending"}',
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: 32,
+                            height: 32,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: active
-                                  ? Colors.cyan
-                                  : const Color(0xFFE8E8E8),
+                                  ? Colors.cyan.shade600
+                                  : Colors.black.withOpacity(0.04),
+                              boxShadow: active
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.cyan.withOpacity(0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      )
+                                    ]
+                                  : null,
                             ),
                             child: Icon(
                               _statusIcons[i],
-                              size: 14,
+                              size: 16,
                               color: active ? Colors.white : Colors.black26,
                             ),
                           ),
                         ),
                         if (!isLast)
                           Expanded(
-                            child: Container(
-                              height: 2,
-                              margin: const EdgeInsets.symmetric(horizontal: 2),
-                              color: i < current
-                                  ? Colors.cyan
-                                  : const Color(0xFFE8E8E8),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              height: 3,
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(2),
+                                color: i < current
+                                    ? Colors.cyan.shade600
+                                    : Colors.black.withOpacity(0.04),
+                              ),
                             ),
                           ),
                       ],
@@ -786,58 +867,125 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
   }
 }
 
-class _RecentOrderTile extends StatelessWidget {
+class _RecentOrderTile extends StatefulWidget {
   final OrderModel order;
   const _RecentOrderTile({required this.order});
 
   @override
-  Widget build(BuildContext context) {
-    final ts = _formatTimestamp(order.timestamps['createdAt']);
-    final cancelled = order.status == 'cancelled';
+  State<_RecentOrderTile> createState() => _RecentOrderTileState();
+}
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      child: Row(
-        children: [
-          Icon(
-            cancelled ? Icons.cancel_outlined : Icons.check_circle_outlined,
-            size: 20,
-            color: cancelled ? Colors.black26 : Colors.cyan,
+class _RecentOrderTileState extends State<_RecentOrderTile> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween(
+      begin: 1.0,
+      end: 0.96,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ts = _formatTimestamp(widget.order.timestamps['createdAt']);
+    final cancelled = widget.order.status == 'cancelled';
+
+    return GestureDetector(
+      onTapDown: (_) {
+        HapticFeedback.lightImpact();
+        _ctrl.forward();
+      },
+      onTapUp: (_) => _ctrl.reverse(),
+      onTapCancel: () => _ctrl.reverse(),
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  order.dropoffAddress.isNotEmpty
-                      ? order.dropoffAddress
-                      : order.id,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: cancelled 
+                      ? Colors.black.withOpacity(0.04) 
+                      : Colors.cyan.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
-                if (ts.isNotEmpty)
-                  Text(
-                    ts,
-                    style: const TextStyle(fontSize: 12, color: Colors.black26),
-                  ),
-              ],
-            ),
+                child: Icon(
+                  cancelled ? Icons.cancel_rounded : Icons.check_circle_rounded,
+                  size: 22,
+                  color: cancelled ? Colors.black38 : Colors.cyan.shade600,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.order.dropoffAddress.isNotEmpty
+                          ? widget.order.dropoffAddress
+                          : widget.order.id,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (ts.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        ts,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black45,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ]
+                  ],
+                ),
+              ),
+              Text(
+                cancelled ? 'Cancelled' : 'Delivered',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: cancelled ? Colors.black38 : Colors.cyan.shade700,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
           ),
-          Text(
-            cancelled ? 'Cancelled' : 'Delivered',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: cancelled ? Colors.black26 : Colors.cyan,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

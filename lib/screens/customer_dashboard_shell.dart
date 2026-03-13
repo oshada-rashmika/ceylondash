@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'customer_dashboard_screen.dart';
 import 'chat_list_screen.dart';
 import 'quick_actions_screen.dart';
@@ -13,6 +15,12 @@ class CustomerDashboardShell extends StatefulWidget {
 class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
   int _currentIndex = 0;
 
+  void _onNavTap(int index) {
+    if (_currentIndex == index) return;
+    HapticFeedback.lightImpact();
+    setState(() => _currentIndex = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = [
@@ -22,42 +30,60 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
     ];
 
     return Scaffold(
+      extendBody: true, // Crucial for glassmorphism effect
+      backgroundColor: Colors.white,
       body: IndexedStack(index: _currentIndex, children: screens),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(color: Colors.black.withAlpha(15), width: 1),
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _NavItem(
-                  icon: Icons.space_dashboard_outlined,
-                  activeIcon: Icons.space_dashboard_rounded,
-                  label: 'Home',
-                  isSelected: _currentIndex == 0,
-                  onTap: () => setState(() => _currentIndex = 0),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(36),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(36),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                _NavItem(
-                  icon: Icons.grid_view_outlined,
-                  activeIcon: Icons.grid_view_rounded,
-                  label: 'Actions',
-                  isSelected: _currentIndex == 1,
-                  onTap: () => setState(() => _currentIndex = 1),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _NavItem(
+                      icon: Icons.space_dashboard_outlined,
+                      activeIcon: Icons.space_dashboard_rounded,
+                      label: 'Home',
+                      isSelected: _currentIndex == 0,
+                      onTap: () => _onNavTap(0),
+                    ),
+                    _NavItem(
+                      icon: Icons.grid_view_outlined,
+                      activeIcon: Icons.grid_view_rounded,
+                      label: 'Actions',
+                      isSelected: _currentIndex == 1,
+                      onTap: () => _onNavTap(1),
+                    ),
+                    _NavItem(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      activeIcon: Icons.chat_rounded,
+                      label: 'Chat',
+                      isSelected: _currentIndex == 2,
+                      onTap: () => _onNavTap(2),
+                    ),
+                  ],
                 ),
-                _NavItem(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  activeIcon: Icons.chat_rounded,
-                  label: 'Chat',
-                  isSelected: _currentIndex == 2,
-                  onTap: () => setState(() => _currentIndex = 2),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -66,7 +92,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
   }
 }
 
-class _NavItem extends StatelessWidget {
+class _NavItem extends StatefulWidget {
   final IconData icon;
   final IconData activeIcon;
   final String label;
@@ -82,36 +108,91 @@ class _NavItem extends StatelessWidget {
   });
 
   @override
+  State<_NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<_NavItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pressCtrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween(
+      begin: 1.0,
+      end: 0.92,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOutCubic));
+  }
+
+  @override
+  void dispose() {
+    _pressCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: SizedBox(
-          width: 72,
-          height: 48,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) {
+        HapticFeedback.lightImpact();
+        _pressCtrl.forward();
+      },
+      onTapUp: (_) {
+        _pressCtrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _pressCtrl.reverse(),
+      child: ScaleTransition(
+        scale: _scale,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.fastOutSlowIn,
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.isSelected ? 20 : 16,
+            vertical: 10,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: widget.isSelected
+                ? Colors.cyan.withOpacity(0.15)
+                : Colors.transparent,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) => ScaleTransition(
+                  scale: animation,
+                  child: child,
+                ),
                 child: Icon(
-                  isSelected ? activeIcon : icon,
-                  key: ValueKey(isSelected),
+                  widget.isSelected ? widget.activeIcon : widget.icon,
+                  key: ValueKey(widget.isSelected),
                   size: 24,
-                  color: isSelected ? Colors.cyan : Colors.black38,
+                  color: widget.isSelected ? Colors.cyan.shade700 : Colors.black54,
                 ),
               ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? Colors.cyan : Colors.black38,
+              if (widget.isSelected) ...[
+                const SizedBox(width: 8),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                    color: Colors.cyan.shade700,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
