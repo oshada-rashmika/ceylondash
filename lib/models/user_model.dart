@@ -14,6 +14,10 @@ class UserModel {
   final GeoPoint? currentLocation;
   final bool? isAvailable;
 
+  //Customer
+  final String? photoUrl;
+  final String? address;
+
   //Seller
   final String? businessName;
   final String? businessAddress;
@@ -28,6 +32,8 @@ class UserModel {
     required this.role,
     required this.fcmToken,
     this.email,
+    this.photoUrl,
+    this.address,
     this.courierCompany,
     this.nic,
     this.currentLocation,
@@ -47,6 +53,8 @@ class UserModel {
       role: data['role'] ?? 'customer',
       fcmToken: data['fcmToken'] ?? '',
       email: data['email'],
+      photoUrl: data['photoUrl'],
+      address: data['address'],
       courierCompany: data['courierCompany'],
       nic: data['nic'],
       currentLocation: data['currentLocation'],
@@ -66,6 +74,8 @@ class UserModel {
       'role': role,
       'fcmToken': fcmToken,
       if (email != null) 'email': email,
+      if (photoUrl != null) 'photoUrl': photoUrl,
+      if (address != null) 'address': address,
       if (courierCompany != null) 'courierCompany': courierCompany,
       if (nic != null) 'nic': nic,
       if (currentLocation != null) 'currentLocation': currentLocation,

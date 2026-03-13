@@ -11,6 +11,8 @@ import 'screens/customer_register_screen.dart';
 import 'screens/seller_register_screen.dart';
 import 'screens/rider_register_screen.dart';
 import 'screens/verification_pending_screen.dart';
+import 'screens/customer_dashboard_shell.dart';
+import 'screens/profile_screen.dart';
 import 'widgets/slide_page_route.dart';
 import 'widgets/top_snackbar.dart';
 
@@ -18,7 +20,6 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const CeylonDashApp());
@@ -125,7 +126,7 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           }
           if (snapshot.hasData) {
             if (snapshot.data!.emailVerified) {
-              return const HomePlaceholderScreen();
+              return const CustomerDashboardShell();
             }
             return const VerificationPendingScreen();
           }
@@ -141,7 +142,8 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           '/register/seller': const SellerRegisterScreen(),
           '/register/rider': const RiderRegisterScreen(),
           '/verify-email': const VerificationPendingScreen(),
-          '/home': const HomePlaceholderScreen(),
+          '/home': const CustomerDashboardShell(),
+          '/profile': const ProfileScreen(),
         };
         final page = routes[settings.name];
         if (page != null) {
@@ -149,44 +151,6 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
         }
         return null;
       },
-    );
-  }
-}
-
-class HomePlaceholderScreen extends StatelessWidget {
-  const HomePlaceholderScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Ceylon Dash',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.cyan),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                  (route) => false,
-                );
-              }
-            },
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Text(
-          'Welcome to Ceylon Dash!',
-          style: TextStyle(color: Colors.black87, fontSize: 20),
-        ),
-      ),
     );
   }
 }

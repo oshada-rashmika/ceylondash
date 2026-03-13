@@ -4,7 +4,7 @@ import '../models/user_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  
+
   Future<void> createUser(UserModel user) async {
     await _db.collection('users').doc(user.uid).set(user.toMap());
   }
@@ -17,8 +17,23 @@ class DatabaseService {
     return null;
   }
 
+  /// Real-time stream of the user document.
+  Stream<UserModel?> streamUser(String uid) {
+    return _db.collection('users').doc(uid).snapshots().map((doc) {
+      if (doc.exists) return UserModel.fromFirestore(doc);
+      return null;
+    });
+  }
+
+  /// Update specific fields on the user document.
+  Future<void> updateUserFields(String uid, Map<String, dynamic> fields) async {
+    await _db.collection('users').doc(uid).update(fields);
+  }
+
   Future<String> createOrder(OrderModel order) async {
-    DocumentReference docRef = await _db.collection('orders').add(order.toMap());
+    DocumentReference docRef = await _db
+        .collection('orders')
+        .add(order.toMap());
     return docRef.id;
   }
 
@@ -43,5 +58,17 @@ class DatabaseService {
     return _db.collection('orders').doc(orderId).snapshots().map((snapshot) {
       return OrderModel.fromFirestore(snapshot);
     });
+  }
+
+  /// Stream all orders for a given customer, ordered by createdAt descending.
+  Stream<List<OrderModel>> streamCustomerOrders(String customerId) {
+    return _db
+        .collection('orders')
+        .where('customerId', isEqualTo: customerId)
+        .orderBy('timestamps.createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map((d) => OrderModel.fromFirestore(d)).toList(),
+        );
   }
 }
