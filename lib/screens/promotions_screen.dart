@@ -30,7 +30,6 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
       final uid = widget.user.uid;
       final address = widget.user.address ?? '';
 
-      // Fetch both simultaneously
       final results = await Future.wait([
         _db.getUserOrderCount(uid),
         _db.getSeasonalPromotions(address),
@@ -41,37 +40,41 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
 
       final allPromos = <PromotionModel>[];
 
-      // Loyalty tier calculation
       if (orderCount >= 100) {
-        allPromos.add(PromotionModel(
-          id: 'loyalty_platinum',
-          title: 'Platinum Rider',
-          description: 'Thank you for your incredible loyalty!',
-          discountPercentage: 50.0,
-          type: 'loyalty',
-          isAutoApplied: true,
-        ));
+        allPromos.add(
+          PromotionModel(
+            id: 'loyalty_platinum',
+            title: 'Platinum Rider',
+            description: 'Thank you for your incredible loyalty!',
+            discountPercentage: 50.0,
+            type: 'loyalty',
+            isAutoApplied: true,
+          ),
+        );
       } else if (orderCount >= 20) {
-        allPromos.add(PromotionModel(
-          id: 'loyalty_gold',
-          title: 'Gold Rider',
-          description: 'You\'re one of our best customers.',
-          discountPercentage: 25.0,
-          type: 'loyalty',
-          isAutoApplied: true,
-        ));
+        allPromos.add(
+          PromotionModel(
+            id: 'loyalty_gold',
+            title: 'Gold Rider',
+            description: 'You\'re one of our best customers.',
+            discountPercentage: 25.0,
+            type: 'loyalty',
+            isAutoApplied: true,
+          ),
+        );
       } else if (orderCount >= 2) {
-        allPromos.add(PromotionModel(
-          id: 'loyalty_silver',
-          title: 'Silver Rider',
-          description: 'A little something to say thanks for riding with us.',
-          discountPercentage: 10.0,
-          type: 'loyalty',
-          isAutoApplied: true,
-        ));
+        allPromos.add(
+          PromotionModel(
+            id: 'loyalty_silver',
+            title: 'Silver Rider',
+            description: 'A little something to say thanks for riding with us.',
+            discountPercentage: 10.0,
+            type: 'loyalty',
+            isAutoApplied: true,
+          ),
+        );
       }
-
-      // Add seasonal promotions
+      
       allPromos.addAll(seasonalPromos);
 
       if (mounted) {
@@ -81,6 +84,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
         });
       }
     } catch (e) {
+      print("Error loading promotions: $e");
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -98,7 +102,10 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
         elevation: 0,
         surfaceTintColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black,
+          ),
           onPressed: () {
             HapticFeedback.lightImpact();
             Navigator.pop(context);
@@ -118,15 +125,15 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.cyan))
           : _promotions.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: _promotions.length,
-                  itemBuilder: (context, index) {
-                    return _PromotionCard(promotion: _promotions[index]);
-                  },
-                ),
+          ? _buildEmptyState()
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              physics: const BouncingScrollPhysics(),
+              itemCount: _promotions.length,
+              itemBuilder: (context, index) {
+                return _PromotionCard(promotion: _promotions[index]);
+              },
+            ),
     );
   }
 
@@ -178,8 +185,12 @@ class _PromotionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLoyalty = promotion.type == 'loyalty';
     final badgeText = isLoyalty ? 'Loyalty Reward' : 'Seasonal Offer';
-    final badgeColor = isLoyalty ? Colors.purple.shade50 : Colors.orange.shade50;
-    final badgeTextColor = isLoyalty ? Colors.purple.shade700 : Colors.orange.shade700;
+    final badgeColor = isLoyalty
+        ? Colors.purple.shade50
+        : Colors.orange.shade50;
+    final badgeTextColor = isLoyalty
+        ? Colors.purple.shade700
+        : Colors.orange.shade700;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -215,7 +226,10 @@ class _PromotionCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: badgeColor,
                     borderRadius: BorderRadius.circular(20),

@@ -16,25 +16,39 @@ class DatabaseService {
   }
 
   Future<List<PromotionModel>> getSeasonalPromotions(String userAddress) async {
+    print("Fetching promotions...");
     final currentMonth = DateTime.now().month;
-    final snap = await _db.collection('promotions').where('type', isEqualTo: 'seasonal').get();
-    
-    final promotions = <PromotionModel>[];
-    for (final doc in snap.docs) {
-      final promo = PromotionModel.fromMap(doc.id, doc.data());
-      
-      bool monthMatches = true;
-      if (promo.activeMonths != null && promo.activeMonths!.isNotEmpty) {
-        monthMatches = promo.activeMonths!.contains(currentMonth);
-      }
+    final snapshot = await _db.collection('promotions').get();
 
-      bool regionMatches = true;
-      if (promo.targetRegion != null && promo.targetRegion!.isNotEmpty) {
-        regionMatches = userAddress.toLowerCase().contains(promo.targetRegion!.toLowerCase());
-      }
-      
-      if (monthMatches && regionMatches) {
+    print('Found ${snapshot.docs.length} total promotions in database.');
+    final promotions = <PromotionModel>[];
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final activeMonths =
+          (data['activeMonths'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          [];
+
+      final region = data['targetRegion'] as String? ?? '';
+      final matchesRegion = userAddress.toLowerCase().contains(
+        region.toLowerCase(),
+      );
+      final isSeasonActive = activeMonths.contains(currentMonth);
+
+      print(
+        "Promo ID: ${doc.id} | matchesRegion: $matchesRegion | isSeasonActive: $isSeasonActive",
+      );
+
+      if (matchesRegion && isSeasonActive) {
+        print("Promo ${doc.id} Accepted");
+        final promo = PromotionModel.fromMap(doc.id, data);
         promotions.add(promo);
+      } else {
+        print(
+          "Promo ${doc.id} Rejected (Reason: ${!matchesRegion ? 'Region mismatch' : ''}${!isSeasonActive && !matchesRegion ? ' / ' : ''}${!isSeasonActive ? 'Month mismatch' : ''})",
+        );
       }
     }
     return promotions;
@@ -51,16 +65,12 @@ class DatabaseService {
     }
     return null;
   }
-
-  /// Real-time stream of the user document.
   Stream<UserModel?> streamUser(String uid) {
     return _db.collection('users').doc(uid).snapshots().map((doc) {
       if (doc.exists) return UserModel.fromFirestore(doc);
       return null;
     });
   }
-
-  /// Update specific fields on the user document.
   Future<void> updateUserFields(String uid, Map<String, dynamic> fields) async {
     await _db.collection('users').doc(uid).update(fields);
   }
@@ -71,31 +81,23 @@ class DatabaseService {
         .add(order.toMap());
     return docRef.id;
   }
-
-  //Admin/Rider action
   Future<void> updateOrderStatus(String orderId, String newStatus) async {
     await _db.collection('orders').doc(orderId).update({
       'status': newStatus,
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
     });
   }
-
-  //Courier Admin action
   Future<void> assignRider(String orderId, String riderId) async {
     await _db.collection('orders').doc(orderId).update({
       'riderId': riderId,
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
     });
   }
-
-  //Customer tracking view
   Stream<OrderModel> streamOrder(String orderId) {
     return _db.collection('orders').doc(orderId).snapshots().map((snapshot) {
       return OrderModel.fromFirestore(snapshot);
     });
   }
-
-  /// Stream all orders for a given customer, ordered by createdAt descending.
   Stream<List<OrderModel>> streamCustomerOrders(String customerId) {
     return _db
         .collection('orders')

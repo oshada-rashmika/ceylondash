@@ -3,7 +3,7 @@ class PromotionModel {
   final String title;
   final String description;
   final double discountPercentage;
-  final String type; // 'loyalty' or 'seasonal'
+  final String type;
   final bool isAutoApplied;
   final List<int>? activeMonths;
   final String? targetRegion;
