@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/shop_model.dart';
 import '../models/user_model.dart';
 import '../providers/cart_provider.dart';
+import '../widgets/top_snackbar.dart';
 import 'cart_screen.dart';
 
 class ShopDetailScreen extends StatelessWidget {
@@ -32,13 +33,11 @@ class ShopDetailScreen extends StatelessWidget {
           ),
           Consumer<CartProvider>(
             builder: (context, cart, _) {
-              final visible =
-                  cart.itemCount > 0 &&
-                  cart.currentShopId == shop.id;
+              final visible = cart.globalItemCount > 0;
               return _CartFab(
                 visible: visible,
-                itemCount: cart.itemCount,
-                subtotal: cart.subtotal,
+                itemCount: cart.globalItemCount,
+                subtotal: cart.getShopSubtotal(shop.id),
                 onTap: () {
                   HapticFeedback.mediumImpact();
                   Navigator.push(
@@ -176,44 +175,7 @@ class ShopDetailScreen extends StatelessWidget {
   }
 }
 
-Future<bool> _showConflictDialog(BuildContext context) async {
-  return await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text(
-            'Start a new cart?',
-            style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.5),
-          ),
-          content: const Text(
-            'Your cart has items from a different shop. Starting a new cart will remove those items.',
-            style: TextStyle(color: Colors.black54, height: 1.5),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text(
-                'Keep current',
-                style: TextStyle(color: Colors.black54),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text(
-                'Start new cart',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ) ??
-      false;
-}
+
 
 class _CartFab extends StatelessWidget {
   final bool visible;
@@ -381,25 +343,22 @@ class _ShopItemTile extends StatelessWidget {
   final ShopModel shop;
   const _ShopItemTile({required this.item, required this.shop});
 
-  Future<void> _handleAdd(BuildContext context) async {
+  void _handleAdd(BuildContext context) {
     final cart = context.read<CartProvider>();
     HapticFeedback.selectionClick();
-    try {
-      cart.addItem(item, shop.id);
-    } on CartConflictException {
-      final replace = await _showConflictDialog(context);
-      if (replace && context.mounted) {
-        cart.clearCart();
-        cart.addItem(item, shop.id);
-      }
-    }
+    cart.addItem(item, shop.id, shop.name);
+    TopSnackbar.show(
+      context,
+      message: 'Added to cart',
+      type: SnackbarType.success,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(
       builder: (context, cart, _) {
-        final qty = cart.quantityOf(item.name);
+        final qty = cart.quantityOf(shop.id, item.name);
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(12),
@@ -520,7 +479,7 @@ class _ShopItemTile extends StatelessWidget {
                         onIncrement: () => _handleAdd(context),
                         onDecrement: () {
                           HapticFeedback.selectionClick();
-                          context.read<CartProvider>().decrementItem(item.name);
+                          context.read<CartProvider>().decrementItem(shop.id, item.name);
                         },
                       ),
               ),

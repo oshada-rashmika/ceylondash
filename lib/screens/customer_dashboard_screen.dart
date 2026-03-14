@@ -365,7 +365,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
                             size: 22,
                           ),
                         ),
-                        if (cart.itemCount > 0)
+                        if (cart.globalItemCount > 0)
                           Positioned(
                             top: -2,
                             right: -2,
@@ -378,7 +378,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
                               ),
                               alignment: Alignment.center,
                               child: Text(
-                                '${cart.itemCount > 9 ? '9+' : cart.itemCount}',
+                                '${cart.globalItemCount > 9 ? '9+' : cart.globalItemCount}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,

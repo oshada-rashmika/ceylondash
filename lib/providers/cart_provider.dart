@@ -11,66 +11,94 @@ class CartItem {
       CartItem(item: item, quantity: quantity ?? this.quantity);
 }
 
-class CartConflictException implements Exception {
-  final String existingShopId;
-  const CartConflictException(this.existingShopId);
+class CartShopBucket {
+  final String shopId;
+  final String shopName;
+  final Map<String, CartItem> items;
 
-  @override
-  String toString() =>
-      'CartConflictException: Cart already contains items from shop "$existingShopId".';
+  CartShopBucket({
+    required this.shopId,
+    required this.shopName,
+    Map<String, CartItem>? items,
+  }) : items = items ?? {};
 }
 
 class CartProvider extends ChangeNotifier {
-  final Map<String, CartItem> _items = {};
-  String? _currentShopId;
-  List<CartItem> get items => List.unmodifiable(_items.values);
-  String? get currentShopId => _currentShopId;
-  int get itemCount =>
-      _items.values.fold(0, (sum, ci) => sum + ci.quantity);
-  double get subtotal =>
-      _items.values.fold(
-        0.0,
-        (sum, ci) => sum + (ci.item.price * ci.quantity),
-      );
-  bool get isEmpty => _items.isEmpty;
-  int quantityOf(String itemName) => _items[itemName]?.quantity ?? 0;
-  void addItem(ShopItemModel item, String shopId) {
-    if (_currentShopId != null && _currentShopId != shopId) {
-      throw CartConflictException(_currentShopId!);
-    }
-    _currentShopId = shopId;
+  final Map<String, CartShopBucket> _shopBuckets = {};
 
-    final existing = _items[item.name];
+  Map<String, CartShopBucket> get shopBuckets =>
+      Map.unmodifiable(_shopBuckets);
+
+  bool get isEmpty => _shopBuckets.isEmpty;
+
+  int get globalItemCount => _shopBuckets.values.fold(
+        0,
+        (sum, bucket) =>
+            sum + bucket.items.values.fold(0, (s, ci) => s + ci.quantity),
+      );
+
+  double getShopSubtotal(String shopId) {
+    final bucket = _shopBuckets[shopId];
+    if (bucket == null) return 0.0;
+    return bucket.items.values.fold(
+      0.0,
+      (sum, ci) => sum + (ci.item.price * ci.quantity),
+    );
+  }
+
+  int quantityOf(String shopId, String itemName) =>
+      _shopBuckets[shopId]?.items[itemName]?.quantity ?? 0;
+
+  void addItem(ShopItemModel item, String shopId, String shopName) {
+    if (!_shopBuckets.containsKey(shopId)) {
+      _shopBuckets[shopId] = CartShopBucket(
+        shopId: shopId,
+        shopName: shopName,
+      );
+    }
+    final bucket = _shopBuckets[shopId]!;
+    final existing = bucket.items[item.name];
     if (existing != null) {
-      _items[item.name] = existing.copyWith(quantity: existing.quantity + 1);
+      bucket.items[item.name] =
+          existing.copyWith(quantity: existing.quantity + 1);
     } else {
-      _items[item.name] = CartItem(item: item, quantity: 1);
+      bucket.items[item.name] = CartItem(item: item, quantity: 1);
     }
     notifyListeners();
   }
 
-  void decrementItem(String itemName) {
-    final existing = _items[itemName];
+  void decrementItem(String shopId, String itemName) {
+    final bucket = _shopBuckets[shopId];
+    if (bucket == null) return;
+
+    final existing = bucket.items[itemName];
     if (existing == null) return;
 
     if (existing.quantity <= 1) {
-      _items.remove(itemName);
-      if (_items.isEmpty) _currentShopId = null;
+      bucket.items.remove(itemName);
+      if (bucket.items.isEmpty) _shopBuckets.remove(shopId);
     } else {
-      _items[itemName] = existing.copyWith(quantity: existing.quantity - 1);
+      bucket.items[itemName] =
+          existing.copyWith(quantity: existing.quantity - 1);
     }
     notifyListeners();
   }
 
-  void removeItem(String itemName) {
-    _items.remove(itemName);
-    if (_items.isEmpty) _currentShopId = null;
+  void removeItem(String shopId, String itemName) {
+    final bucket = _shopBuckets[shopId];
+    if (bucket == null) return;
+    bucket.items.remove(itemName);
+    if (bucket.items.isEmpty) _shopBuckets.remove(shopId);
     notifyListeners();
   }
-  
-  void clearCart() {
-    _items.clear();
-    _currentShopId = null;
+
+  void clearShop(String shopId) {
+    _shopBuckets.remove(shopId);
+    notifyListeners();
+  }
+
+  void clearAll() {
+    _shopBuckets.clear();
     notifyListeners();
   }
 }
