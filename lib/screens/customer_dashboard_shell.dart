@@ -8,6 +8,7 @@ import 'customer_dashboard_screen.dart';
 import 'chat_list_screen.dart';
 import 'quick_actions_screen.dart';
 import 'profile_screen.dart';
+import '../widgets/top_snackbar.dart';
 
 class CustomerDashboardShell extends StatefulWidget {
   const CustomerDashboardShell({super.key});
@@ -147,8 +148,14 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
     final angles = [-5 * math.pi / 6, -math.pi / 2, -math.pi / 6];
     final icons = [
       Icons.support_agent_rounded,
-      Icons.local_offer_rounded,
-      Icons.qr_code_scanner_rounded,
+      Icons.settings_rounded,
+      Icons.accessibility_new_rounded,
+    ];
+
+    final labels = [
+      'Support',
+      'Settings',
+      'Accessibility',
     ];
 
     return List.generate(3, (index) {
@@ -160,16 +167,49 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
         offset: Offset(dx, dy),
         child: Transform.scale(
           scale: _menuAnim.value,
-          child: FloatingActionButton.small(
-            heroTag: 'fab_rad_$index',
-            backgroundColor: Colors.white,
-            elevation: 4,
-            shape: const CircleBorder(),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              _toggleMenu();
-            },
-            child: Icon(icons[index], color: Colors.cyan.shade700),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  labels[index],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FloatingActionButton.small(
+                heroTag: 'fab_rad_$index',
+                backgroundColor: Colors.white,
+                elevation: 4,
+                shape: const CircleBorder(),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  _toggleMenu();
+                  TopSnackbar.show(
+                    context,
+                    message: '${labels[index]} coming soon!',
+                    type: SnackbarType.success,
+                  );
+                },
+                child: Icon(icons[index], color: Colors.cyan.shade700),
+              ),
+            ],
           ),
         ),
       );
