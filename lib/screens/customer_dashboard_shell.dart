@@ -8,6 +8,7 @@ import 'chat_list_screen.dart';
 import 'quick_actions_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
+import 'accessibility_screen.dart';
 import '../widgets/top_snackbar.dart';
 
 class CustomerDashboardShell extends StatefulWidget {
@@ -209,6 +210,13 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                         context,
                         CupertinoPageRoute(
                           builder: (_) => const SettingsScreen(),
+                        ),
+                      );
+                    } else if (labels[index] == 'Accessibility') {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => const AccessibilityScreen(),
                         ),
                       );
                     } else {

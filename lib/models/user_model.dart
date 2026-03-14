@@ -17,6 +17,7 @@ class UserModel {
   //Customer
   final String? photoUrl;
   final String? address;
+  final List<String>? accessibilityNeeds;
 
   //Seller
   final String? businessName;
@@ -42,6 +43,7 @@ class UserModel {
     this.businessAddress,
     this.socials,
     this.courierId,
+    this.accessibilityNeeds,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -63,6 +65,9 @@ class UserModel {
       businessAddress: data['businessAddress'],
       socials: data['socials'],
       courierId: data['courierId'],
+      accessibilityNeeds: data['accessibilityNeeds'] != null
+          ? List<String>.from(data['accessibilityNeeds'])
+          : null,
     );
   }
 
@@ -88,6 +93,7 @@ class UserModel {
       if (businessAddress != null) 'businessAddress': businessAddress,
       if (socials != null) 'socials': socials,
       if (courierId != null) 'courierId': courierId,
+      if (accessibilityNeeds != null) 'accessibilityNeeds': accessibilityNeeds,
     };
   }
 }
