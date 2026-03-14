@@ -19,6 +19,8 @@ import 'screens/customer_dashboard_shell.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/slide_page_route.dart';
 import 'widgets/top_snackbar.dart';
+import 'services/database_service.dart';
+import 'models/user_model.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -135,7 +137,29 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           }
           if (snapshot.hasData) {
             if (snapshot.data!.emailVerified) {
-              return const CustomerDashboardShell();
+              return FutureBuilder<UserModel?>(
+                future: DatabaseService().getUser(snapshot.data!.uid),
+                builder: (context, userSnapshot) {
+                  if (userSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(
+                      backgroundColor: Colors.white,
+                      body: Center(
+                        child: CircularProgressIndicator(color: Colors.cyan),
+                      ),
+                    );
+                  }
+                  if (userSnapshot.hasData && userSnapshot.data != null) {
+                    final role = userSnapshot.data!.role;
+                    if (role == 'seller') {
+                      return const SellerDashboardScreen();
+                    } else if (role == 'rider') {
+                      return const RiderDashboardScreen();
+                    }
+                    return const CustomerDashboardShell();
+                  }
+                  return const LoginScreen();
+                },
+              );
             }
             return const VerificationPendingScreen();
           }
