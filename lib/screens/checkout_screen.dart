@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../models/promotion_model.dart';
 import '../models/user_model.dart';
 import '../providers/cart_provider.dart';
 import '../services/database_service.dart';
@@ -20,24 +22,98 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   String _selectedPayment = 'Cash on Delivery';
-  final TextEditingController _promoController = TextEditingController();
   static const double _deliveryFee = 250.0;
   final _db = DatabaseService();
 
   late String _address;
   late String _phone;
 
+  List<PromotionModel> _availablePromos = [];
+  PromotionModel? _selectedPromo;
+  bool _isLoadingPromos = true;
+
   @override
   void initState() {
     super.initState();
     _address = widget.user?.address ?? '';
     _phone = widget.user?.phone ?? '';
+    _loadPromotions();
   }
 
-  @override
-  void dispose() {
-    _promoController.dispose();
-    super.dispose();
+  Future<void> _loadPromotions() async {
+    try {
+      final uid = widget.user?.uid;
+      final address = widget.user?.address ?? '';
+
+      if (uid == null) {
+        if (mounted) {
+          setState(() {
+            _isLoadingPromos = false;
+          });
+        }
+        return;
+      }
+
+      final results = await Future.wait([
+        _db.getUserOrderCount(uid),
+        _db.getSeasonalPromotions(address),
+      ]);
+
+      final orderCount = results[0] as int;
+      final seasonalPromos = results[1] as List<PromotionModel>;
+
+      final allPromos = <PromotionModel>[];
+
+      if (orderCount >= 100) {
+        allPromos.add(
+          PromotionModel(
+            id: 'loyalty_platinum',
+            title: 'Platinum Rider',
+            description: 'Thank you for your incredible loyalty!',
+            discountPercentage: 50.0,
+            type: 'loyalty',
+            isAutoApplied: false,
+          ),
+        );
+      } else if (orderCount >= 20) {
+        allPromos.add(
+          PromotionModel(
+            id: 'loyalty_gold',
+            title: 'Gold Rider',
+            description: 'You\'re one of our best customers.',
+            discountPercentage: 25.0,
+            type: 'loyalty',
+            isAutoApplied: false,
+          ),
+        );
+      } else if (orderCount >= 2) {
+        allPromos.add(
+          PromotionModel(
+            id: 'loyalty_silver',
+            title: 'Silver Rider',
+            description: 'A little something to say thanks for riding with us.',
+            discountPercentage: 10.0,
+            type: 'loyalty',
+            isAutoApplied: false,
+          ),
+        );
+      }
+
+      allPromos.addAll(seasonalPromos);
+
+      if (mounted) {
+        setState(() {
+          _availablePromos = allPromos;
+          _isLoadingPromos = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingPromos = false;
+        });
+      }
+    }
   }
 
   Future<void> _showEditBottomSheet({
@@ -105,8 +181,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           keyboardType: keyboardType,
                           textCapitalization:
                               keyboardType == TextInputType.phone
-                              ? TextCapitalization.none
-                              : TextCapitalization.sentences,
+                                  ? TextCapitalization.none
+                                  : TextCapitalization.sentences,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -193,13 +269,180 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     ctrl.dispose();
   }
 
+  void _showPromoSelectorBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.6,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 14),
+                    Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Available Promotions',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: _isLoadingPromos
+                          ? const Center(
+                              child: CircularProgressIndicator(color: Colors.cyan),
+                            )
+                          : _availablePromos.isEmpty
+                              ? _buildEmptyPromosState()
+                              : ListView.builder(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 8),
+                                  physics: const BouncingScrollPhysics(),
+                                  itemCount: _availablePromos.length,
+                                  itemBuilder: (context, index) {
+                                    final promo = _availablePromos[index];
+                                    return _buildPromoOptionCard(promo);
+                                  },
+                                ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyPromosState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(CupertinoIcons.ticket, size: 64, color: Colors.black12),
+          const SizedBox(height: 16),
+          const Text(
+            'Keep ordering to unlock\nexclusive rewards.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.black45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPromoOptionCard(PromotionModel promo) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withOpacity(0.04)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            setState(() => _selectedPromo = promo);
+            Navigator.pop(context);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  '${promo.discountPercentage.toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.cyan,
+                    letterSpacing: -1.0,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        promo.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        promo.description,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(
       builder: (context, cart, _) {
         final bucket = cart.shopBuckets[widget.shopId];
         final subtotal = cart.getShopSubtotal(widget.shopId);
-        final total = subtotal + _deliveryFee;
+        
+        final discountAmount = _selectedPromo != null
+            ? (subtotal * (_selectedPromo!.discountPercentage / 100))
+            : 0.0;
+        final total = subtotal + _deliveryFee - discountAmount;
 
         if (bucket == null || bucket.items.isEmpty) {
           return Scaffold(
@@ -242,7 +485,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   children: [
                     _buildDeliverySection(),
                     const SizedBox(height: 16),
-                    _buildBillSection(subtotal, total),
+                    _buildPromoSelector(),
+                    const SizedBox(height: 16),
+                    _buildBillSection(subtotal, total, discountAmount),
                     const SizedBox(height: 16),
                     _buildPaymentSection(context),
                     const SizedBox(height: 4),
@@ -336,7 +581,48 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildBillSection(double subtotal, double total) {
+  Widget _buildPromoSelector() {
+    return _SectionCard(
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.cyan.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(CupertinoIcons.ticket, color: Colors.cyan, size: 22),
+        ),
+        title: Text(
+          _selectedPromo == null ? 'Apply Promotion' : _selectedPromo!.title,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: _selectedPromo == null ? FontWeight.w600 : FontWeight.bold,
+            color: _selectedPromo == null ? Colors.black87 : Colors.cyan,
+          ),
+        ),
+        trailing: _selectedPromo == null
+            ? const Icon(Icons.chevron_right_rounded, color: Colors.black38, size: 22)
+            : IconButton(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _selectedPromo = null);
+                },
+                icon: const Icon(Icons.close_rounded, color: Colors.black38, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+        onTap: _selectedPromo == null
+            ? () {
+                HapticFeedback.selectionClick();
+                _showPromoSelectorBottomSheet();
+              }
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildBillSection(double subtotal, double total, double discountAmount) {
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,50 +632,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             label: 'Bill Summary',
           ),
           const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F7),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: TextField(
-              controller: _promoController,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-              decoration: const InputDecoration(
-                hintText: 'Add promo code',
-                hintStyle: TextStyle(color: Colors.black38, fontSize: 14),
-                prefixIcon: Icon(
-                  Icons.local_offer_rounded,
-                  color: Colors.black26,
-                  size: 20,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Divider(color: Color(0x0A000000)),
-          const SizedBox(height: 12),
           _BillRow(
             label: 'Subtotal',
-            value: 'Rs. ${subtotal.toStringAsFixed(0)}',
+            value: 'Rs. ${subtotal.toStringAsFixed(2)}',
           ),
           const SizedBox(height: 8),
           _BillRow(
             label: 'Delivery Fee',
-            value: 'Rs. ${_deliveryFee.toStringAsFixed(0)}',
+            value: 'Rs. ${_deliveryFee.toStringAsFixed(2)}',
           ),
+          if (_selectedPromo != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Discount (${_selectedPromo!.discountPercentage.toStringAsFixed(0)}%)',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green.shade600,
+                  ),
+                ),
+                Text(
+                  '- Rs. ${discountAmount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.green.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Divider(color: Color(0x0F000000)),
           ),
           _BillRow(
             label: 'Total',
-            value: 'Rs. ${total.toStringAsFixed(0)}',
+            value: 'Rs. ${total.toStringAsFixed(2)}',
             bold: true,
           ),
         ],
@@ -506,7 +788,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 const Text('·', style: TextStyle(color: Colors.white54)),
                 const SizedBox(width: 8),
                 Text(
-                  'Rs. ${total.toStringAsFixed(0)}',
+                  'Rs. ${total.toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
