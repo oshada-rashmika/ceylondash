@@ -202,9 +202,7 @@ class _RoleRouterGateState extends State<RoleRouterGate> {
         if (userSnapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: Colors.white,
-            body: Center(
-              child: CircularProgressIndicator(color: Colors.cyan),
-            ),
+            body: Center(child: CircularProgressIndicator(color: Colors.cyan)),
           );
         }
         if (userSnapshot.hasData && userSnapshot.data != null) {
