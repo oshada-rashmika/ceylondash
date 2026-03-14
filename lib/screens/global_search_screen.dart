@@ -67,13 +67,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     if (shop != null) {
       await _searchPrefs.incrementShopVisit(shop.id);
       if (mounted) {
-        Navigator.push(
+        await Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => ShopDetailScreen(shop: shop)),
+          CupertinoPageRoute(builder: (_) => ShopDetailScreen(shop: shop)),
         );
       }
     }
-    // Refresh preferences after any update
     _loadPreferences();
   }
 
@@ -83,6 +82,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       if (!mounted) return;
       setState(() {
         _query = _searchController.text.trim().toLowerCase();
+        if (_query.isEmpty) {
+          _loadPreferences();
+        }
       });
     });
   }
@@ -434,16 +436,19 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
-        onTap: () {
+        onTap: () async {
           HapticFeedback.selectionClick();
           if (_query.trim().isNotEmpty) {
-            SearchPreferencesService().addSearchQuery(_query.trim());
+            await SearchPreferencesService().addSearchQuery(_query.trim());
           }
-          SearchPreferencesService().incrementShopVisit(shop.id);
-          Navigator.push(
-            context,
-            CupertinoPageRoute(builder: (_) => ShopDetailScreen(shop: shop)),
-          );
+          await SearchPreferencesService().incrementShopVisit(shop.id);
+          if (mounted) {
+            await Navigator.push(
+              context,
+              CupertinoPageRoute(builder: (_) => ShopDetailScreen(shop: shop)),
+            );
+            _loadPreferences();
+          }
         },
         leading: CircleAvatar(
           radius: 28,
@@ -482,18 +487,21 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
-        onTap: () {
+        onTap: () async {
           HapticFeedback.selectionClick();
           final String itemShopId = itemData['shopId'];
           final parentShop = widget.allShops.firstWhere((s) => s.id == itemShopId);
           if (_query.trim().isNotEmpty) {
-            SearchPreferencesService().addSearchQuery(_query.trim());
+            await SearchPreferencesService().addSearchQuery(_query.trim());
           }
-          SearchPreferencesService().incrementShopVisit(parentShop.id);
-          Navigator.push(
-            context,
-            CupertinoPageRoute(builder: (_) => ShopDetailScreen(shop: parentShop)),
-          );
+          await SearchPreferencesService().incrementShopVisit(parentShop.id);
+          if (mounted) {
+            await Navigator.push(
+              context,
+              CupertinoPageRoute(builder: (_) => ShopDetailScreen(shop: parentShop)),
+            );
+            _loadPreferences();
+          }
         },
         leading: Container(
           width: 56,
@@ -541,15 +549,18 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
-        onTap: () {
+        onTap: () async {
           HapticFeedback.selectionClick();
           if (_query.trim().isNotEmpty) {
-            SearchPreferencesService().addSearchQuery(_query.trim());
+            await SearchPreferencesService().addSearchQuery(_query.trim());
           }
-          Navigator.push(
-            context,
-            CupertinoPageRoute(builder: (_) => OrderDetailScreen(order: order)),
-          );
+          if (mounted) {
+            await Navigator.push(
+              context,
+              CupertinoPageRoute(builder: (_) => OrderDetailScreen(order: order)),
+            );
+            _loadPreferences();
+          }
         },
         leading: Container(
           width: 48,
