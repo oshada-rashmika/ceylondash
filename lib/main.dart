@@ -137,29 +137,7 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           }
           if (snapshot.hasData) {
             if (snapshot.data!.emailVerified) {
-              return FutureBuilder<UserModel?>(
-                future: DatabaseService().getUser(snapshot.data!.uid),
-                builder: (context, userSnapshot) {
-                  if (userSnapshot.connectionState == ConnectionState.waiting) {
-                    return const Scaffold(
-                      backgroundColor: Colors.white,
-                      body: Center(
-                        child: CircularProgressIndicator(color: Colors.cyan),
-                      ),
-                    );
-                  }
-                  if (userSnapshot.hasData && userSnapshot.data != null) {
-                    final role = userSnapshot.data!.role;
-                    if (role == 'seller') {
-                      return const SellerDashboardScreen();
-                    } else if (role == 'rider') {
-                      return const RiderDashboardScreen();
-                    }
-                    return const CustomerDashboardShell();
-                  }
-                  return const LoginScreen();
-                },
-              );
+              return RoleRouterGate(uid: snapshot.data!.uid);
             }
             return const VerificationPendingScreen();
           }
@@ -185,6 +163,60 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           return SlidePageRoute(page: page);
         }
         return null;
+      },
+    );
+  }
+}
+
+class RoleRouterGate extends StatefulWidget {
+  final String uid;
+
+  const RoleRouterGate({super.key, required this.uid});
+
+  @override
+  State<RoleRouterGate> createState() => _RoleRouterGateState();
+}
+
+class _RoleRouterGateState extends State<RoleRouterGate> {
+  Future<UserModel?>? _userFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _userFuture = DatabaseService().getUser(widget.uid);
+  }
+
+  @override
+  void didUpdateWidget(RoleRouterGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.uid != widget.uid) {
+      _userFuture = DatabaseService().getUser(widget.uid);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<UserModel?>(
+      future: _userFuture,
+      builder: (context, userSnapshot) {
+        if (userSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(
+              child: CircularProgressIndicator(color: Colors.cyan),
+            ),
+          );
+        }
+        if (userSnapshot.hasData && userSnapshot.data != null) {
+          final role = userSnapshot.data!.role;
+          if (role == 'seller') {
+            return const SellerDashboardScreen();
+          } else if (role == 'rider') {
+            return const RiderDashboardScreen();
+          }
+          return const CustomerDashboardShell();
+        }
+        return const LoginScreen();
       },
     );
   }
