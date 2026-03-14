@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/user_model.dart';
 import '../providers/cart_provider.dart';
+import '../services/database_service.dart';
+import '../widgets/premium_text_field.dart';
+import '../widgets/top_snackbar.dart';
 import 'payment_method_screen.dart';
 
 class CartScreen extends StatefulWidget {
@@ -17,6 +20,16 @@ class _CartScreenState extends State<CartScreen> {
   String _selectedPayment = 'Cash on Delivery';
   final TextEditingController _promoController = TextEditingController();
   static const double _deliveryFee = 250.0;
+  final _db = DatabaseService();
+  late String _address;
+  late String _phone;
+
+  @override
+  void initState() {
+    super.initState();
+    _address = widget.user?.address ?? '';
+    _phone = widget.user?.phone ?? '';
+  }
 
   @override
   void dispose() {
@@ -24,6 +37,158 @@ class _CartScreenState extends State<CartScreen> {
     super.dispose();
   }
 
+  Future<void> _showEditBottomSheet({
+    required String title,
+    required String currentValue,
+    required TextInputType keyboardType,
+    required String firestoreField,
+    required void Function(String) onSaved,
+  }) async {
+    final ctrl = TextEditingController(text: currentValue);
+    bool saving = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 14),
+                      Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.black12,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black,
+                              letterSpacing: -0.8,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: PremiumTextField(
+                          controller: ctrl,
+                          label: title,
+                          keyboardType: keyboardType,
+                          textCapitalization:
+                              keyboardType == TextInputType.phone
+                                  ? TextCapitalization.none
+                                  : TextCapitalization.sentences,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed: saving
+                                ? null
+                                : () async {
+                                    final newVal = ctrl.text.trim();
+                                    if (newVal.isEmpty) return;
+                                    setSheetState(() => saving = true);
+                                    try {
+                                      final uid = widget.user?.uid;
+                                      if (uid != null) {
+                                        await _db.updateUserField(
+                                          uid,
+                                          {firestoreField: newVal},
+                                        );
+                                      }
+                                      if (mounted) {
+                                        onSaved(newVal);
+                                        Navigator.pop(sheetCtx);
+                                        TopSnackbar.show(
+                                          context,
+                                          message: '$title updated successfully',
+                                          type: SnackbarType.success,
+                                        );
+                                      }
+                                    } catch (_) {
+                                      setSheetState(() => saving = false);
+                                      if (mounted) {
+                                        TopSnackbar.show(
+                                          context,
+                                          message: 'Failed to update. Try again.',
+                                          type: SnackbarType.error,
+                                        );
+                                      }
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.cyan,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: saving
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Save',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    ctrl.dispose();
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(
@@ -145,35 +310,49 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildDeliverySection() {
-    final user = widget.user;
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(icon: Icons.local_shipping_rounded, label: 'Delivery Details'),
+          const _SectionTitle(
+            icon: Icons.local_shipping_rounded,
+            label: 'Delivery Details',
+          ),
           const SizedBox(height: 12),
           _DeliveryTile(
             icon: Icons.location_on_rounded,
             iconColor: Colors.cyan,
             label: 'Delivery Address',
-            value: (user?.address?.isNotEmpty == true)
-                ? user!.address!
-                : 'Add a delivery address',
-            valueColor: (user?.address?.isNotEmpty == true)
-                ? Colors.black87
-                : Colors.black38,
+            value: _address.isNotEmpty ? _address : 'Add a delivery address',
+            valueColor: _address.isNotEmpty ? Colors.black87 : Colors.black38,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              _showEditBottomSheet(
+                title: 'Edit Address',
+                currentValue: _address,
+                keyboardType: TextInputType.streetAddress,
+                firestoreField: 'address',
+                onSaved: (v) => setState(() => _address = v),
+              );
+            },
           ),
           const Divider(height: 1, color: Color(0x0A000000)),
           _DeliveryTile(
             icon: Icons.phone_rounded,
             iconColor: Colors.cyan,
             label: 'Phone Number',
-            value: (user?.phone.isNotEmpty == true)
-                ? user!.phone
-                : 'Add a phone number',
-            valueColor: (user?.phone.isNotEmpty == true)
-                ? Colors.black87
-                : Colors.black38,
+            value: _phone.isNotEmpty ? _phone : 'Add a phone number',
+            valueColor: _phone.isNotEmpty ? Colors.black87 : Colors.black38,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              _showEditBottomSheet(
+                title: 'Edit Phone Number',
+                currentValue: _phone,
+                keyboardType: TextInputType.phone,
+                firestoreField: 'phone',
+                onSaved: (v) => setState(() => _phone = v),
+              );
+            },
           ),
         ],
       ),
@@ -185,7 +364,10 @@ class _CartScreenState extends State<CartScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(icon: Icons.receipt_long_rounded, label: 'Order Items'),
+          const _SectionTitle(
+            icon: Icons.receipt_long_rounded,
+            label: 'Order Items',
+          ),
           const SizedBox(height: 8),
           ...cart.items.map((ci) => _CartItemRow(cartItem: ci)),
         ],
@@ -198,7 +380,7 @@ class _CartScreenState extends State<CartScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(icon: Icons.receipt_rounded, label: 'Bill Summary'),
+          const _SectionTitle(icon: Icons.receipt_rounded, label: 'Bill Summary'),
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
@@ -256,7 +438,7 @@ class _CartScreenState extends State<CartScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(icon: Icons.payment_rounded, label: 'Payment'),
+          const _SectionTitle(icon: Icons.payment_rounded, label: 'Payment'),
           const SizedBox(height: 8),
           InkWell(
             onTap: () async {
@@ -264,9 +446,8 @@ class _CartScreenState extends State<CartScreen> {
               final result = await Navigator.push<String>(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PaymentMethodScreen(
-                    currentMethod: _selectedPayment,
-                  ),
+                  builder: (_) =>
+                      PaymentMethodScreen(currentMethod: _selectedPayment),
                 ),
               );
               if (result != null && mounted) {
@@ -426,18 +607,20 @@ class _DeliveryTile extends StatelessWidget {
   final String label;
   final String value;
   final Color valueColor;
+  final VoidCallback onTap;
   const _DeliveryTile({
     required this.icon,
     required this.iconColor,
     required this.label,
     required this.value,
     required this.valueColor,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),

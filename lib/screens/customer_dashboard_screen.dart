@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../providers/cart_provider.dart';
 import '../services/database_service.dart';
 import '../models/user_model.dart';
 import '../models/order_model.dart';
 import '../models/shop_model.dart';
 import '../widgets/slide_page_route.dart';
+import 'cart_screen.dart';
 import 'profile_screen.dart';
 import 'order_detail_screen.dart';
 import 'shop_detail_screen.dart';
@@ -326,7 +330,68 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
                   ],
                 ),
               ),
-              _ProfileAvatar(name: name, onTap: _openProfile),
+              Consumer<CartProvider>(
+                builder: (context, cart, _) {
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => CartScreen(user: _user),
+                        ),
+                      );
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.shopping_bag_outlined,
+                            color: Colors.black87,
+                            size: 22,
+                          ),
+                        ),
+                        if (cart.itemCount > 0)
+                          Positioned(
+                            top: -2,
+                            right: -2,
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: const BoxDecoration(
+                                color: Colors.cyan,
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '${cart.itemCount > 9 ? '9+' : cart.itemCount}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ],
           ),
           const SizedBox(height: 32),

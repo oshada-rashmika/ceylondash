@@ -127,4 +127,11 @@ class DatabaseService {
         .map((d) => ShopModel.fromJson(d.id, d.data()))
         .toList();
   }
+
+  Future<void> updateUserField(
+    String uid,
+    Map<String, dynamic> data,
+  ) async {
+    await _db.collection('users').doc(uid).update(data);
+  }
 }
