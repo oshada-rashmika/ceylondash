@@ -191,34 +191,16 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   }
 
   Widget _buildEmptyState() {
-    if (_recentSearches.isEmpty && _frequentShops.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_rounded, size: 64, color: Colors.black12),
-            const SizedBox(height: 16),
-            const Text(
-              'Search for restaurants, gadgets, or past orders.',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black38,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      children: [
-        if (_recentSearches.isNotEmpty) _buildRecentSearchesSection(),
-        if (_recentSearches.isNotEmpty && _frequentShops.isNotEmpty)
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildRecentSearchesSection(),
           const SizedBox(height: 32),
-        if (_frequentShops.isNotEmpty) _buildFrequentShopsSection(),
-      ],
+          _buildFrequentShopsSection(),
+        ],
+      ),
     );
   }
 
@@ -259,28 +241,40 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _recentSearches.map((query) {
-            return ActionChip(
-              backgroundColor: Colors.white,
-              side: BorderSide(color: Colors.grey.shade200),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              labelStyle: const TextStyle(
-                color: Colors.black87,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              label: Text(query),
-              onPressed: () {
-                _searchController.text = query;
-              },
-            );
-          }).toList(),
-        ),
+        if (_recentSearches.isEmpty)
+          const Text(
+            'No recent searches',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black38,
+            ),
+          )
+        else
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: _recentSearches.map((query) {
+              return ActionChip(
+                backgroundColor: Colors.white,
+                side: BorderSide(color: Colors.grey.shade200),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                labelStyle: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                label: Text(query),
+                onPressed: () {
+                  setState(() {
+                    _searchController.text = query;
+                    _query = query;
+                  });
+                },
+              );
+            }).toList(),
+          ),
       ],
     );
   }
@@ -289,19 +283,30 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Frequently Visited',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
+        const Padding(
+          padding: EdgeInsets.only(bottom: 16),
+          child: Text(
+            'Frequently Visited',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
         ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 140,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
+        if (_frequentShops.isEmpty)
+          const Text(
+            'Keep exploring to see your favorite shops.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black38,
+            ),
+          )
+        else
+          SizedBox(
+            height: 140,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
             itemCount: _frequentShops.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
