@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/order_model.dart';
 import '../models/shop_model.dart';
 import 'shop_detail_screen.dart';
+import 'order_detail_screen.dart';
 import '../services/search_preferences_service.dart';
 
 class GlobalSearchScreen extends StatefulWidget {
@@ -428,7 +430,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
-        onTap: () => _handleResultTap(shop: shop),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          if (_query.trim().isNotEmpty) {
+            SearchPreferencesService().addSearchQuery(_query.trim());
+          }
+          SearchPreferencesService().incrementShopVisit(shop.id);
+          Navigator.push(
+            context,
+            CupertinoPageRoute(builder: (_) => ShopDetailScreen(shop: shop)),
+          );
+        },
         leading: CircleAvatar(
           radius: 28,
           backgroundColor: Colors.grey.shade100,
@@ -466,7 +478,19 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
-        onTap: () => _handleResultTap(shop: shop),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          final String itemShopId = itemData['shopId'];
+          final parentShop = widget.allShops.firstWhere((s) => s.id == itemShopId);
+          if (_query.trim().isNotEmpty) {
+            SearchPreferencesService().addSearchQuery(_query.trim());
+          }
+          SearchPreferencesService().incrementShopVisit(parentShop.id);
+          Navigator.push(
+            context,
+            CupertinoPageRoute(builder: (_) => ShopDetailScreen(shop: parentShop)),
+          );
+        },
         leading: Container(
           width: 56,
           height: 56,
@@ -513,7 +537,16 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
-        onTap: () => _handleResultTap(), // just record search query
+        onTap: () {
+          HapticFeedback.selectionClick();
+          if (_query.trim().isNotEmpty) {
+            SearchPreferencesService().addSearchQuery(_query.trim());
+          }
+          Navigator.push(
+            context,
+            CupertinoPageRoute(builder: (_) => OrderDetailScreen(order: order)),
+          );
+        },
         leading: Container(
           width: 48,
           height: 48,
