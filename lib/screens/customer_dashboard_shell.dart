@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
@@ -107,7 +105,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                       ),
                       if (_menuAnim.value > 0)
                         Positioned(
-                          bottom: 90, // Above the BottomAppBar
+                          bottom: 50,
                           left: 0,
                           right: 0,
                           child: SafeArea(
@@ -134,34 +132,15 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
     return AnimatedBuilder(
       animation: _menuAnim,
       builder: (context, child) {
-        return Stack(
-          alignment: Alignment.bottomCenter,
-          clipBehavior: Clip.none,
-          children: [
-            if (_menuAnim.value > 0)
-              Positioned(
-                bottom: 64,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: _buildRadialItems(),
-                ),
-              ),
-            Transform.rotate(
-              angle: _menuAnim.value * math.pi / 4,
-              child: FloatingActionButton(
-                onPressed: _toggleMenu,
-                backgroundColor: Colors.cyan,
-                elevation: 4 + (4 * _menuAnim.value),
-                shape: const CircleBorder(),
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ),
-          ],
+        return Transform.rotate(
+          angle: _menuAnim.value * math.pi / 4,
+          child: FloatingActionButton(
+            onPressed: _toggleMenu,
+            backgroundColor: Colors.cyan,
+            elevation: 4 + (4 * _menuAnim.value),
+            shape: const CircleBorder(),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
+          ),
         );
       },
     );
@@ -174,11 +153,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
       Icons.support_agent_rounded,
     ];
 
-    final labels = [
-      'Accessibility',
-      'Settings',
-      'Support',
-    ];
+    final labels = ['Accessibility', 'Settings', 'Support'];
 
     return List.generate(3, (index) {
       return Padding(
@@ -190,19 +165,22 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
             alignment: Alignment.center,
             children: [
               Positioned(
-                right: (MediaQuery.of(context).size.width / 2) + 26, // 20px (half FAB) + 6px spacing gap
+                right: (MediaQuery.of(context).size.width / 2) + 26,
                 child: Transform.scale(
                   scale: _menuAnim.value,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
@@ -283,7 +261,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                 ],
               ),
             ),
-            const SizedBox(width: 48), // Cutout space
+            const SizedBox(width: 48),
             Expanded(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
