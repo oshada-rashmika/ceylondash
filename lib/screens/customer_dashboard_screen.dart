@@ -628,7 +628,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               padding: const EdgeInsets.symmetric(horizontal: 24),
               itemCount: _shops.length,
               itemBuilder: (context, index) =>
-                  _ShopCard(shop: _shops[index]),
+                  _ShopCard(shop: _shops[index], user: _user),
             ),
           ),
       ],
@@ -1112,7 +1112,8 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
 
 class _ShopCard extends StatefulWidget {
   final ShopModel shop;
-  const _ShopCard({required this.shop});
+  final UserModel? user;
+  const _ShopCard({required this.shop, this.user});
 
   @override
   State<_ShopCard> createState() => _ShopCardState();
@@ -1156,7 +1157,7 @@ class _ShopCardState extends State<_ShopCard>
         _ctrl.reverse();
         Navigator.push(
           context,
-          SlidePageRoute(page: ShopDetailScreen(shop: shop)),
+          SlidePageRoute(page: ShopDetailScreen(shop: shop, user: widget.user)),
         );
       },
       onTapCancel: () => _ctrl.reverse(),
