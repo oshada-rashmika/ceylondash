@@ -370,14 +370,13 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off_rounded, size: 64, color: Colors.black12),
+          const Icon(Icons.search_off_rounded, size: 64, color: Colors.black12),
           const SizedBox(height: 16),
           Text(
-            'No results for "$_searchController.text"',
+            'No results for "$_query"',
             style: const TextStyle(
               fontSize: 16,
-              color: Colors.black38,
-              fontWeight: FontWeight.w500,
+              color: Colors.grey,
             ),
           ),
         ],
