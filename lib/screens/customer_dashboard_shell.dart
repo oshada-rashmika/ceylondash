@@ -1,13 +1,15 @@
-// ignore_for_file: deprecated_member_use
-
 import 'dart:ui';
 import 'dart:math' as math;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'customer_dashboard_screen.dart';
 import 'chat_list_screen.dart';
 import 'quick_actions_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
+import 'accessibility_screen.dart';
+import '../widgets/top_snackbar.dart';
 
 class CustomerDashboardShell extends StatefulWidget {
   const CustomerDashboardShell({super.key});
@@ -83,22 +85,38 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
               child: AnimatedBuilder(
                 animation: _menuCtrl,
                 builder: (context, child) {
-                  return IgnorePointer(
-                    ignoring: !_isMenuOpen,
-                    child: GestureDetector(
-                      onTap: _toggleMenu,
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(
-                          sigmaX: 5.0 * _menuCtrl.value,
-                          sigmaY: 5.0 * _menuCtrl.value,
-                        ),
-                        child: Container(
-                          color: Colors.black.withOpacity(
-                            0.3 * _menuCtrl.value,
+                  return Stack(
+                    children: [
+                      IgnorePointer(
+                        ignoring: !_isMenuOpen,
+                        child: GestureDetector(
+                          onTap: _toggleMenu,
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 5.0 * _menuCtrl.value,
+                              sigmaY: 5.0 * _menuCtrl.value,
+                            ),
+                            child: Container(
+                              color: Colors.black.withOpacity(
+                                0.3 * _menuCtrl.value,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      if (_menuAnim.value > 0)
+                        Positioned(
+                          bottom: 50,
+                          left: 0,
+                          right: 0,
+                          child: SafeArea(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: _buildRadialItems(),
+                            ),
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),
@@ -115,61 +133,104 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
     return AnimatedBuilder(
       animation: _menuAnim,
       builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            ..._buildRadialItems(),
-            Transform.rotate(
-              angle: _menuAnim.value * math.pi / 4,
-              child: FloatingActionButton(
-                onPressed: _toggleMenu,
-                backgroundColor: Colors.cyan,
-                elevation: 4 + (4 * _menuAnim.value),
-                shape: const CircleBorder(),
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-            ),
-          ],
+        return Transform.rotate(
+          angle: _menuAnim.value * math.pi / 4,
+          child: FloatingActionButton(
+            onPressed: _toggleMenu,
+            backgroundColor: Colors.cyan,
+            elevation: 4 + (4 * _menuAnim.value),
+            shape: const CircleBorder(),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
+          ),
         );
       },
     );
   }
 
   List<Widget> _buildRadialItems() {
-    if (_menuAnim.value == 0) return [];
-
-    final double radius = 100.0;
-    final angles = [-5 * math.pi / 6, -math.pi / 2, -math.pi / 6];
     final icons = [
+      Icons.accessibility_new_rounded,
+      Icons.settings_rounded,
       Icons.support_agent_rounded,
-      Icons.local_offer_rounded,
-      Icons.qr_code_scanner_rounded,
     ];
 
-    return List.generate(3, (index) {
-      final theta = angles[index];
-      final double dx = math.cos(theta) * radius * _menuAnim.value;
-      final double dy = math.sin(theta) * radius * _menuAnim.value;
+    final labels = ['Accessibility', 'Settings', 'Support'];
 
-      return Transform.translate(
-        offset: Offset(dx, dy),
-        child: Transform.scale(
-          scale: _menuAnim.value,
-          child: FloatingActionButton.small(
-            heroTag: 'fab_rad_$index',
-            backgroundColor: Colors.white,
-            elevation: 4,
-            shape: const CircleBorder(),
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              _toggleMenu();
-            },
-            child: Icon(icons[index], color: Colors.cyan.shade700),
+    return List.generate(3, (index) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Positioned(
+                right: (MediaQuery.of(context).size.width / 2) + 26,
+                child: Transform.scale(
+                  scale: _menuAnim.value,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      labels[index],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Transform.scale(
+                scale: _menuAnim.value,
+                child: FloatingActionButton.small(
+                  heroTag: 'fab_vert_$index',
+                  backgroundColor: Colors.white,
+                  elevation: 2,
+                  shape: const CircleBorder(),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    _toggleMenu();
+                    if (labels[index] == 'Settings') {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => const SettingsScreen(),
+                        ),
+                      );
+                    } else if (labels[index] == 'Accessibility') {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => const AccessibilityScreen(),
+                        ),
+                      );
+                    } else {
+                      TopSnackbar.show(
+                        context,
+                        message: '${labels[index]} coming soon!',
+                        type: SnackbarType.success,
+                      );
+                    }
+                  },
+                  child: Icon(icons[index], color: Colors.cyan.shade700),
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -208,7 +269,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                 ],
               ),
             ),
-            const SizedBox(width: 48), // Cutout space
+            const SizedBox(width: 48),
             Expanded(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
