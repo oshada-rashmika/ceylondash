@@ -66,6 +66,10 @@ class UserModel {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return toMap();
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,

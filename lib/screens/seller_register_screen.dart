@@ -26,7 +26,6 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen>
 
   final _ownerNameCtrl = TextEditingController();
   final _businessNameCtrl = TextEditingController();
-  final _businessAddressCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _socialsCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -37,7 +36,7 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen>
   late final List<Animation<double>> _fades;
   late final List<Animation<Offset>> _slides;
 
-  static const _count = 9;
+  static const _count = 8;
 
   @override
   void initState() {
@@ -83,12 +82,19 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen>
         fcmToken: '',
         email: _emailCtrl.text.trim(),
         businessName: _businessNameCtrl.text.trim(),
-        businessAddress: _businessAddressCtrl.text.trim(),
+        businessAddress: null,
         socials: _socialsCtrl.text.trim().isEmpty
             ? null
             : _socialsCtrl.text.trim(),
       );
-      await _dbService.createUser(user);
+
+      try {
+        await _dbService.createUser(user);
+      } catch (e) {
+        await cred.user?.delete();
+        rethrow;
+      }
+
       await _authService.sendVerificationEmail();
 
       if (mounted) {
@@ -129,7 +135,6 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen>
     _entranceCtrl.dispose();
     _ownerNameCtrl.dispose();
     _businessNameCtrl.dispose();
-    _businessAddressCtrl.dispose();
     _phoneCtrl.dispose();
     _socialsCtrl.dispose();
     _emailCtrl.dispose();
@@ -221,27 +226,11 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen>
                 ),
                 const SizedBox(height: 14),
 
-                _anim(
-                  3,
-                  PremiumTextField(
-                    controller: _businessAddressCtrl,
-                    label: 'Business Address',
-                    prefixIcon: const Icon(
-                      Icons.location_on_outlined,
-                      color: Colors.black38,
-                      size: 20,
-                    ),
-                    validator: (v) =>
-                        Validators.validateRequired(v, 'Business Address'),
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                _anim(4, PhoneInputField(controller: _phoneCtrl)),
+                _anim(3, PhoneInputField(controller: _phoneCtrl)),
                 const SizedBox(height: 14),
 
                 _anim(
-                  5,
+                  4,
                   PremiumTextField(
                     controller: _socialsCtrl,
                     label: 'Socials (optional)',
@@ -254,14 +243,14 @@ class _SellerRegisterScreenState extends State<SellerRegisterScreen>
                 ),
                 const SizedBox(height: 14),
 
-                _anim(6, EmailInputField(controller: _emailCtrl)),
+                _anim(5, EmailInputField(controller: _emailCtrl)),
                 const SizedBox(height: 14),
 
-                _anim(7, PasswordInputField(controller: _passwordCtrl)),
+                _anim(6, PasswordInputField(controller: _passwordCtrl)),
                 const SizedBox(height: 28),
 
                 _anim(
-                  8,
+                  7,
                   CustomButton(
                     text: 'Create Seller Account',
                     isLoading: _isLoading,

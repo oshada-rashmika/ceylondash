@@ -55,7 +55,8 @@ class DatabaseService {
   }
 
   Future<void> createUser(UserModel user) async {
-    await _db.collection('users').doc(user.uid).set(user.toMap());
+    await _db.collection('users').doc(user.uid).set(user.toJson());
+    print('🔥 Firestore User Created: ${user.uid}');
   }
 
   Future<UserModel?> getUser(String uid) async {
@@ -65,14 +66,20 @@ class DatabaseService {
     }
     return null;
   }
+
   Stream<UserModel?> streamUser(String uid) {
     return _db.collection('users').doc(uid).snapshots().map((doc) {
       if (doc.exists) return UserModel.fromFirestore(doc);
       return null;
     });
   }
+
   Future<void> updateUserFields(String uid, Map<String, dynamic> fields) async {
     await _db.collection('users').doc(uid).update(fields);
+  }
+
+  Future<void> deleteUserData(String uid) async {
+    await _db.collection('users').doc(uid).delete();
   }
 
   Future<String> createOrder(OrderModel order) async {
@@ -81,23 +88,27 @@ class DatabaseService {
         .add(order.toMap());
     return docRef.id;
   }
+
   Future<void> updateOrderStatus(String orderId, String newStatus) async {
     await _db.collection('orders').doc(orderId).update({
       'status': newStatus,
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
   Future<void> assignRider(String orderId, String riderId) async {
     await _db.collection('orders').doc(orderId).update({
       'riderId': riderId,
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
     });
   }
+
   Stream<OrderModel> streamOrder(String orderId) {
     return _db.collection('orders').doc(orderId).snapshots().map((snapshot) {
       return OrderModel.fromFirestore(snapshot);
     });
   }
+
   Stream<List<OrderModel>> streamCustomerOrders(String customerId) {
     return _db
         .collection('orders')

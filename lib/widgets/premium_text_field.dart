@@ -11,6 +11,7 @@ class PremiumTextField extends StatefulWidget {
   final int maxLines;
   final ValueChanged<String>? onChanged;
   final bool readOnly;
+  final TextCapitalization textCapitalization;
 
   const PremiumTextField({
     super.key,
@@ -24,6 +25,7 @@ class PremiumTextField extends StatefulWidget {
     this.maxLines = 1,
     this.onChanged,
     this.readOnly = false,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   @override
@@ -73,6 +75,7 @@ class _PremiumTextFieldState extends State<PremiumTextField> {
         validator: widget.validator,
         obscureText: widget.obscureText,
         keyboardType: widget.keyboardType,
+        textCapitalization: widget.textCapitalization,
         maxLines: widget.maxLines,
         onChanged: widget.onChanged,
         readOnly: widget.readOnly,

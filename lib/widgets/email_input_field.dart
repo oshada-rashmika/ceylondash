@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../utils/validators.dart';
 
 class EmailInputField extends StatefulWidget {
@@ -60,6 +61,15 @@ class _EmailInputFieldState extends State<EmailInputField> {
         controller: widget.controller,
         focusNode: _focus,
         keyboardType: TextInputType.emailAddress,
+        textCapitalization: TextCapitalization.none,
+        autocorrect: false,
+        enableSuggestions: false,
+        inputFormatters: [
+          _LowerCaseTextFormatter(),
+          FilteringTextInputFormatter.deny(
+            RegExp(r'\s'),
+          ), // Also prevent spaces
+        ],
         validator: widget.validator ?? Validators.validateEmail,
         style: const TextStyle(
           color: Colors.black87,
@@ -126,6 +136,19 @@ class _EmailInputFieldState extends State<EmailInputField> {
           errorStyle: TextStyle(color: Colors.red.shade400, fontSize: 12),
         ),
       ),
+    );
+  }
+}
+
+class _LowerCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toLowerCase(),
+      selection: newValue.selection,
     );
   }
 }

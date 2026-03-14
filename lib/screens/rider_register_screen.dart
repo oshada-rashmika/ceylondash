@@ -87,7 +87,14 @@ class _RiderRegisterScreenState extends State<RiderRegisterScreen>
         nic: _nicCtrl.text.trim(),
         isAvailable: false,
       );
-      await _dbService.createUser(user);
+
+      try {
+        await _dbService.createUser(user);
+      } catch (e) {
+        await cred.user?.delete();
+        rethrow;
+      }
+
       await _authService.sendVerificationEmail();
 
       if (mounted) {

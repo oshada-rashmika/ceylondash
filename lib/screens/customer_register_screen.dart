@@ -26,7 +26,6 @@ class _CustomerRegisterScreenState extends State<CustomerRegisterScreen>
 
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _isLoading = false;
@@ -35,7 +34,7 @@ class _CustomerRegisterScreenState extends State<CustomerRegisterScreen>
   late final List<Animation<double>> _fades;
   late final List<Animation<Offset>> _slides;
 
-  static const _count = 7;
+  static const _count = 6;
 
   @override
   void initState() {
@@ -85,7 +84,14 @@ class _CustomerRegisterScreenState extends State<CustomerRegisterScreen>
         fcmToken: '',
         email: _emailCtrl.text.trim(),
       );
-      await _dbService.createUser(user);
+
+      try {
+        await _dbService.createUser(user);
+      } catch (e) {
+        await cred.user?.delete();
+        rethrow;
+      }
+
       await _authService.sendVerificationEmail();
 
       if (mounted) {
@@ -126,7 +132,6 @@ class _CustomerRegisterScreenState extends State<CustomerRegisterScreen>
     _entranceCtrl.dispose();
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
-    _addressCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
@@ -202,29 +207,14 @@ class _CustomerRegisterScreenState extends State<CustomerRegisterScreen>
                 _anim(2, PhoneInputField(controller: _phoneCtrl)),
                 const SizedBox(height: 14),
 
-                _anim(
-                  3,
-                  PremiumTextField(
-                    controller: _addressCtrl,
-                    label: 'Address',
-                    prefixIcon: const Icon(
-                      Icons.location_on_outlined,
-                      color: Colors.black38,
-                      size: 20,
-                    ),
-                    validator: (v) => Validators.validateRequired(v, 'Address'),
-                  ),
-                ),
+                _anim(3, EmailInputField(controller: _emailCtrl)),
                 const SizedBox(height: 14),
 
-                _anim(4, EmailInputField(controller: _emailCtrl)),
-                const SizedBox(height: 14),
-
-                _anim(5, PasswordInputField(controller: _passwordCtrl)),
+                _anim(4, PasswordInputField(controller: _passwordCtrl)),
                 const SizedBox(height: 28),
 
                 _anim(
-                  6,
+                  5,
                   CustomButton(
                     text: 'Create Account',
                     isLoading: _isLoading,
