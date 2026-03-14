@@ -14,6 +14,7 @@ import 'cart_screen.dart';
 import 'profile_screen.dart';
 import 'order_detail_screen.dart';
 import 'shop_detail_screen.dart';
+import 'global_search_screen.dart';
 
 const _activeStatuses = {'processing', 'placed', 'preparing', 'on_the_way'};
 const _recentStatuses = {'delivered', 'cancelled'};
@@ -279,9 +280,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               SliverToBoxAdapter(child: _anim(2, _buildRecentSection())),
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
               SliverToBoxAdapter(child: _anim(3, _buildDiscoverShopsSection())),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 140),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 140)),
             ],
           ),
         ),
@@ -409,77 +408,49 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
   }
 
   Widget _buildSearchBar() {
-    final hasText = _searchController.text.isNotEmpty;
-    final hasFocus = _searchFocusNode.hasFocus;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: hasFocus ? Colors.cyan.withOpacity(0.5) : Colors.transparent,
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: hasFocus
-                ? Colors.cyan.withOpacity(0.1)
-                : Colors.black.withValues(alpha: 0.03),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                GlobalSearchScreen(
+                  allShops: _shops,
+                  userOrders: [..._activeOrders, ..._recentOrders],
+                ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
           ),
-        ],
-      ),
-      child: TextField(
-        controller: _searchController,
-        focusNode: _searchFocusNode,
-        cursorColor: Colors.cyan,
-        textInputAction: TextInputAction.search,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.black87,
-        ),
-        decoration: InputDecoration(
-          hintText: 'Search orders...',
-          hintStyle: const TextStyle(
-            color: Colors.black38,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-          prefixIcon: const Padding(
-            padding: EdgeInsets.only(left: 8.0),
-            child: Icon(Icons.search_rounded, color: Colors.black38, size: 22),
-          ),
-          suffixIcon: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            transitionBuilder: (child, animation) => ScaleTransition(
-              scale: animation,
-              child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
             ),
-            child: hasText
-                ? IconButton(
-                    key: const ValueKey('clear-search'),
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      _clearSearch();
-                    },
-                    splashRadius: 24,
-                    icon: const Icon(
-                      Icons.cancel_rounded,
-                      color: Colors.black26,
-                      size: 20,
-                    ),
-                  )
-                : const SizedBox(key: ValueKey('empty-search-suffix')),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 18,
-          ),
-          border: InputBorder.none,
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: const [
+            Icon(Icons.search_rounded, color: Colors.black38, size: 22),
+            SizedBox(width: 12),
+            Text(
+              'Search shops, items, or orders...',
+              style: TextStyle(
+                color: Colors.black38,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1196,9 +1167,10 @@ class _ShopCardState extends State<_ShopCard>
       vsync: this,
       duration: const Duration(milliseconds: 150),
     );
-    _scale = Tween(begin: 1.0, end: 0.94).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _scale = Tween(
+      begin: 1.0,
+      end: 0.94,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -1222,7 +1194,9 @@ class _ShopCardState extends State<_ShopCard>
         _ctrl.reverse();
         Navigator.push(
           context,
-          SlidePageRoute(page: ShopDetailScreen(shop: shop, user: widget.user)),
+          SlidePageRoute(
+            page: ShopDetailScreen(shop: shop, user: widget.user),
+          ),
         );
       },
       onTapCancel: () => _ctrl.reverse(),
