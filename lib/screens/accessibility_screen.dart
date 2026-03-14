@@ -2,9 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../services/database_service.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
+import '../providers/accessibility_provider.dart';
 import '../widgets/top_snackbar.dart';
 
 class AccessibilityScreen extends StatefulWidget {
@@ -91,6 +93,10 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
       await _db.updateUserField(user.uid, {
         'accessibilityNeeds': _selectedNeeds,
       });
+      if (mounted) {
+        Provider.of<AccessibilityProvider>(context, listen: false)
+            .updateNeeds(_selectedNeeds);
+      }
       if (mounted) {
         TopSnackbar.show(
           context,
