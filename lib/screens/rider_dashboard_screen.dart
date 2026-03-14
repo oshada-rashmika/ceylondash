@@ -1,7 +1,12 @@
+import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/database_service.dart';
+import '../models/user_model.dart';
+import '../widgets/top_snackbar.dart';
 import 'profile_screen.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
@@ -20,6 +25,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
   late final Animation<double> _menuAnim;
   bool _isMenuOpen = false;
 
+  final DatabaseService _db = DatabaseService();
+  StreamSubscription<UserModel?>? _userSub;
+
   @override
   void initState() {
     super.initState();
@@ -32,10 +40,51 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       curve: Curves.easeOutBack,
       reverseCurve: Curves.easeInBack,
     );
+    _listenToRiderStatus();
+  }
+
+  void _listenToRiderStatus() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    _userSub = _db.streamUser(uid).listen((user) {
+      if (!mounted) return;
+      if (user != null && user.isAvailable != null) {
+        setState(() {
+          _isOnline = user.isAvailable!;
+        });
+      }
+    });
+  }
+
+  Future<void> _toggleOnlineStatus(bool val) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    // Optimistic UI update
+    setState(() {
+      _isOnline = val;
+    });
+
+    try {
+      await _db.updateUserFields(uid, {'isAvailable': val});
+    } catch (_) {
+      if (!mounted) return;
+      // Revert on failure
+      setState(() {
+        _isOnline = !val;
+      });
+      TopSnackbar.show(
+        context,
+        message: 'Failed to update status. Please try again.',
+        type: SnackbarType.error,
+      );
+    }
   }
 
   @override
   void dispose() {
+    _userSub?.cancel();
     _menuCtrl.dispose();
     super.dispose();
   }
@@ -119,11 +168,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                     const SizedBox(width: 4),
                     Switch(
                       value: _isOnline,
-                      onChanged: (val) {
-                        setState(() {
-                          _isOnline = val;
-                        });
-                      },
+                      onChanged: _toggleOnlineStatus,
                       activeThumbColor: Colors.white,
                       activeTrackColor: Colors.green.shade500,
                       inactiveThumbColor: Colors.white,
