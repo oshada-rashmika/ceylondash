@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,9 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/database_service.dart';
 import '../models/user_model.dart';
 import '../models/order_model.dart';
+import '../models/shop_model.dart';
 import '../widgets/slide_page_route.dart';
 import 'profile_screen.dart';
 import 'order_detail_screen.dart';
+import 'shop_detail_screen.dart';
 
 const _activeStatuses = {'processing', 'placed', 'preparing', 'on_the_way'};
 const _recentStatuses = {'delivered', 'cancelled'};
@@ -101,8 +101,11 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
   Timer? _searchDebounce;
   String _searchQuery = '';
 
+  List<ShopModel> _shops = [];
+  bool _shopsLoading = true;
+
   late final AnimationController _staggerCtrl;
-  static const _sections = 3; // header, active, recent
+  static const _sections = 4;
   late final List<Animation<double>> _fades;
   late final List<Animation<Offset>> _slides;
 
@@ -157,7 +160,22 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
       _userLoading = false;
     });
     _subscribeOrders(fbUser.uid);
+    _loadShops();
     _staggerCtrl.forward();
+  }
+
+  Future<void> _loadShops() async {
+    try {
+      final shops = await _db.getAllShops();
+      if (!mounted) return;
+      setState(() {
+        _shops = shops;
+        _shopsLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _shopsLoading = false);
+    }
   }
 
   void _subscribeOrders(String uid) {
@@ -255,9 +273,11 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               SliverToBoxAdapter(child: _anim(1, _buildActiveSection())),
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
               SliverToBoxAdapter(child: _anim(2, _buildRecentSection())),
+              const SliverToBoxAdapter(child: SizedBox(height: 48)),
+              SliverToBoxAdapter(child: _anim(3, _buildDiscoverShopsSection())),
               const SliverToBoxAdapter(
                 child: SizedBox(height: 140),
-              ), // Padding for floating nav bar
+              ),
             ],
           ),
         ),
@@ -566,6 +586,53 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
         child: _ShimmerBlock(height: 140, borderRadius: 24),
       );
     });
+  }
+
+  Widget _buildDiscoverShopsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            'Discover Shops',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: Colors.black,
+              letterSpacing: -0.8,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (_shopsLoading)
+          SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              itemCount: 3,
+              itemBuilder: (_, __) => Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: _ShimmerBlock(height: 200, borderRadius: 16),
+              ),
+            ),
+          )
+        else if (_shops.isEmpty)
+          _buildEmpty(Icons.store_outlined, 'No Shops Available')
+        else
+          SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              itemCount: _shops.length,
+              itemBuilder: (context, index) =>
+                  _ShopCard(shop: _shops[index]),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -1036,6 +1103,194 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShopCard extends StatefulWidget {
+  final ShopModel shop;
+  const _ShopCard({required this.shop});
+
+  @override
+  State<_ShopCard> createState() => _ShopCardState();
+}
+
+class _ShopCardState extends State<_ShopCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
+
+  @override
+  Widget build(BuildContext context) {
+    final shop = widget.shop;
+    return GestureDetector(
+      onTapDown: (_) {
+        HapticFeedback.selectionClick();
+        _ctrl.forward();
+      },
+      onTapUp: (_) {
+        _ctrl.reverse();
+        Navigator.push(
+          context,
+          SlidePageRoute(page: ShopDetailScreen(shop: shop)),
+        );
+      },
+      onTapCancel: () => _ctrl.reverse(),
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          width: 160,
+          height: 200,
+          margin: const EdgeInsets.only(right: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  child: SizedBox(
+                    height: 120,
+                    width: double.infinity,
+                    child: shop.headerImage.isNotEmpty
+                        ? Image.network(
+                            shop.headerImage,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (_, child, progress) {
+                              if (progress == null) return child;
+                              return Container(
+                                color: Colors.black.withOpacity(0.04),
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.cyan,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.black.withOpacity(0.04),
+                              child: const Icon(
+                                Icons.store_rounded,
+                                color: Colors.black26,
+                                size: 36,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.black.withOpacity(0.04),
+                            child: const Icon(
+                              Icons.store_rounded,
+                              color: Colors.black26,
+                              size: 36,
+                            ),
+                          ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          shop.name,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                            letterSpacing: -0.3,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 13,
+                              color: Colors.amber,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              shop.rating.toStringAsFixed(1),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                _capitalize(shop.type),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black45,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

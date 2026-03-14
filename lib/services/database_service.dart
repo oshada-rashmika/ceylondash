@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/order_model.dart';
 import '../models/user_model.dart';
 import '../models/promotion_model.dart';
+import '../models/shop_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -118,5 +119,12 @@ class DatabaseService {
         .map(
           (snap) => snap.docs.map((d) => OrderModel.fromFirestore(d)).toList(),
         );
+  }
+
+  Future<List<ShopModel>> getAllShops() async {
+    final snap = await _db.collection('shops').get();
+    return snap.docs
+        .map((d) => ShopModel.fromJson(d.id, d.data()))
+        .toList();
   }
 }
