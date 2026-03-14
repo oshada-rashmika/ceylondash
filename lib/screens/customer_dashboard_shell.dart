@@ -86,22 +86,38 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
               child: AnimatedBuilder(
                 animation: _menuCtrl,
                 builder: (context, child) {
-                  return IgnorePointer(
-                    ignoring: !_isMenuOpen,
-                    child: GestureDetector(
-                      onTap: _toggleMenu,
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(
-                          sigmaX: 5.0 * _menuCtrl.value,
-                          sigmaY: 5.0 * _menuCtrl.value,
-                        ),
-                        child: Container(
-                          color: Colors.black.withOpacity(
-                            0.3 * _menuCtrl.value,
+                  return Stack(
+                    children: [
+                      IgnorePointer(
+                        ignoring: !_isMenuOpen,
+                        child: GestureDetector(
+                          onTap: _toggleMenu,
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 5.0 * _menuCtrl.value,
+                              sigmaY: 5.0 * _menuCtrl.value,
+                            ),
+                            child: Container(
+                              color: Colors.black.withOpacity(
+                                0.3 * _menuCtrl.value,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      if (_menuAnim.value > 0)
+                        Positioned(
+                          bottom: 90, // Above the BottomAppBar
+                          left: 0,
+                          right: 0,
+                          child: SafeArea(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: _buildRadialItems(),
+                            ),
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),
@@ -167,58 +183,66 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
     return List.generate(3, (index) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 16.0),
-        child: Transform.scale(
-          scale: _menuAnim.value,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.end,
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
+              Positioned(
+                right: (MediaQuery.of(context).size.width / 2) + 26, // 20px (half FAB) + 6px spacing gap
+                child: Transform.scale(
+                  scale: _menuAnim.value,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Text(
-                  labels[index],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    child: Text(
+                      labels[index],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              FloatingActionButton.small(
-                heroTag: 'fab_vert_$index',
-                backgroundColor: Colors.white,
-                elevation: 2,
-                shape: const CircleBorder(),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  _toggleMenu();
-                  if (labels[index] == 'Settings') {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (_) => const SettingsScreen(),
-                      ),
-                    );
-                  } else {
-                    TopSnackbar.show(
-                      context,
-                      message: '${labels[index]} coming soon!',
-                      type: SnackbarType.success,
-                    );
-                  }
-                },
-                child: Icon(icons[index], color: Colors.cyan.shade700),
+              Transform.scale(
+                scale: _menuAnim.value,
+                child: FloatingActionButton.small(
+                  heroTag: 'fab_vert_$index',
+                  backgroundColor: Colors.white,
+                  elevation: 2,
+                  shape: const CircleBorder(),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    _toggleMenu();
+                    if (labels[index] == 'Settings') {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => const SettingsScreen(),
+                        ),
+                      );
+                    } else {
+                      TopSnackbar.show(
+                        context,
+                        message: '${labels[index]} coming soon!',
+                        type: SnackbarType.success,
+                      );
+                    }
+                  },
+                  child: Icon(icons[index], color: Colors.cyan.shade700),
+                ),
               ),
             ],
           ),
