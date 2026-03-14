@@ -2,12 +2,14 @@
 
 import 'dart:ui';
 import 'dart:math' as math;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'customer_dashboard_screen.dart';
 import 'chat_list_screen.dart';
 import 'quick_actions_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 import '../widgets/top_snackbar.dart';
 
 class CustomerDashboardShell extends StatefulWidget {
@@ -117,10 +119,18 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
       animation: _menuAnim,
       builder: (context, child) {
         return Stack(
-          alignment: Alignment.center,
+          alignment: Alignment.bottomCenter,
           clipBehavior: Clip.none,
           children: [
-            ..._buildRadialItems(),
+            if (_menuAnim.value > 0)
+              Positioned(
+                bottom: 64,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: _buildRadialItems(),
+                ),
+              ),
             Transform.rotate(
               angle: _menuAnim.value * math.pi / 4,
               child: FloatingActionButton(
@@ -142,29 +152,21 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
   }
 
   List<Widget> _buildRadialItems() {
-    if (_menuAnim.value == 0) return [];
-
-    final double radius = 100.0;
-    final angles = [-5 * math.pi / 6, -math.pi / 2, -math.pi / 6];
     final icons = [
-      Icons.support_agent_rounded,
-      Icons.settings_rounded,
       Icons.accessibility_new_rounded,
+      Icons.settings_rounded,
+      Icons.support_agent_rounded,
     ];
 
     final labels = [
-      'Support',
-      'Settings',
       'Accessibility',
+      'Settings',
+      'Support',
     ];
 
     return List.generate(3, (index) {
-      final theta = angles[index];
-      final double dx = math.cos(theta) * radius * _menuAnim.value;
-      final double dy = math.sin(theta) * radius * _menuAnim.value;
-
-      return Transform.translate(
-        offset: Offset(dx, dy),
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
         child: Transform.scale(
           scale: _menuAnim.value,
           child: Row(
@@ -194,18 +196,27 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
               ),
               const SizedBox(width: 12),
               FloatingActionButton.small(
-                heroTag: 'fab_rad_$index',
+                heroTag: 'fab_vert_$index',
                 backgroundColor: Colors.white,
-                elevation: 4,
+                elevation: 2,
                 shape: const CircleBorder(),
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   _toggleMenu();
-                  TopSnackbar.show(
-                    context,
-                    message: '${labels[index]} coming soon!',
-                    type: SnackbarType.success,
-                  );
+                  if (labels[index] == 'Settings') {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (_) => const SettingsScreen(),
+                      ),
+                    );
+                  } else {
+                    TopSnackbar.show(
+                      context,
+                      message: '${labels[index]} coming soon!',
+                      type: SnackbarType.success,
+                    );
+                  }
                 },
                 child: Icon(icons[index], color: Colors.cyan.shade700),
               ),
