@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../models/shop_model.dart';
 import 'shop_detail_screen.dart';
+import '../services/search_preferences_service.dart';
 
 class GlobalSearchScreen extends StatefulWidget {
   final List<ShopModel> allShops;
@@ -21,13 +22,57 @@ class GlobalSearchScreen extends StatefulWidget {
 
 class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final SearchPreferencesService _searchPrefs = SearchPreferencesService();
+
   String _query = '';
   Timer? _debounce;
+  List<String> _recentSearches = [];
+  List<ShopModel> _frequentShops = [];
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final recent = await _searchPrefs.getRecentSearches();
+    final frequentIds = await _searchPrefs.getFrequentShopIds();
+
+    final List<ShopModel> frequent = [];
+    for (String id in frequentIds) {
+      try {
+        final shop = widget.allShops.firstWhere((s) => s.id == id);
+        frequent.add(shop);
+      } catch (_) {
+        // Shop not found in the list
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _recentSearches = recent;
+        _frequentShops = frequent;
+      });
+    }
+  }
+
+  Future<void> _handleResultTap({ShopModel? shop}) async {
+    if (_query.trim().isNotEmpty) {
+      await _searchPrefs.addSearchQuery(_query.trim());
+    }
+    if (shop != null) {
+      await _searchPrefs.incrementShopVisit(shop.id);
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ShopDetailScreen(shop: shop)),
+        );
+      }
+    }
+    // Refresh preferences after any update
+    _loadPreferences();
   }
 
   void _onSearchChanged() {
@@ -144,22 +189,172 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.search_rounded, size: 64, color: Colors.black12),
-          const SizedBox(height: 16),
-          const Text(
-            'Search for restaurants, gadgets, or past orders.',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black38,
-              fontWeight: FontWeight.w500,
+    if (_recentSearches.isEmpty && _frequentShops.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_rounded, size: 64, color: Colors.black12),
+            const SizedBox(height: 16),
+            const Text(
+              'Search for restaurants, gadgets, or past orders.',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black38,
+                fontWeight: FontWeight.w500,
+              ),
             ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (_recentSearches.isNotEmpty) _buildRecentSearchesSection(),
+        if (_recentSearches.isNotEmpty && _frequentShops.isNotEmpty)
+          const SizedBox(height: 32),
+        if (_frequentShops.isNotEmpty) _buildFrequentShopsSection(),
+      ],
+    );
+  }
+
+  Widget _buildRecentSearchesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Recent Searches',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _searchPrefs.clearRecentSearches();
+                _loadPreferences();
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Clear',
+                style: TextStyle(
+                  color: Colors.cyan,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _recentSearches.map((query) {
+            return ActionChip(
+              backgroundColor: Colors.white,
+              side: BorderSide(color: Colors.grey.shade200),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              labelStyle: const TextStyle(
+                color: Colors.black87,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              label: Text(query),
+              onPressed: () {
+                _searchController.text = query;
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFrequentShopsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Frequently Visited',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 140,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _frequentShops.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final shop = _frequentShops[index];
+              return GestureDetector(
+                onTap: () => _handleResultTap(shop: shop),
+                child: Container(
+                  width: 110,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 80,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          image: shop.headerImage.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(shop.headerImage),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: shop.headerImage.isEmpty
+                            ? const Icon(
+                                Icons.storefront_rounded,
+                                color: Colors.grey,
+                              )
+                            : null,
+                      ),
+                      const Spacer(),
+                      Text(
+                        shop.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -233,12 +428,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ShopDetailScreen(shop: shop)),
-          );
-        },
+        onTap: () => _handleResultTap(shop: shop),
         leading: CircleAvatar(
           radius: 28,
           backgroundColor: Colors.grey.shade100,
@@ -276,12 +466,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ShopDetailScreen(shop: shop)),
-          );
-        },
+        onTap: () => _handleResultTap(shop: shop),
         leading: Container(
           width: 56,
           height: 56,
@@ -328,6 +513,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(12),
+        onTap: () => _handleResultTap(), // just record search query
         leading: Container(
           width: 48,
           height: 48,
