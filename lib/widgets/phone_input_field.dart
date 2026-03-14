@@ -48,7 +48,7 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
         boxShadow: _hasFocus
             ? [
                 BoxShadow(
-                  color: Colors.cyan.withAlpha(40),
+                  color: Theme.of(context).primaryColor.withAlpha(40),
                   blurRadius: 14,
                   spreadRadius: 1,
                 ),
@@ -73,7 +73,7 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
         decoration: InputDecoration(
           labelText: 'Phone Number',
           labelStyle: TextStyle(
-            color: _hasFocus ? Colors.cyan : Colors.black45,
+            color: _hasFocus ? Theme.of(context).primaryColor : Colors.black45,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -90,13 +90,13 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.cyan.withAlpha(20),
+                    color: Theme.of(context).primaryColor.withAlpha(20),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
+                  child: Text(
                     '+94',
                     style: TextStyle(
-                      color: Colors.cyan,
+                      color: Theme.of(context).primaryColor,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
@@ -119,17 +119,17 @@ class _PhoneInputFieldState extends State<PhoneInputField> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: Colors.cyan, width: 2),
+            borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.red.shade300),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.red.shade400, width: 2),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.error, width: 2),
           ),
-          errorStyle: TextStyle(color: Colors.red.shade400, fontSize: 12),
+          errorStyle: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
         ),
       ),
     );

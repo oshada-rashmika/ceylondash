@@ -34,27 +34,27 @@ class CustomTextField extends StatelessWidget {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.cyan),
+        labelStyle: TextStyle(color: Theme.of(context).primaryColor),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: Colors.black.withAlpha(80),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.cyan),
+          borderSide: BorderSide(color: Theme.of(context).primaryColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.cyanAccent, width: 2),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.secondary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.redAccent),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.error, width: 2),
         ),
-        errorStyle: const TextStyle(color: Colors.redAccent),
+        errorStyle: TextStyle(color: Theme.of(context).colorScheme.error),
       ),
     );
   }

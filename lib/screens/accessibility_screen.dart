@@ -212,7 +212,7 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isSelected ? Colors.cyan.shade400 : Colors.transparent,
+                color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.5) : Colors.transparent,
                 width: 1.5,
               ),
               boxShadow: [
@@ -231,14 +231,14 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Colors.cyan.withValues(alpha: 0.1)
+                          ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
                           : Colors.grey.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       icon,
                       size: 22,
-                      color: isSelected ? Colors.cyan.shade600 : Colors.black38,
+                      color: isSelected ? Theme.of(context).primaryColor : Colors.black38,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -275,7 +275,7 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
                         ? Icon(
                             Icons.check_circle_rounded,
                             key: const ValueKey('checked'),
-                            color: Colors.cyan.shade500,
+                            color: Theme.of(context).primaryColor,
                             size: 26,
                           )
                         : Icon(
@@ -318,9 +318,9 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
         child: ElevatedButton(
           onPressed: _isLoading ? null : _save,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.cyan,
+            backgroundColor: Theme.of(context).primaryColor,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: Colors.cyan.withValues(alpha: 0.5),
+            disabledBackgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.5),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),

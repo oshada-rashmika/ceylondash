@@ -42,9 +42,7 @@ class ShopDetailScreen extends StatelessWidget {
                   HapticFeedback.mediumImpact();
                   Navigator.push(
                     context,
-                    CupertinoPageRoute(
-                      builder: (_) => CartScreen(user: user),
-                    ),
+                    CupertinoPageRoute(builder: (_) => CartScreen(user: user)),
                   );
                 },
               );
@@ -160,8 +158,9 @@ class ShopDetailScreen extends StatelessWidget {
     final tiles = <Widget>[];
 
     for (final category in shop.categories) {
-      final categoryItems =
-          shop.items.where((item) => item.category == category).toList();
+      final categoryItems = shop.items
+          .where((item) => item.category == category)
+          .toList();
       if (categoryItems.isEmpty) continue;
 
       tiles.add(_CategoryHeader(category: category));
@@ -174,8 +173,6 @@ class ShopDetailScreen extends StatelessWidget {
     return SliverList(delegate: SliverChildListDelegate(tiles));
   }
 }
-
-
 
 class _CartFab extends StatelessWidget {
   final bool visible;
@@ -297,8 +294,11 @@ class _HeaderBackground extends StatelessWidget {
         if (progress == null) return child;
         return Container(
           color: const Color(0xFFF0F0F0),
-          child: const Center(
-            child: CircularProgressIndicator(color: Colors.cyan, strokeWidth: 2),
+          child: Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).primaryColor,
+              strokeWidth: 2,
+            ),
           ),
         );
       },
@@ -400,13 +400,13 @@ class _ShopItemTile extends StatelessWidget {
                             if (progress == null) return child;
                             return Container(
                               color: const Color(0xFFF5F5F7),
-                              child: const Center(
+                              child: Center(
                                 child: SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.cyan,
+                                    color: Theme.of(context).primaryColor,
                                   ),
                                 ),
                               ),
@@ -464,10 +464,8 @@ class _ShopItemTile extends StatelessWidget {
               const SizedBox(width: 12),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, anim) => ScaleTransition(
-                  scale: anim,
-                  child: child,
-                ),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
                 child: qty == 0
                     ? _AddButton(
                         key: const ValueKey('add'),
@@ -479,7 +477,10 @@ class _ShopItemTile extends StatelessWidget {
                         onIncrement: () => _handleAdd(context),
                         onDecrement: () {
                           HapticFeedback.selectionClick();
-                          context.read<CartProvider>().decrementItem(shop.id, item.name);
+                          context.read<CartProvider>().decrementItem(
+                            shop.id,
+                            item.name,
+                          );
                         },
                       ),
               ),
@@ -498,7 +499,7 @@ class _AddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.cyan,
+      color: Theme.of(context).primaryColor,
       borderRadius: BorderRadius.circular(24),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

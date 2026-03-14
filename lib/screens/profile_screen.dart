@@ -453,13 +453,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.cyan.withValues(alpha: 0.08),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '+94',
                   style: TextStyle(
-                    color: Colors.cyan.shade700,
+                    color: Theme.of(context).primaryColor.withOpacity(0.8),
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                   ),
@@ -868,7 +868,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.cyan, width: 2),
+        borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -931,9 +931,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator(color: Colors.cyan)),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
       );
     }
 
@@ -1106,10 +1110,10 @@ class _ProfileScreenState extends State<ProfileScreen>
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.cyan.shade600,
+        color: Theme.of(context).primaryColor.withOpacity(0.8),
         boxShadow: [
           BoxShadow(
-            color: Colors.cyan.withValues(alpha: 0.25),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.25),
             blurRadius: 32,
             offset: const Offset(0, 12),
           ),
@@ -1205,7 +1209,11 @@ class _AddressOptionTileState extends State<_AddressOptionTile>
                     ),
                   ],
                 ),
-                child: Icon(widget.icon, color: Colors.cyan.shade600, size: 24),
+                child: Icon(
+                  widget.icon,
+                  color: Theme.of(context).primaryColor.withOpacity(0.8),
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -1329,10 +1337,14 @@ class _InfoTileState extends State<_InfoTile>
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.cyan.withValues(alpha: 0.1),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(widget.icon, color: Colors.cyan.shade600, size: 24),
+                child: Icon(
+                  widget.icon,
+                  color: Theme.of(context).primaryColor.withOpacity(0.8),
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

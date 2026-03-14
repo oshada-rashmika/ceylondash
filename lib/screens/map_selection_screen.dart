@@ -238,11 +238,11 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                   _isDragging ? -15 : 0,
                   0,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.location_on_rounded,
                   size: 54,
-                  color: Colors.cyan,
-                  shadows: [
+                  color: Theme.of(context).primaryColor,
+                  shadows: const [
                     Shadow(
                       color: Colors.black26,
                       blurRadius: 16,
@@ -312,11 +312,11 @@ class _MapSelectionScreenState extends State<MapSelectionScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
                           child: Icon(
                             Icons.place_rounded,
-                            color: Colors.cyan,
+                            color: Theme.of(context).primaryColor,
                             size: 20,
                           ),
                         ),

@@ -50,7 +50,7 @@ class _EmailInputFieldState extends State<EmailInputField> {
         boxShadow: _hasFocus
             ? [
                 BoxShadow(
-                  color: (_isValid ? Colors.green : Colors.cyan).withAlpha(35),
+                  color: (_isValid ? Colors.green : Theme.of(context).primaryColor).withAlpha(35),
                   blurRadius: 14,
                   spreadRadius: 1,
                 ),
@@ -80,7 +80,7 @@ class _EmailInputFieldState extends State<EmailInputField> {
           labelText: 'Email',
           labelStyle: TextStyle(
             color: _hasFocus
-                ? (_isValid ? Colors.green : Colors.cyan)
+                ? (_isValid ? Colors.green : Theme.of(context).primaryColor)
                 : Colors.black45,
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -121,19 +121,19 @@ class _EmailInputFieldState extends State<EmailInputField> {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(
-              color: _isValid ? Colors.green : Colors.cyan,
+              color: _isValid ? Colors.green : Theme.of(context).primaryColor,
               width: 2,
             ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.red.shade300),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Colors.red.shade400, width: 2),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.error, width: 2),
           ),
-          errorStyle: TextStyle(color: Colors.red.shade400, fontSize: 12),
+          errorStyle: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
         ),
       ),
     );

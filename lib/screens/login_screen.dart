@@ -230,13 +230,13 @@ class _LoginScreenState extends State<LoginScreen>
                       child: Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: Colors.cyan.withAlpha(18),
+                          color: Theme.of(context).primaryColor.withValues(alpha: 0.07),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.delivery_dining,
                           size: 52,
-                          color: Colors.cyan,
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                     ),
@@ -297,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen>
                             value: _rememberMe,
                             onChanged: (v) =>
                                 setState(() => _rememberMe = v ?? false),
-                            activeColor: Colors.cyan,
+                            activeColor: Theme.of(context).primaryColor,
                             side: BorderSide(color: Colors.grey.shade400),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
