@@ -27,8 +27,8 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => CartProvider(),
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => CartProvider())],
       child: const CeylonDashApp(),
     ),
   );
