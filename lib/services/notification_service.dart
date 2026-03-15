@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -10,11 +11,9 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  NotificationService._internal() {
-    _init();
-  }
+  NotificationService._internal();
 
-  Future<void> _init() async {
+  Future<void> initialize() async {
     tz.initializeTimeZones();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -38,7 +37,7 @@ class NotificationService {
     );
   }
 
-  Future<void> requestPermissions() async {
+  Future<void> requestAlarmPermission(BuildContext context) async {
     if (Platform.isIOS) {
       await flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
