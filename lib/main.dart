@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:app_links/app_links.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'providers/cart_provider.dart';
 import 'screens/login_screen.dart';
@@ -19,12 +20,17 @@ import 'screens/customer_dashboard_shell.dart';
 import 'screens/profile_screen.dart';
 import 'widgets/slide_page_route.dart';
 import 'widgets/top_snackbar.dart';
+import 'services/database_service.dart';
+import 'models/user_model.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+late SharedPreferences prefs;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  prefs = await SharedPreferences.getInstance();
 
   runApp(
     MultiProvider(
@@ -135,7 +141,7 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           }
           if (snapshot.hasData) {
             if (snapshot.data!.emailVerified) {
-              return const CustomerDashboardShell();
+              return RoleRouterGate(uid: snapshot.data!.uid);
             }
             return const VerificationPendingScreen();
           }
@@ -161,6 +167,74 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           return SlidePageRoute(page: page);
         }
         return null;
+      },
+    );
+  }
+}
+
+class RoleRouterGate extends StatefulWidget {
+  final String uid;
+
+  const RoleRouterGate({super.key, required this.uid});
+
+  @override
+  State<RoleRouterGate> createState() => _RoleRouterGateState();
+}
+
+class _RoleRouterGateState extends State<RoleRouterGate> {
+  Future<UserModel?>? _userFuture;
+  String? _cachedRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _cachedRole = prefs.getString('user_role_${widget.uid}');
+    if (_cachedRole == null) {
+      _userFuture = DatabaseService().getUser(widget.uid);
+    }
+  }
+
+  @override
+  void didUpdateWidget(RoleRouterGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.uid != widget.uid) {
+      _cachedRole = prefs.getString('user_role_${widget.uid}');
+      if (_cachedRole == null) {
+        _userFuture = DatabaseService().getUser(widget.uid);
+      }
+    }
+  }
+
+  Widget _routeByRole(String role) {
+    if (role == 'seller') {
+      return const SellerDashboardScreen();
+    } else if (role == 'rider') {
+      return const RiderDashboardScreen();
+    }
+    return const CustomerDashboardShell();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_cachedRole != null) {
+      return _routeByRole(_cachedRole!);
+    }
+
+    return FutureBuilder<UserModel?>(
+      future: _userFuture,
+      builder: (context, userSnapshot) {
+        if (userSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFFF9F9FB),
+            body: Center(child: CircularProgressIndicator(color: Colors.cyan)),
+          );
+        }
+        if (userSnapshot.hasData && userSnapshot.data != null) {
+          final role = userSnapshot.data!.role;
+          prefs.setString('user_role_${widget.uid}', role);
+          return _routeByRole(role);
+        }
+        return const LoginScreen();
       },
     );
   }
