@@ -22,6 +22,7 @@ import 'screens/profile_screen.dart';
 import 'widgets/slide_page_route.dart';
 import 'widgets/top_snackbar.dart';
 import 'services/database_service.dart';
+import 'services/notification_service.dart';
 import 'models/user_model.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -32,6 +33,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   prefs = await SharedPreferences.getInstance();
+  await NotificationService().initialize();
 
   runApp(
     MultiProvider(

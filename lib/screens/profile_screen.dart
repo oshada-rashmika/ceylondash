@@ -40,7 +40,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    NotificationService().requestPermissions();
     _animCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -663,7 +662,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     ),
                     TextButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
                         final formattedDate = DateFormat(
                           'MMMM d, yyyy',
@@ -672,6 +671,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           {'birthday': formattedDate},
                           successMessage: 'Birthday updated successfully.',
                           errorMessage: 'Failed to update birthday.',
+                        );
+                        await NotificationService().requestAlarmPermission(
+                          context,
                         );
                         NotificationService().scheduleBirthdayNotification(
                           _user?.name ?? 'User',
