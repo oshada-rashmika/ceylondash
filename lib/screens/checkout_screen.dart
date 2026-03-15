@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/promotion_model.dart';
 import '../providers/accessibility_provider.dart';
 import '../models/user_model.dart';
@@ -10,6 +11,7 @@ import '../services/database_service.dart';
 import '../widgets/premium_text_field.dart';
 import '../widgets/top_snackbar.dart';
 import 'payment_method_screen.dart';
+import '../models/order_model.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String shopId;
@@ -103,9 +105,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       allPromos.addAll(seasonalPromos);
 
+      final usedPromos = widget.user?.usedPromotions ?? [];
+      final filteredPromos = allPromos
+          .where((promo) => !usedPromos.contains(promo.id))
+          .toList();
+
       if (mounted) {
         setState(() {
-          _availablePromos = allPromos;
+          _availablePromos = filteredPromos;
           _isLoadingPromos = false;
         });
       }
@@ -183,8 +190,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           keyboardType: keyboardType,
                           textCapitalization:
                               keyboardType == TextInputType.phone
-                                  ? TextCapitalization.none
-                                  : TextCapitalization.sentences,
+                              ? TextCapitalization.none
+                              : TextCapitalization.sentences,
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -318,20 +325,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Expanded(
                       child: _isLoadingPromos
                           ? const Center(
-                              child: CircularProgressIndicator(color: Colors.cyan),
+                              child: CircularProgressIndicator(
+                                color: Colors.cyan,
+                              ),
                             )
                           : _availablePromos.isEmpty
-                              ? _buildEmptyPromosState()
-                              : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 8),
-                                  physics: const BouncingScrollPhysics(),
-                                  itemCount: _availablePromos.length,
-                                  itemBuilder: (context, index) {
-                                    final promo = _availablePromos[index];
-                                    return _buildPromoOptionCard(promo);
-                                  },
-                                ),
+                          ? _buildEmptyPromosState()
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 8,
+                              ),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: _availablePromos.length,
+                              itemBuilder: (context, index) {
+                                final promo = _availablePromos[index];
+                                return _buildPromoOptionCard(promo);
+                              },
+                            ),
                     ),
                   ],
                 ),
@@ -474,9 +485,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final total = subtotal + _deliveryFee - discountAmount;
 
     return Theme(
-      data: Theme.of(context).copyWith(
-        canvasColor: Colors.transparent,
-      ),
+      data: Theme.of(context).copyWith(canvasColor: Colors.transparent),
       child: Stepper(
         type: StepperType.vertical,
         currentStep: _currentStep,
@@ -542,7 +551,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                     ),
                   ),
-                ]
+                ],
               ],
             ),
           );
@@ -593,7 +602,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Consumer<CartProvider>(
       builder: (context, cart, _) {
         final bucket = cart.shopBuckets[widget.shopId];
-        
+
         if (bucket == null || bucket.items.isEmpty) {
           return Scaffold(
             backgroundColor: const Color(0xFFF5F5F7),
@@ -725,24 +734,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             color: Colors.cyan.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: const Icon(CupertinoIcons.ticket, color: Colors.cyan, size: 22),
+          child: const Icon(
+            CupertinoIcons.ticket,
+            color: Colors.cyan,
+            size: 22,
+          ),
         ),
         title: Text(
           _selectedPromo == null ? 'Apply Promotion' : _selectedPromo!.title,
           style: TextStyle(
             fontSize: 15,
-            fontWeight: _selectedPromo == null ? FontWeight.w600 : FontWeight.bold,
+            fontWeight: _selectedPromo == null
+                ? FontWeight.w600
+                : FontWeight.bold,
             color: _selectedPromo == null ? Colors.black87 : Colors.cyan,
           ),
         ),
         trailing: _selectedPromo == null
-            ? const Icon(Icons.chevron_right_rounded, color: Colors.black38, size: 22)
+            ? const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.black38,
+                size: 22,
+              )
             : IconButton(
                 onPressed: () {
                   HapticFeedback.selectionClick();
                   setState(() => _selectedPromo = null);
                 },
-                icon: const Icon(Icons.close_rounded, color: Colors.black38, size: 20),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: Colors.black38,
+                  size: 20,
+                ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -756,7 +779,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildBillSection(double subtotal, double total, double discountAmount) {
+  Widget _buildBillSection(
+    double subtotal,
+    double total,
+    double discountAmount,
+  ) {
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -889,15 +916,65 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               HapticFeedback.mediumImpact();
-              cart.clearShop(widget.shopId);
-              Navigator.popUntil(context, (route) => route.isFirst);
-              TopSnackbar.show(
-                context,
-                message: 'Order Placed Successfully!',
-                type: SnackbarType.success,
+
+              final bucket = cart.shopBuckets[widget.shopId];
+              if (bucket == null || widget.user == null) return;
+
+              final order = OrderModel(
+                id: '',
+                orderName: 'Order from ${bucket.shopName}',
+                externalPlatformRef: '',
+                sellerId: widget.shopId,
+                customerId: widget.user!.uid,
+                courierId: '',
+                status: 'processing',
+                dropoffLocation: const GeoPoint(0, 0),
+                dropoffAddress: _address,
+                verification: {},
+                timestamps: {'createdAt': FieldValue.serverTimestamp()},
+                rawData: {
+                  'totalAmount': total,
+                  'items': bucket.items.values
+                      .map(
+                        (cartItem) => {
+                          'name': cartItem.item.name,
+                          'price': cartItem.item.price,
+                          'quantity': cartItem.quantity,
+                          'category': cartItem.item.category,
+                          'image': cartItem.item.image,
+                        },
+                      )
+                      .toList(),
+                },
               );
+
+              try {
+                await _db.createOrder(
+                  order,
+                  appliedPromoCode: _selectedPromo?.id,
+                  userId: widget.user?.uid,
+                );
+
+                if (mounted) {
+                  cart.clearShop(widget.shopId);
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                  TopSnackbar.show(
+                    context,
+                    message: 'Order Placed Successfully!',
+                    type: SnackbarType.success,
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  TopSnackbar.show(
+                    context,
+                    message: 'Failed to place order',
+                    type: SnackbarType.error,
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.cyan,

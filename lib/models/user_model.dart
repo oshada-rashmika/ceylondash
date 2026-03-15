@@ -25,6 +25,7 @@ class UserModel {
   final String? socials;
 
   final String? courierId;
+  final List<String>? usedPromotions;
 
   UserModel({
     required this.uid,
@@ -44,6 +45,7 @@ class UserModel {
     this.socials,
     this.courierId,
     this.accessibilityNeeds,
+    this.usedPromotions,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -67,6 +69,9 @@ class UserModel {
       courierId: data['courierId'],
       accessibilityNeeds: data['accessibilityNeeds'] != null
           ? List<String>.from(data['accessibilityNeeds'])
+          : null,
+      usedPromotions: data['usedPromotions'] != null
+          ? List<String>.from(data['usedPromotions'])
           : null,
     );
   }
@@ -94,6 +99,7 @@ class UserModel {
       if (socials != null) 'socials': socials,
       if (courierId != null) 'courierId': courierId,
       if (accessibilityNeeds != null) 'accessibilityNeeds': accessibilityNeeds,
+      if (usedPromotions != null) 'usedPromotions': usedPromotions,
     };
   }
 }

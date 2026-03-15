@@ -130,6 +130,7 @@ class OrderModel {
         'updatedAt': FieldValue.serverTimestamp(),
         'deliveredAt': timestamps['deliveredAt'],
       },
+      ...rawData,
     };
   }
 }

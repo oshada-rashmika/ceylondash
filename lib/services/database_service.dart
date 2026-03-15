@@ -83,11 +83,25 @@ class DatabaseService {
     await _db.collection('users').doc(uid).delete();
   }
 
-  Future<String> createOrder(OrderModel order) async {
-    DocumentReference docRef = await _db
-        .collection('orders')
-        .add(order.toMap());
-    return docRef.id;
+  Future<String> createOrder(
+    OrderModel order, {
+    String? appliedPromoCode,
+    String? userId,
+  }) async {
+    final batch = _db.batch();
+    final orderRef = _db.collection('orders').doc();
+    final orderData = order.toMap();
+    orderData['id'] = orderRef.id;
+    batch.set(orderRef, orderData);
+    if (appliedPromoCode != null && userId != null) {
+      final userRef = _db.collection('users').doc(userId);
+      batch.update(userRef, {
+        'usedPromotions': FieldValue.arrayUnion([appliedPromoCode]),
+      });
+    }
+    await batch.commit();
+
+    return orderRef.id;
   }
 
   Future<void> updateOrderStatus(String orderId, String newStatus) async {
