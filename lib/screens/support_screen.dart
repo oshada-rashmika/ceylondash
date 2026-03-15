@@ -142,8 +142,19 @@ class _SupportScreenState extends State<SupportScreen> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: _chatService.getSupportChatStream(_uid),
         builder: (context, chatSnap) {
-          final isWaiting = chatSnap.data?.get('status') == 'waiting_for_agent';
-          final isActive = chatSnap.data?.get('status') == 'active';
+          final bool isWaiting;
+          final bool isActive;
+
+          if (!chatSnap.hasData || !chatSnap.data!.exists) {
+            isWaiting = false;
+            isActive = false;
+          } else {
+            final data = chatSnap.data!.data() as Map<String, dynamic>?;
+            final status = data?['status'];
+            isWaiting = status == 'waiting_for_agent';
+            isActive = status == 'active';
+          }
+
           final showAgentButton =
               _askedBotFirstQuestion && !isWaiting && !isActive;
 
