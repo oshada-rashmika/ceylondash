@@ -156,19 +156,16 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
             children: [
               Row(
                 children: [
-                  Hero(
-                    tag: 'order_status_icon_${o.id}',
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _orderIcon(o.status),
-                        color: Theme.of(context).primaryColor,
-                        size: 24,
-                      ),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _orderIcon(o.status),
+                      color: Theme.of(context).primaryColor,
+                      size: 24,
                     ),
                   ),
                   const SizedBox(width: 16),
