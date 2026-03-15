@@ -17,7 +17,6 @@ import 'shop_detail_screen.dart';
 import 'global_search_screen.dart';
 
 const _activeStatuses = {'processing', 'placed', 'preparing', 'on_the_way'};
-const _recentStatuses = {'delivered', 'cancelled'};
 
 const _statusSteps = ['placed', 'preparing', 'on_the_way', 'delivered'];
 const _statusLabels = ['Placed', 'Preparing', 'On Way', 'Delivered'];
@@ -101,7 +100,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
 
   StreamSubscription<List<OrderModel>>? _ordersSub;
   List<OrderModel> _activeOrders = [];
-  List<OrderModel> _recentOrders = [];
   bool _ordersLoading = true;
   Timer? _searchDebounce;
   String _searchQuery = '';
@@ -148,8 +146,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
 
   List<OrderModel> get _filteredActiveOrders => _filterOrders(_activeOrders);
 
-  List<OrderModel> get _filteredRecentOrders => _filterOrders(_recentOrders);
-
   bool get _isSearching => _searchQuery.trim().isNotEmpty;
 
   Future<void> _loadUser() async {
@@ -189,9 +185,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
       setState(() {
         _activeOrders = orders
             .where((o) => _activeStatuses.contains(o.status))
-            .toList();
-        _recentOrders = orders
-            .where((o) => _recentStatuses.contains(o.status))
             .toList();
         _ordersLoading = false;
       });
@@ -281,9 +274,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
               SliverToBoxAdapter(child: _anim(1, _buildActiveSection())),
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
-              SliverToBoxAdapter(child: _anim(2, _buildRecentSection())),
-              const SliverToBoxAdapter(child: SizedBox(height: 48)),
-              SliverToBoxAdapter(child: _anim(3, _buildDiscoverShopsSection())),
+              SliverToBoxAdapter(child: _anim(2, _buildDiscoverShopsSection())),
               const SliverToBoxAdapter(child: SizedBox(height: 140)),
             ],
           ),
@@ -420,7 +411,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
             pageBuilder: (context, animation, secondaryAnimation) =>
                 GlobalSearchScreen(
                   allShops: _shops,
-                  userOrders: [..._activeOrders, ..._recentOrders],
+                  userOrders: _activeOrders,
                 ),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
@@ -519,65 +510,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
           )
         else
           ...activeOrders.map((o) => _ActiveOrderCard(order: o)),
-      ],
-    );
-  }
-
-  Widget _buildRecentSection() {
-    final recentOrders = _filteredRecentOrders;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
-            children: [
-              const Text(
-                'Recent Orders',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black,
-                  letterSpacing: -0.8,
-                ),
-              ),
-              if (_isSearching) ...[
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${recentOrders.length}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black54,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        if (_ordersLoading)
-          ..._buildShimmers(2)
-        else if (recentOrders.isEmpty)
-          _buildEmpty(
-            Icons.history_rounded,
-            _isSearching ? 'No Recent Order Matches' : 'No Recent Orders',
-          )
-        else
-          ...(_isSearching ? recentOrders : recentOrders.take(5)).map(
-            (o) => _RecentOrderTile(order: o),
-          ),
       ],
     );
   }
@@ -1015,142 +947,6 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                     ),
                   );
                 }),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RecentOrderTile extends StatefulWidget {
-  final OrderModel order;
-  const _RecentOrderTile({required this.order});
-
-  @override
-  State<_RecentOrderTile> createState() => _RecentOrderTileState();
-}
-
-class _RecentOrderTileState extends State<_RecentOrderTile>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 150),
-    );
-    _scale = Tween(
-      begin: 1.0,
-      end: 0.96,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ts = _formatTimestamp(widget.order.timestamps['createdAt']);
-    final cancelled = widget.order.status == 'cancelled';
-
-    return GestureDetector(
-      onTapDown: (_) {
-        HapticFeedback.selectionClick();
-        _ctrl.forward();
-      },
-      onTapUp: (_) {
-        _ctrl.reverse();
-        Navigator.push(
-          context,
-          SlidePageRoute(page: OrderDetailScreen(order: widget.order)),
-        );
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Hero(
-                tag: 'order_status_icon_${widget.order.id}',
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: cancelled
-                        ? Colors.black.withOpacity(0.04)
-                        : Colors.cyan.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    cancelled
-                        ? Icons.cancel_rounded
-                        : Icons.check_circle_rounded,
-                    size: 22,
-                    color: cancelled ? Colors.black38 : Colors.cyan.shade600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.order.orderName.isNotEmpty
-                          ? widget.order.orderName
-                          : 'Order #${widget.order.id.substring(0, 5)}',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                        letterSpacing: -0.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (ts.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        ts,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.black45,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Text(
-                cancelled ? 'Cancelled' : 'Delivered',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: cancelled ? Colors.black38 : Colors.cyan.shade700,
-                  letterSpacing: -0.2,
-                ),
               ),
             ],
           ),

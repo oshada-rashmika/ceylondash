@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'customer_dashboard_screen.dart';
 import 'chat_list_screen.dart';
-import 'quick_actions_screen.dart';
+import 'orders_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'accessibility_screen.dart';
@@ -69,7 +69,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
   Widget build(BuildContext context) {
     final screens = [
       const CustomerDashboardScreen(),
-      const QuickActionsScreen(),
+      const OrdersScreen(),
       ChatListScreen(isActive: _currentIndex == 2),
       const ProfileScreen(),
     ];
