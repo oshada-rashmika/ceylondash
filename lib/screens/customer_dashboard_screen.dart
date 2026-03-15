@@ -256,9 +256,13 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
     final topPad = MediaQuery.of(context).padding.top;
 
     if (_userLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF9F9FB),
-        body: Center(child: CircularProgressIndicator(color: Colors.cyan)),
+      return Scaffold(
+        backgroundColor: const Color(0xFFF9F9FB),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
       );
     }
 
@@ -371,8 +375,8 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
                             child: Container(
                               width: 18,
                               height: 18,
-                              decoration: const BoxDecoration(
-                                color: Colors.cyan,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
                                 shape: BoxShape.circle,
                               ),
                               alignment: Alignment.center,
@@ -440,14 +444,18 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: const [
-            Icon(Icons.search_rounded, color: Colors.black38, size: 22),
-            SizedBox(width: 12),
-            Text(
-              'Search shops, items, or orders...',
-              style: TextStyle(
-                color: Colors.black38,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+            const Icon(Icons.search_rounded, color: Colors.black38, size: 22),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Search shops, items, or orders...',
+                style: TextStyle(
+                  color: Colors.black38,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -483,15 +491,17 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.cyan.withOpacity(0.1),
+                    color: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${activeOrders.length}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: Colors.cyan,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                 ),
@@ -883,12 +893,14 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.cyan.withOpacity(0.1),
+                        color: Theme.of(
+                          context,
+                        ).primaryColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         _orderIcon(o.status),
-                        color: Colors.cyan.shade600,
+                        color: Theme.of(context).primaryColor,
                         size: 24,
                       ),
                     ),
@@ -939,7 +951,7 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: Colors.cyan.shade700,
+                        color: Theme.of(context).primaryColor.withOpacity(0.8),
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -964,12 +976,14 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: active
-                                  ? Colors.cyan.shade600
+                                  ? Theme.of(context).primaryColor
                                   : Colors.black.withOpacity(0.04),
                               boxShadow: active
                                   ? [
                                       BoxShadow(
-                                        color: Colors.cyan.withOpacity(0.3),
+                                        color: Theme.of(
+                                          context,
+                                        ).primaryColor.withValues(alpha: 0.3),
                                         blurRadius: 10,
                                         offset: const Offset(0, 4),
                                       ),
@@ -992,7 +1006,7 @@ class _ActiveOrderCardState extends State<_ActiveOrderCard>
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(2),
                                 color: i < current
-                                    ? Colors.cyan.shade600
+                                    ? Theme.of(context).primaryColor
                                     : Colors.black.withOpacity(0.04),
                               ),
                             ),

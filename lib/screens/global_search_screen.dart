@@ -178,10 +178,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           const SizedBox(width: 8),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
+            child: Text(
               'Cancel',
               style: TextStyle(
-                color: Colors.cyan,
+                color: Theme.of(context).primaryColor,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -231,10 +231,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text(
+              child: Text(
                 'Clear',
                 style: TextStyle(
-                  color: Colors.cyan,
+                  color: Theme.of(context).primaryColor,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -246,10 +246,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         if (_recentSearches.isEmpty)
           const Text(
             'No recent searches',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black38,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.black38),
           )
         else
           Wrap(
@@ -299,70 +296,67 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         if (_frequentShops.isEmpty)
           const Text(
             'Keep exploring to see your favorite shops.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black38,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.black38),
           )
         else
           SizedBox(
             height: 140,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-            itemCount: _frequentShops.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final shop = _frequentShops[index];
-              return GestureDetector(
-                onTap: () => _handleResultTap(shop: shop),
-                child: Container(
-                  width: 110,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 80,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                          image: shop.headerImage.isNotEmpty
-                              ? DecorationImage(
-                                  image: NetworkImage(shop.headerImage),
-                                  fit: BoxFit.cover,
+              itemCount: _frequentShops.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final shop = _frequentShops[index];
+                return GestureDetector(
+                  onTap: () => _handleResultTap(shop: shop),
+                  child: Container(
+                    width: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          height: 80,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                            image: shop.headerImage.isNotEmpty
+                                ? DecorationImage(
+                                    image: NetworkImage(shop.headerImage),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child: shop.headerImage.isEmpty
+                              ? const Icon(
+                                  Icons.storefront_rounded,
+                                  color: Colors.grey,
                                 )
                               : null,
                         ),
-                        child: shop.headerImage.isEmpty
-                            ? const Icon(
-                                Icons.storefront_rounded,
-                                color: Colors.grey,
-                              )
-                            : null,
-                      ),
-                      const Spacer(),
-                      Text(
-                        shop.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                        const Spacer(),
+                        Text(
+                          shop.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
@@ -376,10 +370,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           const SizedBox(height: 16),
           Text(
             'No results for "$_query"',
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
-            ),
+            style: const TextStyle(fontSize: 16, color: Colors.grey),
           ),
         ],
       ),
@@ -490,7 +481,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         onTap: () async {
           HapticFeedback.selectionClick();
           final String itemShopId = itemData['shopId'];
-          final parentShop = widget.allShops.firstWhere((s) => s.id == itemShopId);
+          final parentShop = widget.allShops.firstWhere(
+            (s) => s.id == itemShopId,
+          );
           if (_query.trim().isNotEmpty) {
             await SearchPreferencesService().addSearchQuery(_query.trim());
           }
@@ -498,7 +491,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           if (mounted) {
             await Navigator.push(
               context,
-              CupertinoPageRoute(builder: (_) => ShopDetailScreen(shop: parentShop)),
+              CupertinoPageRoute(
+                builder: (_) => ShopDetailScreen(shop: parentShop),
+              ),
             );
             _loadPreferences();
           }
@@ -530,8 +525,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         ),
         trailing: Text(
           'LKR ${item.price.toStringAsFixed(2)}',
-          style: const TextStyle(
-            color: Colors.cyan,
+          style: TextStyle(
+            color: Theme.of(context).primaryColor,
             fontWeight: FontWeight.bold,
             fontSize: 14,
           ),
@@ -557,7 +552,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           if (mounted) {
             await Navigator.push(
               context,
-              CupertinoPageRoute(builder: (_) => OrderDetailScreen(order: order)),
+              CupertinoPageRoute(
+                builder: (_) => OrderDetailScreen(order: order),
+              ),
             );
             _loadPreferences();
           }
@@ -566,10 +563,13 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: Colors.cyan.withValues(alpha: 0.1),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.receipt_long_rounded, color: Colors.cyan),
+          child: Icon(
+            Icons.receipt_long_rounded,
+            color: Theme.of(context).primaryColor,
+          ),
         ),
         title: Text(
           'Order #${order.id.substring(0, 8).toUpperCase()}',
@@ -578,7 +578,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         subtitle: Text(
           'Status: ${order.status.toUpperCase()}',
           style: TextStyle(
-            color: order.status == 'completed' ? Colors.green : Colors.orange,
+            color: order.status == 'completed'
+                ? Theme.of(context).colorScheme.secondary
+                : Colors.orange,
             fontWeight: FontWeight.w500,
           ),
         ),

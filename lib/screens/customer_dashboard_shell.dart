@@ -137,7 +137,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
           angle: _menuAnim.value * math.pi / 4,
           child: FloatingActionButton(
             onPressed: _toggleMenu,
-            backgroundColor: Colors.cyan,
+            backgroundColor: Theme.of(context).primaryColor,
             elevation: 4 + (4 * _menuAnim.value),
             shape: const CircleBorder(),
             child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
@@ -227,7 +227,10 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                       );
                     }
                   },
-                  child: Icon(icons[index], color: Colors.cyan.shade700),
+                  child: Icon(
+                    icons[index],
+                    color: Theme.of(context).primaryColor,
+                  ),
                 ),
               ),
             ],
@@ -320,7 +323,9 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                 isSelected ? activeIcon : icon,
                 key: ValueKey(isSelected),
                 size: 26,
-                color: isSelected ? Colors.cyan.shade700 : Colors.black45,
+                color: isSelected
+                    ? Theme.of(context).primaryColor.withOpacity(0.8)
+                    : Colors.black45,
               ),
             ),
             const SizedBox(height: 4),
@@ -329,7 +334,9 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? Colors.cyan.shade700 : Colors.black45,
+                color: isSelected
+                    ? Theme.of(context).primaryColor.withOpacity(0.8)
+                    : Colors.black45,
                 letterSpacing: -0.2,
               ),
               maxLines: 1,
