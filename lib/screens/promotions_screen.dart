@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -84,7 +85,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
         });
       }
     } catch (e) {
-      print("Error loading promotions: $e");
+      debugPrint("Error loading promotions: $e");
       if (mounted) {
         setState(() {
           _isLoading = false;
