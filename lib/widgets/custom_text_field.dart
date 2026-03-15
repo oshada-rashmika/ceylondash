@@ -44,7 +44,10 @@ class CustomTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.secondary, width: 2),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.secondary,
+            width: 2,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -52,7 +55,10 @@ class CustomTextField extends StatelessWidget {
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.error, width: 2),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.error,
+            width: 2,
+          ),
         ),
         errorStyle: TextStyle(color: Theme.of(context).colorScheme.error),
       ),

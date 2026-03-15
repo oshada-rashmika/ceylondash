@@ -97,8 +97,8 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                               sigmaY: 5.0 * _menuCtrl.value,
                             ),
                             child: Container(
-                              color: Colors.black.withOpacity(
-                                0.3 * _menuCtrl.value,
+                              color: Colors.black.withValues(
+                                alpha: 0.3 * _menuCtrl.value,
                               ),
                             ),
                           ),
@@ -324,7 +324,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                 key: ValueKey(isSelected),
                 size: 26,
                 color: isSelected
-                    ? Theme.of(context).primaryColor.withOpacity(0.8)
+                    ? Theme.of(context).primaryColor.withValues(alpha: 0.8)
                     : Colors.black45,
               ),
             ),
@@ -335,7 +335,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
-                    ? Theme.of(context).primaryColor.withOpacity(0.8)
+                    ? Theme.of(context).primaryColor.withValues(alpha: 0.8)
                     : Colors.black45,
                 letterSpacing: -0.2,
               ),

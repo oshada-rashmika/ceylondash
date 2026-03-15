@@ -71,8 +71,10 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
         _loadedUid = user.uid;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            Provider.of<AccessibilityProvider>(context, listen: false)
-                .loadNeeds(user.uid);
+            Provider.of<AccessibilityProvider>(
+              context,
+              listen: false,
+            ).loadNeeds(user.uid);
           }
         });
       } else if (user == null) {
@@ -129,8 +131,9 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
   Widget build(BuildContext context) {
     return Consumer<AccessibilityProvider>(
       builder: (context, a11y, _) {
-        final primaryColor =
-            a11y.hasColorBlindness ? const Color(0xFF005DBA) : Colors.cyan;
+        final primaryColor = a11y.hasColorBlindness
+            ? const Color(0xFF005DBA)
+            : Colors.cyan;
         final colorScheme = a11y.hasColorBlindness
             ? const ColorScheme.light(
                 primary: Color(0xFF005DBA),
@@ -142,7 +145,7 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
                 secondary: Colors.cyanAccent,
                 surface: Colors.white,
               );
-              
+
         final pageTransitions = a11y.needsNeuroSupport
             ? const PageTransitionsTheme(
                 builders: {
@@ -161,7 +164,8 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
             scaffoldBackgroundColor: Colors.white,
             primaryColor: primaryColor,
             colorScheme: colorScheme,
-            pageTransitionsTheme: pageTransitions ??
+            pageTransitionsTheme:
+                pageTransitions ??
                 const PageTransitionsTheme(
                   builders: {
                     TargetPlatform.android: ZoomPageTransitionsBuilder(),

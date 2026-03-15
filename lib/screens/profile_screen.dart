@@ -473,7 +473,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: Text(
                   '+94',
                   style: TextStyle(
-                    color: Theme.of(context).primaryColor.withOpacity(0.8),
+                    color: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                   ),
@@ -1578,7 +1580,7 @@ class _AddressOptionTileState extends State<_AddressOptionTile>
                 ),
                 child: Icon(
                   widget.icon,
-                  color: Theme.of(context).primaryColor.withOpacity(0.8),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.8),
                   size: 24,
                 ),
               ),
@@ -1698,7 +1700,7 @@ class _InfoTileState extends State<_InfoTile>
                 ),
                 child: Icon(
                   widget.icon,
-                  color: Theme.of(context).primaryColor.withOpacity(0.8),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.8),
                   size: 24,
                 ),
               ),

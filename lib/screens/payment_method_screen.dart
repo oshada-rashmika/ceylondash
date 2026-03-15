@@ -223,13 +223,18 @@ class _PaymentCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: isSelected ? Colors.black : Colors.transparent,
                   border: Border.all(
-                    color:
-                        isSelected ? Colors.black : Colors.black.withOpacity(0.15),
+                    color: isSelected
+                        ? Colors.black
+                        : Colors.black.withValues(alpha: 0.15),
                     width: 2,
                   ),
                 ),
                 child: isSelected
-                    ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      )
                     : null,
               ),
             ],

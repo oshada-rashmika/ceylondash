@@ -143,10 +143,10 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.black.withOpacity(0.03)),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 30,
                 spreadRadius: 0,
                 offset: const Offset(0, 10),
@@ -161,7 +161,9 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -208,7 +210,9 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -269,11 +273,7 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
           color: Colors.white,
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          _statusIcons[i],
-          size: 20,
-          color: iconColor,
-        ),
+        child: Icon(_statusIcons[i], size: 20, color: iconColor),
       ),
     );
 
@@ -294,7 +294,7 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
                   BoxShadow(
                     color: Theme.of(
                       context,
-                    ).primaryColor.withOpacity(shadowOpacity),
+                    ).primaryColor.withValues(alpha: shadowOpacity),
                     blurRadius: 10,
                     spreadRadius: 2,
                   ),
@@ -321,7 +321,7 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(1),
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
               ),
             ),
             if (i < current)

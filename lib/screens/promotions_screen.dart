@@ -74,7 +74,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
           ),
         );
       }
-      
+
       allPromos.addAll(seasonalPromos);
 
       if (mounted) {
@@ -123,7 +123,11 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
         centerTitle: false,
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
+          ? Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).primaryColor,
+              ),
+            )
           : _promotions.isEmpty
           ? _buildEmptyState()
           : ListView.builder(

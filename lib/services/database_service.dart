@@ -137,15 +137,10 @@ class DatabaseService {
 
   Future<List<ShopModel>> getAllShops() async {
     final snap = await _db.collection('shops').get();
-    return snap.docs
-        .map((d) => ShopModel.fromJson(d.id, d.data()))
-        .toList();
+    return snap.docs.map((d) => ShopModel.fromJson(d.id, d.data())).toList();
   }
 
-  Future<void> updateUserField(
-    String uid,
-    Map<String, dynamic> data,
-  ) async {
+  Future<void> updateUserField(String uid, Map<String, dynamic> data) async {
     await _db.collection('users').doc(uid).update(data);
   }
 }

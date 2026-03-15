@@ -348,7 +348,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
+                                color: Colors.black.withValues(alpha: 0.06),
                                 blurRadius: 16,
                                 offset: const Offset(0, 4),
                               ),
@@ -410,10 +410,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                GlobalSearchScreen(
-                  allShops: _shops,
-                  userOrders: _activeOrders,
-                ),
+                GlobalSearchScreen(allShops: _shops, userOrders: _activeOrders),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
                   return FadeTransition(opacity: animation, child: child);
@@ -537,7 +534,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 32, color: Colors.black26),
@@ -657,9 +654,9 @@ class _ShimmerBlockState extends State<_ShimmerBlock>
               begin: Alignment(-1.0 + 2.0 * v, 0),
               end: Alignment(2.0 * v, 0),
               colors: [
-                Colors.black.withOpacity(0.02),
-                Colors.black.withOpacity(0.05),
-                Colors.black.withOpacity(0.02),
+                Colors.black.withValues(alpha: 0.02),
+                Colors.black.withValues(alpha: 0.05),
+                Colors.black.withValues(alpha: 0.02),
               ],
             ),
           ),
@@ -727,10 +724,10 @@ class _ProfileAvatarState extends State<_ProfileAvatar>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.white,
-              border: Border.all(color: Colors.black.withOpacity(0.05)),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -839,7 +836,7 @@ class _ShopCardState extends State<_ShopCard>
                             loadingBuilder: (_, child, progress) {
                               if (progress == null) return child;
                               return Container(
-                                color: Colors.black.withOpacity(0.04),
+                                color: Colors.black.withValues(alpha: 0.04),
                                 child: const Center(
                                   child: SizedBox(
                                     width: 20,
@@ -853,7 +850,7 @@ class _ShopCardState extends State<_ShopCard>
                               );
                             },
                             errorBuilder: (_, __, ___) => Container(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               child: const Icon(
                                 Icons.store_rounded,
                                 color: Colors.black26,
@@ -862,7 +859,7 @@ class _ShopCardState extends State<_ShopCard>
                             ),
                           )
                         : Container(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             child: const Icon(
                               Icons.store_rounded,
                               color: Colors.black26,
@@ -913,7 +910,7 @@ class _ShopCardState extends State<_ShopCard>
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(

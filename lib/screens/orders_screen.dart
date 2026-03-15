@@ -215,7 +215,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -301,7 +301,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(emptyIcon, size: 48, color: Colors.black26),
@@ -397,10 +397,10 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.black.withOpacity(0.03)),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
               ),
@@ -414,8 +414,8 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: cancelled
-                        ? Colors.black.withOpacity(0.04)
-                        : Colors.cyan.withOpacity(0.1),
+                        ? Colors.black.withValues(alpha: 0.04)
+                        : Colors.cyan.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
