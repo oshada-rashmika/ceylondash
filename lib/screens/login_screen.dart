@@ -11,6 +11,7 @@ import 'role_selection_screen.dart';
 import 'admin_login_screen.dart';
 import 'seller_dashboard_screen.dart';
 import 'rider_dashboard_screen.dart';
+import 'admin/admin_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -132,6 +133,11 @@ class _LoginScreenState extends State<LoginScreen>
         );
       } else if (userModel.role == 'customer') {
         Navigator.pushReplacementNamed(context, '/home');
+      } else if (userModel.role == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+        );
       } else {
         await _authService.signOut();
         if (!mounted) return;
