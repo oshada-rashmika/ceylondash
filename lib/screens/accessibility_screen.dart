@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../services/database_service.dart';
-import '../services/auth_service.dart';
-import '../models/user_model.dart';
 import '../providers/accessibility_provider.dart';
 import '../widgets/top_snackbar.dart';
 
@@ -18,7 +16,6 @@ class AccessibilityScreen extends StatefulWidget {
 
 class _AccessibilityScreenState extends State<AccessibilityScreen> {
   final DatabaseService _db = DatabaseService();
-  final AuthService _auth = AuthService();
 
   List<String> _selectedNeeds = [];
   bool _isLoading = false;
