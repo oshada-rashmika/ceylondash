@@ -25,7 +25,7 @@ import 'widgets/top_snackbar.dart';
 import 'services/database_service.dart';
 import 'services/notification_service.dart';
 import 'models/user_model.dart';
-
+import 'screens/seller_dashboard_screen.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 late SharedPreferences prefs;
