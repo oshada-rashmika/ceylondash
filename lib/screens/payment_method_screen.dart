@@ -75,7 +75,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _methods.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, i) {
                   final method = _methods[i];
                   final isSelected = _selected == method.id;

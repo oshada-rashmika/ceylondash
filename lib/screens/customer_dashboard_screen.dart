@@ -11,77 +11,11 @@ import '../models/order_model.dart';
 import '../models/shop_model.dart';
 import '../widgets/slide_page_route.dart';
 import 'cart_screen.dart';
-import 'profile_screen.dart';
-import 'order_detail_screen.dart';
 import 'shop_detail_screen.dart';
 import 'global_search_screen.dart';
 import '../widgets/animated_order_card.dart';
 
 const _activeStatuses = {'processing', 'placed', 'preparing', 'on_the_way'};
-
-const _statusSteps = ['placed', 'preparing', 'on_the_way', 'delivered'];
-const _statusLabels = ['Placed', 'Preparing', 'On Way', 'Delivered'];
-const _statusIcons = [
-  Icons.receipt_long_rounded,
-  Icons.soup_kitchen_rounded,
-  Icons.delivery_dining_rounded,
-  Icons.check_circle_rounded,
-];
-
-int _statusIndex(String status) {
-  final i = _statusSteps.indexOf(status);
-  return i == -1 ? 0 : i;
-}
-
-IconData _orderIcon(String status) {
-  return switch (status) {
-    'preparing' => Icons.soup_kitchen_rounded,
-    'on_the_way' => Icons.delivery_dining_rounded,
-    'delivered' => Icons.check_circle_rounded,
-    'cancelled' => Icons.cancel_rounded,
-    _ => Icons.receipt_long_rounded,
-  };
-}
-
-String _readableStatus(String s) {
-  return switch (s) {
-    'on_the_way' => 'On the Way',
-    'processing' => 'Processing',
-    _ => '${s[0].toUpperCase()}${s.substring(1)}',
-  };
-}
-
-String _formatTimestamp(dynamic ts) {
-  if (ts == null) return '';
-  DateTime dt;
-  if (ts is DateTime) {
-    dt = ts;
-  } else {
-    try {
-      dt = (ts as dynamic).toDate();
-    } catch (_) {
-      return '';
-    }
-  }
-  final months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
-  final amPm = dt.hour >= 12 ? 'PM' : 'AM';
-  final min = dt.minute.toString().padLeft(2, '0');
-  return '${months[dt.month - 1]} ${dt.day}, $h:$min $amPm';
-}
 
 class CustomerDashboardScreen extends StatefulWidget {
   const CustomerDashboardScreen({super.key});
@@ -213,15 +147,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
     setState(() {});
   }
 
-  void _clearSearch() {
-    _searchDebounce?.cancel();
-    _searchController.clear();
-    if (!mounted) return;
-    setState(() {
-      _searchQuery = '';
-    });
-  }
-
   @override
   void dispose() {
     _ordersSub?.cancel();
@@ -240,10 +165,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
     opacity: _fades[i],
     child: SlideTransition(position: _slides[i], child: child),
   );
-
-  void _openProfile() {
-    Navigator.push(context, SlidePageRoute(page: const ProfileScreen()));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -433,9 +354,9 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: const [
-            const Icon(Icons.search_rounded, color: Colors.black38, size: 22),
-            const SizedBox(width: 12),
-            const Expanded(
+            Icon(Icons.search_rounded, color: Colors.black38, size: 22),
+            SizedBox(width: 12),
+            Expanded(
               child: Text(
                 'Search shops, items, or orders...',
                 style: TextStyle(
@@ -588,7 +509,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 24),
               itemCount: 3,
-              itemBuilder: (_, __) => Padding(
+              itemBuilder: (context, index) => Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: _ShimmerBlock(height: 200, borderRadius: 16),
               ),
@@ -849,14 +770,15 @@ class _ShopCardState extends State<_ShopCard>
                                 ),
                               );
                             },
-                            errorBuilder: (_, __, ___) => Container(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              child: const Icon(
-                                Icons.store_rounded,
-                                color: Colors.black26,
-                                size: 36,
-                              ),
-                            ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  child: const Icon(
+                                    Icons.store_rounded,
+                                    color: Colors.black26,
+                                    size: 36,
+                                  ),
+                                ),
                           )
                         : Container(
                             color: Colors.black.withValues(alpha: 0.04),
