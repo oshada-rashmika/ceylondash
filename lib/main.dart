@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_links/app_links.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -12,7 +13,7 @@ import 'screens/role_selection_screen.dart';
 import 'screens/customer_register_screen.dart';
 import 'screens/seller_register_screen.dart';
 import 'screens/rider_register_screen.dart';
-import 'screens/seller_dashboard_screen.dart';
+import 'screens/seller_dashboard_shell.dart';
 import 'screens/rider_dashboard_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'screens/customer_dashboard_shell.dart';
@@ -135,7 +136,7 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           }
           if (snapshot.hasData) {
             if (snapshot.data!.emailVerified) {
-              return const CustomerDashboardShell();
+              return _RoleRouter(uid: snapshot.data!.uid);
             }
             return const VerificationPendingScreen();
           }
@@ -152,7 +153,7 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
           '/register/rider': const RiderRegisterScreen(),
           '/verify-email': const VerificationPendingScreen(),
           '/home': const CustomerDashboardShell(),
-          '/seller-dashboard': const SellerDashboardScreen(),
+          '/seller-dashboard': const SellerDashboardShell(),
           '/rider-dashboard': const RiderDashboardScreen(),
           '/profile': const ProfileScreen(),
         };
@@ -163,5 +164,66 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
         return null;
       },
     );
+  }
+}
+
+/// Reads the user's role from Firestore and routes to the correct dashboard.
+class _RoleRouter extends StatefulWidget {
+  final String uid;
+  const _RoleRouter({required this.uid});
+
+  @override
+  State<_RoleRouter> createState() => _RoleRouterState();
+}
+
+class _RoleRouterState extends State<_RoleRouter> {
+  String? _role;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRole();
+  }
+
+  Future<void> _fetchRole() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.uid)
+          .get();
+      final role = doc.data()?['role'] as String? ?? 'customer';
+      if (mounted) {
+        setState(() {
+          _role = role;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _role = 'customer';
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF9F9FB),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.cyan),
+        ),
+      );
+    }
+
+    return switch (_role) {
+      'seller' => const SellerDashboardShell(),
+      'rider' => const RiderDashboardScreen(),
+      _ => const CustomerDashboardShell(),
+    };
   }
 }
