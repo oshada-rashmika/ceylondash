@@ -27,6 +27,11 @@ class UserModel {
   final String? courierId;
   final List<String>? usedPromotions;
 
+  final int? trustScore;
+  final String? birthday;
+  final String? gender;
+  final bool? isPremium;
+
   UserModel({
     required this.uid,
     required this.name,
@@ -46,7 +51,19 @@ class UserModel {
     this.courierId,
     this.accessibilityNeeds,
     this.usedPromotions,
+    this.trustScore,
+    this.birthday,
+    this.gender,
+    this.isPremium,
   });
+
+  String get loyaltyTier {
+    final score = trustScore ?? 0;
+    if (score >= 10000) return 'Diamond';
+    if (score >= 5000) return 'Gold';
+    if (score >= 3000) return 'Silver';
+    return 'Bronze';
+  }
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
@@ -73,6 +90,10 @@ class UserModel {
       usedPromotions: data['usedPromotions'] != null
           ? List<String>.from(data['usedPromotions'])
           : null,
+      trustScore: data['trustScore'],
+      birthday: data['birthday'],
+      gender: data['gender'],
+      isPremium: data['isPremium'],
     );
   }
 
@@ -100,6 +121,10 @@ class UserModel {
       if (courierId != null) 'courierId': courierId,
       if (accessibilityNeeds != null) 'accessibilityNeeds': accessibilityNeeds,
       if (usedPromotions != null) 'usedPromotions': usedPromotions,
+      if (trustScore != null) 'trustScore': trustScore,
+      if (birthday != null) 'birthday': birthday,
+      if (gender != null) 'gender': gender,
+      if (isPremium != null) 'isPremium': isPremium,
     };
   }
 }
