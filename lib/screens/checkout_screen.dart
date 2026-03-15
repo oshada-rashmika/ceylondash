@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/promotion_model.dart';
+import '../providers/accessibility_provider.dart';
 import '../models/user_model.dart';
 import '../providers/cart_provider.dart';
 import '../services/database_service.dart';
@@ -31,6 +32,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   List<PromotionModel> _availablePromos = [];
   PromotionModel? _selectedPromo;
   bool _isLoadingPromos = true;
+  int _currentStep = 0;
 
   @override
   void initState() {
@@ -432,18 +434,166 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  Widget _buildStandardCheckout(BuildContext context) {
+    final cart = Provider.of<CartProvider>(context, listen: false);
+    final subtotal = cart.getShopSubtotal(widget.shopId);
+    final discountAmount = _selectedPromo != null
+        ? (subtotal * (_selectedPromo!.discountPercentage / 100))
+        : 0.0;
+    final total = subtotal + _deliveryFee - discountAmount;
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildDeliverySection(),
+              const SizedBox(height: 16),
+              _buildPromoSelector(),
+              const SizedBox(height: 16),
+              _buildBillSection(subtotal, total, discountAmount),
+              const SizedBox(height: 16),
+              _buildPaymentSection(context),
+              const SizedBox(height: 4),
+            ],
+          ),
+        ),
+        _buildCheckoutButton(context, cart, total),
+      ],
+    );
+  }
+
+  Widget _buildNeurodivergentCheckout(BuildContext context) {
+    final cart = Provider.of<CartProvider>(context, listen: false);
+    final subtotal = cart.getShopSubtotal(widget.shopId);
+    final discountAmount = _selectedPromo != null
+        ? (subtotal * (_selectedPromo!.discountPercentage / 100))
+        : 0.0;
+    final total = subtotal + _deliveryFee - discountAmount;
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        canvasColor: Colors.transparent,
+      ),
+      child: Stepper(
+        type: StepperType.vertical,
+        currentStep: _currentStep,
+        onStepContinue: () {
+          if (_currentStep < 2) {
+            setState(() => _currentStep++);
+          }
+        },
+        onStepCancel: () {
+          if (_currentStep > 0) {
+            setState(() => _currentStep--);
+          }
+        },
+        controlsBuilder: (context, details) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 24),
+            child: Row(
+              children: [
+                if (_currentStep < 2)
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: details.onStepContinue,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Continue',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_currentStep > 0) ...[
+                  if (_currentStep < 2) const SizedBox(width: 16),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: details.onStepCancel,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).primaryColor,
+                        side: BorderSide(
+                          color: Theme.of(context).primaryColor,
+                          width: 2,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Back',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ]
+              ],
+            ),
+          );
+        },
+        steps: [
+          Step(
+            title: const Text(
+              'Delivery Details',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            content: _buildDeliverySection(),
+            isActive: _currentStep >= 0,
+            state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+          ),
+          Step(
+            title: const Text(
+              'Promotions',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            content: _buildPromoSelector(),
+            isActive: _currentStep >= 1,
+            state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+          ),
+          Step(
+            title: const Text(
+              'Review & Pay',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            content: Column(
+              children: [
+                _buildBillSection(subtotal, total, discountAmount),
+                const SizedBox(height: 16),
+                _buildPaymentSection(context),
+                const SizedBox(height: 24),
+                _buildCheckoutButton(context, cart, total),
+              ],
+            ),
+            isActive: _currentStep >= 2,
+            state: StepState.indexed,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(
       builder: (context, cart, _) {
         final bucket = cart.shopBuckets[widget.shopId];
-        final subtotal = cart.getShopSubtotal(widget.shopId);
         
-        final discountAmount = _selectedPromo != null
-            ? (subtotal * (_selectedPromo!.discountPercentage / 100))
-            : 0.0;
-        final total = subtotal + _deliveryFee - discountAmount;
-
         if (bucket == null || bucket.items.isEmpty) {
           return Scaffold(
             backgroundColor: const Color(0xFFF5F5F7),
@@ -473,30 +623,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         }
 
+        final a11y = Provider.of<AccessibilityProvider>(context);
+
         return Scaffold(
           backgroundColor: const Color(0xFFF5F5F7),
           appBar: _buildAppBar(context, 'Checkout - ${bucket.shopName}'),
-          body: Column(
-            children: [
-              Expanded(
-                child: ListView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _buildDeliverySection(),
-                    const SizedBox(height: 16),
-                    _buildPromoSelector(),
-                    const SizedBox(height: 16),
-                    _buildBillSection(subtotal, total, discountAmount),
-                    const SizedBox(height: 16),
-                    _buildPaymentSection(context),
-                    const SizedBox(height: 4),
-                  ],
-                ),
-              ),
-              _buildCheckoutButton(context, cart, total),
-            ],
-          ),
+          body: a11y.needsNeuroSupport
+              ? _buildNeurodivergentCheckout(context)
+              : _buildStandardCheckout(context),
         );
       },
     );
