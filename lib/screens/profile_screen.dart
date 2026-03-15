@@ -4,9 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../models/user_model.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 import '../utils/validators.dart';
 import '../widgets/email_input_field.dart';
 import '../widgets/top_snackbar.dart';
@@ -38,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
+    NotificationService().requestPermissions();
     _animCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -622,18 +625,133 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditBirthdaySheet() {
-    TopSnackbar.show(
-      context,
-      message: 'Date picker coming soon.',
-      type: SnackbarType.info,
+    DateTime selectedDate = DateTime.now();
+    if (_user?.birthday != null && _user!.birthday!.isNotEmpty) {
+      try {
+        selectedDate = DateFormat('MMMM d, yyyy').parse(_user!.birthday!);
+      } catch (e) {
+        // Fallback to now if parsing fails
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext builder) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        final formattedDate = DateFormat(
+                          'MMMM d, yyyy',
+                        ).format(selectedDate);
+                        _updateUserFields(
+                          {'birthday': formattedDate},
+                          successMessage: 'Birthday updated successfully.',
+                          errorMessage: 'Failed to update birthday.',
+                        );
+                        NotificationService().scheduleBirthdayNotification(
+                          _user?.name ?? 'User',
+                          selectedDate,
+                        );
+                      },
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 250,
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.date,
+                  initialDateTime: selectedDate,
+                  onDateTimeChanged: (DateTime newDate) {
+                    selectedDate = newDate;
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   void _showEditGenderSheet() {
-    TopSnackbar.show(
-      context,
-      message: 'Gender selection coming soon.',
-      type: SnackbarType.info,
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: const Text('Select Gender'),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateUserFields(
+                {'gender': 'Male'},
+                successMessage: 'Gender updated successfully.',
+                errorMessage: 'Failed to update gender.',
+              );
+            },
+            child: const Text('Male'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateUserFields(
+                {'gender': 'Female'},
+                successMessage: 'Gender updated successfully.',
+                errorMessage: 'Failed to update gender.',
+              );
+            },
+            child: const Text('Female'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateUserFields(
+                {'gender': 'Prefer not to say'},
+                successMessage: 'Gender updated successfully.',
+                errorMessage: 'Failed to update gender.',
+              );
+            },
+            child: const Text('Prefer not to say'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          isDefaultAction: true,
+          child: const Text('Cancel'),
+        ),
+      ),
     );
   }
 
@@ -1605,10 +1723,24 @@ class _InfoTileState extends State<_InfoTile>
                       const SizedBox(height: 4),
                       Text(
                         widget.value,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
+                          fontWeight:
+                              [
+                                'Add Birthday',
+                                'Select Gender',
+                                'No address yet',
+                              ].contains(widget.value)
+                              ? FontWeight.w500
+                              : FontWeight.w700,
+                          color:
+                              [
+                                'Add Birthday',
+                                'Select Gender',
+                                'No address yet',
+                              ].contains(widget.value)
+                              ? Colors.black45
+                              : Colors.black,
                           letterSpacing: -0.2,
                           height: 1.35,
                         ),
