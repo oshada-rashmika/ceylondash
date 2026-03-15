@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/order_model.dart';
@@ -46,6 +44,7 @@ class OrderDetailScreen extends StatelessWidget {
       'preparing' => Icons.soup_kitchen_rounded,
       'on_the_way' => Icons.delivery_dining_rounded,
       'delivered' => Icons.check_circle_rounded,
+      'past' => Icons.check_circle_rounded,
       'cancelled' => Icons.cancel_rounded,
       _ => Icons.receipt_long_rounded,
     };
@@ -59,14 +58,25 @@ class OrderDetailScreen extends StatelessWidget {
     };
   }
 
+  (Color, Color) _getStatusColors(BuildContext context, String status) {
+    if (status == 'delivered' || status == 'past') {
+      return (const Color(0xFF4CAF50), const Color(0xFFE8F5E9));
+    } else if (status == 'cancelled') {
+      return (Colors.red.shade700, Colors.red.shade50);
+    } else {
+      final primary = Theme.of(context).primaryColor;
+      return (primary, primary.withOpacity(0.1));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = order.orderName.isNotEmpty
         ? order.orderName
         : 'Order #${order.id.substring(0, 5)}';
-    final isDelivered = order.status == 'delivered';
-    final isCancelled = order.status == 'cancelled';
-    final isCompleted = isDelivered || isCancelled;
+
+    final textScaler = MediaQuery.textScalerOf(context);
+    final (primaryColor, bgColor) = _getStatusColors(context, order.status);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FB),
@@ -86,9 +96,9 @@ class OrderDetailScreen extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.black,
-            fontSize: 20,
+            fontSize: textScaler.scale(20),
             fontWeight: FontWeight.w700,
             letterSpacing: -0.5,
           ),
@@ -98,143 +108,161 @@ class OrderDetailScreen extends StatelessWidget {
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            Hero(
-              tag: 'order_status_icon_${order.id}',
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: isCancelled
-                      ? Colors.black.withOpacity(0.04)
-                      : (isDelivered
-                            ? Colors.black.withOpacity(0.04)
-                            : Colors.cyan.withOpacity(0.1)),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _orderIcon(order.status),
-                  color: isCancelled
-                      ? Colors.black38
-                      : (isDelivered ? Colors.black87 : Colors.cyan.shade600),
-                  size: 48,
-                ),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                spreadRadius: 2,
+                offset: const Offset(0, 4),
               ),
-            ),
-            const SizedBox(height: 32),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  _buildDetailRow(
-                    'Created',
-                    _formatTimestamp(order.timestamps['createdAt']),
-                    isFirst: true,
-                  ),
-                  _buildDivider(),
-                  _buildDetailRow(
-                    'Status',
-                    _readableStatus(order.status),
-                    valueColor: isCompleted
-                        ? Colors.black87
-                        : Colors.cyan.shade600,
-                    valueWeight: FontWeight.w800,
-                  ),
-                  _buildDivider(),
-                  _buildDetailRow('Seller ID', order.sellerId),
-                  _buildDivider(),
-                  _buildDetailRow(
-                    'Rider ID',
-                    order.riderId ?? 'Assigning Rider...',
-                    valueColor: order.riderId == null
-                        ? Colors.black38
-                        : Colors.black87,
-                    isItalicValue: order.riderId == null,
-                  ),
-                  if (isDelivered &&
-                      order.timestamps['deliveredAt'] != null) ...[
-                    _buildDivider(),
-                    _buildDetailRow(
-                      'Delivered At',
-                      _formatTimestamp(order.timestamps['deliveredAt']),
-                      isLast: true,
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            children: [
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 2.5, end: 1.0),
+                duration: const Duration(milliseconds: 600),
+                curve: Curves.elasticOut,
+                builder: (context, scale, child) {
+                  return Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: bgColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _orderIcon(order.status),
+                        color: primaryColor,
+                        size: 48,
+                      ),
                     ),
-                  ],
-                  if (!isDelivered || order.timestamps['deliveredAt'] == null)
-                    const SizedBox(height: 12),
-                ],
+                  );
+                },
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                'Order ${_readableStatus(order.status)}',
+                style: TextStyle(
+                  fontSize: textScaler.scale(22),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final boxWidth = constraints.constrainWidth();
+                  const dashedWidth = 6.0;
+                  const dashedHeight = 1.5;
+                  final dashCount = (boxWidth / (2 * dashedWidth)).floor();
+                  return Flex(
+                    direction: Axis.horizontal,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(dashCount, (_) {
+                      return SizedBox(
+                        width: dashedWidth,
+                        height: dashedHeight,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                          ),
+                        ),
+                      );
+                    }),
+                  );
+                },
+              ),
+              const SizedBox(height: 32),
+
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOut,
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 20 * (1 - value)),
+                      child: Column(
+                        children: [
+                          _buildDetailRow(
+                            context,
+                            'Created',
+                            _formatTimestamp(order.timestamps['createdAt']),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildDetailRow(
+                            context,
+                            'Status',
+                            _readableStatus(order.status),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildDetailRow(context, 'Seller ID', order.sellerId),
+                          const SizedBox(height: 20),
+                          _buildDetailRow(
+                            context,
+                            'Rider ID',
+                            order.riderId ?? 'Assigning Rider...',
+                          ),
+                          if ((order.status == 'delivered' ||
+                                  order.status == 'past') &&
+                              order.timestamps['deliveredAt'] != null) ...[
+                            const SizedBox(height: 20),
+                            _buildDetailRow(
+                              context,
+                              'Delivered At',
+                              _formatTimestamp(order.timestamps['deliveredAt']),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(
-    String label,
-    String value, {
-    Color? valueColor,
-    FontWeight? valueWeight,
-    bool isFirst = false,
-    bool isLast = false,
-    bool isItalicValue = false,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: isFirst ? 24 : 16,
-        bottom: isLast ? 24 : 16,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.black54,
-              fontWeight: FontWeight.w500,
-            ),
+  Widget _buildDetailRow(BuildContext context, String label, String value) {
+    final textScaler = MediaQuery.textScalerOf(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: textScaler.scale(16),
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w500,
           ),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 16,
-                color: valueColor ?? Colors.black87,
-                fontWeight: valueWeight ?? FontWeight.w600,
-                fontStyle: isItalicValue ? FontStyle.italic : FontStyle.normal,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+        ),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: textScaler.scale(16),
+              color: Colors.black87,
+              fontWeight: FontWeight.w700,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Divider(
-        height: 1,
-        thickness: 1,
-        color: Colors.black.withOpacity(0.04),
-      ),
+        ),
+      ],
     );
   }
 }
