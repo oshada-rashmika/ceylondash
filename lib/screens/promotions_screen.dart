@@ -123,7 +123,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
         centerTitle: false,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.cyan))
+          ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
           : _promotions.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
@@ -217,10 +217,10 @@ class _PromotionCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '${promotion.discountPercentage.toStringAsFixed(0)}% OFF',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.w900,
-                      color: Colors.cyan,
+                      color: Theme.of(context).primaryColor,
                       letterSpacing: -1.0,
                     ),
                   ),
@@ -272,7 +272,7 @@ class _PromotionCard extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.check_circle_rounded,
-                    color: Colors.green.shade500,
+                    color: Theme.of(context).colorScheme.secondary,
                     size: 16,
                   ),
                   const SizedBox(width: 6),

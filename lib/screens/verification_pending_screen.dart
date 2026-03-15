@@ -141,13 +141,15 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.cyan.withAlpha(18),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.07),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.mark_email_unread_outlined,
                       size: 52,
-                      color: Colors.cyan,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                 ),
@@ -193,10 +195,10 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen>
                   4,
                   TextButton(
                     onPressed: _backToLogin,
-                    child: const Text(
+                    child: Text(
                       'Back to Login',
                       style: TextStyle(
-                        color: Colors.cyan,
+                        color: Theme.of(context).primaryColor,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),

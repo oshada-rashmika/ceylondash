@@ -139,7 +139,7 @@ class _TopSnackbarWidgetState extends State<_TopSnackbarWidget>
 
     switch (widget.type) {
       case SnackbarType.success:
-        bg = Colors.cyan;
+        bg = Theme.of(context).primaryColor;
         textColor = Colors.white;
         iconColor = Colors.white;
         icon = Icons.check_circle_outline;
@@ -153,7 +153,7 @@ class _TopSnackbarWidgetState extends State<_TopSnackbarWidget>
         textColor = Colors.black87;
         iconColor = Colors.black87;
         icon = Icons.warning_amber_outlined;
-        border = Border.all(color: Colors.cyan, width: 1.5);
+        border = Border.all(color: Theme.of(context).primaryColor, width: 1.5);
     }
 
     return Positioned(

@@ -168,13 +168,13 @@ class _RiderRegisterScreenState extends State<RiderRegisterScreen>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.cyan.withAlpha(18),
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.07),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.two_wheeler_outlined,
                       size: 40,
-                      color: Colors.cyan,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                 ),

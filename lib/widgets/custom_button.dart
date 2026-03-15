@@ -43,31 +43,38 @@ class _CustomButtonState extends State<CustomButton> {
             child: OutlinedButton(
               onPressed: widget.isLoading ? null : widget.onPressed,
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.cyan, width: 1.5),
+                side: BorderSide(
+                  color: Theme.of(context).primaryColor,
+                  width: 1.5,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
               child: widget.isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 22,
                       width: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.cyan,
+                        color: Theme.of(context).primaryColor,
                       ),
                     )
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (widget.icon != null) ...[
-                          Icon(widget.icon, color: Colors.cyan, size: 20),
+                          Icon(
+                            widget.icon,
+                            color: Theme.of(context).primaryColor,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                         ],
                         Text(
                           widget.text,
-                          style: const TextStyle(
-                            color: Colors.cyan,
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -93,9 +100,11 @@ class _CustomButtonState extends State<CustomButton> {
           child: ElevatedButton(
             onPressed: widget.isLoading ? null : widget.onPressed,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.cyan,
+              backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.cyan.withAlpha(100),
+              disabledBackgroundColor: Theme.of(
+                context,
+              ).primaryColor.withValues(alpha: 0.4),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
