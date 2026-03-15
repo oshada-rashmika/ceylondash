@@ -164,7 +164,9 @@ class _CustomerRegisterScreenState extends State<CustomerRegisterScreen>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.07),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.07),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(

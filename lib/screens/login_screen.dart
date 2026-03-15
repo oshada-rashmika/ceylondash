@@ -121,9 +121,15 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       if (userModel.role == 'seller') {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SellerDashboardScreen()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SellerDashboardScreen()),
+        );
       } else if (userModel.role == 'rider') {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const RiderDashboardScreen()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const RiderDashboardScreen()),
+        );
       } else if (userModel.role == 'customer') {
         Navigator.pushReplacementNamed(context, '/home');
       } else {
@@ -230,7 +236,9 @@ class _LoginScreenState extends State<LoginScreen>
                       child: Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withValues(alpha: 0.07),
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withValues(alpha: 0.07),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(

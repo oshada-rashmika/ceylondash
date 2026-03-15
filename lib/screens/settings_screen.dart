@@ -122,22 +122,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   await user.updatePassword(
                                     newPasswordController.text,
                                   );
-                                  if (mounted) {
-                                    Navigator.pop(context);
-                                    TopSnackbar.show(
-                                      context,
-                                      message: 'Password updated successfully',
-                                    );
-                                  }
+                                  if (!context.mounted) return;
+                                  Navigator.pop(context);
+                                  TopSnackbar.show(
+                                    context,
+                                    message: 'Password updated successfully',
+                                  );
                                 }
                               } on FirebaseAuthException catch (e) {
+                                if (!context.mounted) return;
                                 TopSnackbar.show(
                                   context,
                                   message: e.message ?? 'An error occurred',
                                   type: SnackbarType.error,
                                 );
                               } finally {
-                                if (mounted) setState(() => isLoading = false);
+                                if (context.mounted)
+                                  setState(() => isLoading = false);
                               }
                             },
                       child: isLoading
@@ -185,13 +186,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () async {
                 HapticFeedback.heavyImpact();
                 await AuthService().signOut();
-                if (mounted) {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/login',
-                    (route) => false,
-                  );
-                }
+                if (!context.mounted) return;
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
               },
               child: const Text('Log Out'),
             ),
@@ -226,23 +226,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       await DatabaseService().deleteUserData(user.uid);
                     } catch (_) {}
                     await user.delete();
-                    if (mounted) {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/login',
-                        (route) => false,
-                      );
-                    }
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    Navigator.pop(context);
-                    TopSnackbar.show(
+                    if (!context.mounted) return;
+                    Navigator.pushNamedAndRemoveUntil(
                       context,
-                      message: 'Error deleting account: \${e.toString()}',
-                      type: SnackbarType.error,
+                      '/login',
+                      (route) => false,
                     );
                   }
+                } catch (e) {
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  TopSnackbar.show(
+                    context,
+                    message: 'Error deleting account: \${e.toString()}',
+                    type: SnackbarType.error,
+                  );
                 }
               },
               child: const Text('Delete'),

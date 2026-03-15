@@ -304,7 +304,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _frequentShops.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final shop = _frequentShops[index];
                 return GestureDetector(

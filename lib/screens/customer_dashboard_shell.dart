@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'customer_dashboard_screen.dart';
 import 'chat_list_screen.dart';
-import 'quick_actions_screen.dart';
+import 'orders_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'accessibility_screen.dart';
@@ -69,7 +69,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
   Widget build(BuildContext context) {
     final screens = [
       const CustomerDashboardScreen(),
-      const QuickActionsScreen(),
+      const OrdersScreen(),
       ChatListScreen(isActive: _currentIndex == 2),
       const ProfileScreen(),
     ];
@@ -97,8 +97,8 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                               sigmaY: 5.0 * _menuCtrl.value,
                             ),
                             child: Container(
-                              color: Colors.black.withOpacity(
-                                0.3 * _menuCtrl.value,
+                              color: Colors.black.withValues(
+                                alpha: 0.3 * _menuCtrl.value,
                               ),
                             ),
                           ),
@@ -324,7 +324,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                 key: ValueKey(isSelected),
                 size: 26,
                 color: isSelected
-                    ? Theme.of(context).primaryColor.withOpacity(0.8)
+                    ? Theme.of(context).primaryColor.withValues(alpha: 0.8)
                     : Colors.black45,
               ),
             ),
@@ -335,7 +335,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
-                    ? Theme.of(context).primaryColor.withOpacity(0.8)
+                    ? Theme.of(context).primaryColor.withValues(alpha: 0.8)
                     : Colors.black45,
                 letterSpacing: -0.2,
               ),

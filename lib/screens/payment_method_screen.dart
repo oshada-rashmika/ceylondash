@@ -75,7 +75,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _methods.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, i) {
                   final method = _methods[i];
                   final isSelected = _selected == method.id;
@@ -223,13 +224,18 @@ class _PaymentCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: isSelected ? Colors.black : Colors.transparent,
                   border: Border.all(
-                    color:
-                        isSelected ? Colors.black : Colors.black.withOpacity(0.15),
+                    color: isSelected
+                        ? Colors.black
+                        : Colors.black.withValues(alpha: 0.15),
                     width: 2,
                   ),
                 ),
                 child: isSelected
-                    ? const Icon(Icons.check_rounded, color: Colors.white, size: 14)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      )
                     : null,
               ),
             ],

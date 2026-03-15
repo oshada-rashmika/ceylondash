@@ -92,7 +92,9 @@ class _PasswordInputFieldState extends State<PasswordInputField> {
             decoration: InputDecoration(
               labelText: 'Password',
               labelStyle: TextStyle(
-                color: _hasFocus ? Theme.of(context).primaryColor : Colors.black45,
+                color: _hasFocus
+                    ? Theme.of(context).primaryColor
+                    : Colors.black45,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -123,17 +125,28 @@ class _PasswordInputFieldState extends State<PasswordInputField> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                borderSide: BorderSide(
+                  color: Theme.of(context).primaryColor,
+                  width: 2,
+                ),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.error,
+                ),
               ),
               focusedErrorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: Theme.of(context).colorScheme.error, width: 2),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.error,
+                  width: 2,
+                ),
               ),
-              errorStyle: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+              errorStyle: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
             ),
           ),
         ),

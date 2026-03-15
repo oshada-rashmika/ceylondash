@@ -49,9 +49,9 @@ class ShopModel {
     final rawItems = json['items'];
     final items = rawItems is List
         ? rawItems
-            .whereType<Map<String, dynamic>>()
-            .map(ShopItemModel.fromJson)
-            .toList()
+              .whereType<Map<String, dynamic>>()
+              .map(ShopItemModel.fromJson)
+              .toList()
         : <ShopItemModel>[];
 
     return ShopModel(

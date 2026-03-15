@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/order_model.dart';
 import '../models/user_model.dart';
@@ -17,11 +18,11 @@ class DatabaseService {
   }
 
   Future<List<PromotionModel>> getSeasonalPromotions(String userAddress) async {
-    print("Fetching promotions...");
+    debugPrint("Fetching promotions...");
     final currentMonth = DateTime.now().month;
     final snapshot = await _db.collection('promotions').get();
 
-    print('Found ${snapshot.docs.length} total promotions in database.');
+    debugPrint('Found ${snapshot.docs.length} total promotions in database.');
     final promotions = <PromotionModel>[];
 
     for (final doc in snapshot.docs) {
@@ -38,16 +39,16 @@ class DatabaseService {
       );
       final isSeasonActive = activeMonths.contains(currentMonth);
 
-      print(
+      debugPrint(
         "Promo ID: ${doc.id} | matchesRegion: $matchesRegion | isSeasonActive: $isSeasonActive",
       );
 
       if (matchesRegion && isSeasonActive) {
-        print("Promo ${doc.id} Accepted");
+        debugPrint("Promo ${doc.id} Accepted");
         final promo = PromotionModel.fromMap(doc.id, data);
         promotions.add(promo);
       } else {
-        print(
+        debugPrint(
           "Promo ${doc.id} Rejected (Reason: ${!matchesRegion ? 'Region mismatch' : ''}${!isSeasonActive && !matchesRegion ? ' / ' : ''}${!isSeasonActive ? 'Month mismatch' : ''})",
         );
       }
@@ -57,7 +58,7 @@ class DatabaseService {
 
   Future<void> createUser(UserModel user) async {
     await _db.collection('users').doc(user.uid).set(user.toJson());
-    print('🔥 Firestore User Created: ${user.uid}');
+    debugPrint('🔥 Firestore User Created: ${user.uid}');
   }
 
   Future<UserModel?> getUser(String uid) async {
@@ -83,11 +84,25 @@ class DatabaseService {
     await _db.collection('users').doc(uid).delete();
   }
 
-  Future<String> createOrder(OrderModel order) async {
-    DocumentReference docRef = await _db
-        .collection('orders')
-        .add(order.toMap());
-    return docRef.id;
+  Future<String> createOrder(
+    OrderModel order, {
+    String? appliedPromoCode,
+    String? userId,
+  }) async {
+    final batch = _db.batch();
+    final orderRef = _db.collection('orders').doc();
+    final orderData = order.toMap();
+    orderData['id'] = orderRef.id;
+    batch.set(orderRef, orderData);
+    if (appliedPromoCode != null && userId != null) {
+      final userRef = _db.collection('users').doc(userId);
+      batch.update(userRef, {
+        'usedPromotions': FieldValue.arrayUnion([appliedPromoCode]),
+      });
+    }
+    await batch.commit();
+
+    return orderRef.id;
   }
 
   Future<void> updateOrderStatus(String orderId, String newStatus) async {
@@ -123,15 +138,10 @@ class DatabaseService {
 
   Future<List<ShopModel>> getAllShops() async {
     final snap = await _db.collection('shops').get();
-    return snap.docs
-        .map((d) => ShopModel.fromJson(d.id, d.data()))
-        .toList();
+    return snap.docs.map((d) => ShopModel.fromJson(d.id, d.data())).toList();
   }
 
-  Future<void> updateUserField(
-    String uid,
-    Map<String, dynamic> data,
-  ) async {
+  Future<void> updateUserField(String uid, Map<String, dynamic> data) async {
     await _db.collection('users').doc(uid).update(data);
   }
 }
