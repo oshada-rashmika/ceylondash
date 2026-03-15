@@ -26,16 +26,15 @@ class CartShopBucket {
 class CartProvider extends ChangeNotifier {
   final Map<String, CartShopBucket> _shopBuckets = {};
 
-  Map<String, CartShopBucket> get shopBuckets =>
-      Map.unmodifiable(_shopBuckets);
+  Map<String, CartShopBucket> get shopBuckets => Map.unmodifiable(_shopBuckets);
 
   bool get isEmpty => _shopBuckets.isEmpty;
 
   int get globalItemCount => _shopBuckets.values.fold(
-        0,
-        (sum, bucket) =>
-            sum + bucket.items.values.fold(0, (s, ci) => s + ci.quantity),
-      );
+    0,
+    (sum, bucket) =>
+        sum + bucket.items.values.fold(0, (s, ci) => s + ci.quantity),
+  );
 
   double getShopSubtotal(String shopId) {
     final bucket = _shopBuckets[shopId];
@@ -51,16 +50,14 @@ class CartProvider extends ChangeNotifier {
 
   void addItem(ShopItemModel item, String shopId, String shopName) {
     if (!_shopBuckets.containsKey(shopId)) {
-      _shopBuckets[shopId] = CartShopBucket(
-        shopId: shopId,
-        shopName: shopName,
-      );
+      _shopBuckets[shopId] = CartShopBucket(shopId: shopId, shopName: shopName);
     }
     final bucket = _shopBuckets[shopId]!;
     final existing = bucket.items[item.name];
     if (existing != null) {
-      bucket.items[item.name] =
-          existing.copyWith(quantity: existing.quantity + 1);
+      bucket.items[item.name] = existing.copyWith(
+        quantity: existing.quantity + 1,
+      );
     } else {
       bucket.items[item.name] = CartItem(item: item, quantity: 1);
     }
@@ -78,8 +75,9 @@ class CartProvider extends ChangeNotifier {
       bucket.items.remove(itemName);
       if (bucket.items.isEmpty) _shopBuckets.remove(shopId);
     } else {
-      bucket.items[itemName] =
-          existing.copyWith(quantity: existing.quantity - 1);
+      bucket.items[itemName] = existing.copyWith(
+        quantity: existing.quantity - 1,
+      );
     }
     notifyListeners();
   }

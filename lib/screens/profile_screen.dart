@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../models/user_model.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 import '../utils/validators.dart';
 import '../widgets/email_input_field.dart';
 import '../widgets/top_snackbar.dart';
@@ -37,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   @override
   void initState() {
     super.initState();
+    NotificationService().requestPermissions();
     _animCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -132,6 +136,16 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (businessAddress.isNotEmpty) return businessAddress;
 
     return 'No address yet';
+  }
+
+  String get _displayBirthday {
+    final bday = (_user?.birthday ?? '').trim();
+    return bday.isEmpty ? 'Add Birthday' : bday;
+  }
+
+  String get _displayGender {
+    final gen = (_user?.gender ?? '').trim();
+    return gen.isEmpty ? 'Select Gender' : gen;
   }
 
   Future<void> _updateUserFields(
@@ -459,7 +473,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: Text(
                   '+94',
                   style: TextStyle(
-                    color: Theme.of(context).primaryColor.withOpacity(0.8),
+                    color: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                   ),
@@ -608,6 +624,137 @@ class _ProfileScreenState extends State<ProfileScreen>
         );
       }
     }
+  }
+
+  void _showEditBirthdaySheet() {
+    DateTime selectedDate = DateTime.now();
+    if (_user?.birthday != null && _user!.birthday!.isNotEmpty) {
+      try {
+        selectedDate = DateFormat('MMMM d, yyyy').parse(_user!.birthday!);
+      } catch (e) {
+        // Fallback to now if parsing fails
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext builder) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        final formattedDate = DateFormat(
+                          'MMMM d, yyyy',
+                        ).format(selectedDate);
+                        _updateUserFields(
+                          {'birthday': formattedDate},
+                          successMessage: 'Birthday updated successfully.',
+                          errorMessage: 'Failed to update birthday.',
+                        );
+                        NotificationService().scheduleBirthdayNotification(
+                          _user?.name ?? 'User',
+                          selectedDate,
+                        );
+                      },
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 250,
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.date,
+                  initialDateTime: selectedDate,
+                  onDateTimeChanged: (DateTime newDate) {
+                    selectedDate = newDate;
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditGenderSheet() {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: const Text('Select Gender'),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateUserFields(
+                {'gender': 'Male'},
+                successMessage: 'Gender updated successfully.',
+                errorMessage: 'Failed to update gender.',
+              );
+            },
+            child: const Text('Male'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateUserFields(
+                {'gender': 'Female'},
+                successMessage: 'Gender updated successfully.',
+                errorMessage: 'Failed to update gender.',
+              );
+            },
+            child: const Text('Female'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              _updateUserFields(
+                {'gender': 'Prefer not to say'},
+                successMessage: 'Gender updated successfully.',
+                errorMessage: 'Failed to update gender.',
+              );
+            },
+            child: const Text('Prefer not to say'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          isDefaultAction: true,
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
   }
 
   void _showReauthSheet(String newEmail) {
@@ -942,7 +1089,21 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F5F7),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        centerTitle: true,
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+            letterSpacing: -0.5,
+          ),
+        ),
+      ),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fade,
@@ -950,56 +1111,51 @@ class _ProfileScreenState extends State<ProfileScreen>
             position: _slide,
             child: Column(
               children: [
+                const SizedBox(height: 16),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 24, 0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: Colors.black,
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF141E30), Color(0xFF243B55)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        onPressed: () {
-                          HapticFeedback.lightImpact();
-                          if (Navigator.canPop(context)) {
-                            Navigator.pop(context);
-                          } else {
-                            Navigator.pushReplacementNamed(context, '/home');
-                          }
-                        },
+                        child: Center(
+                          child: Text(
+                            _initials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Profile',
-                        style: TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black,
-                          letterSpacing: -1.2,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLuxuryHeader(),
+                            const SizedBox(height: 12),
+                            _buildTierBadge(),
+                          ],
                         ),
                       ),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-                _buildAvatar(),
-                const SizedBox(height: 20),
-                Text(
-                  _displayName,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black,
-                    letterSpacing: -0.8,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _displayEmail,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Colors.black45,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -1023,26 +1179,66 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ),
                           ),
-                          _InfoTile(
-                            icon: Icons.phone_rounded,
-                            label: 'Phone',
-                            value: _displayPhone,
-                            onEdit: _showEditPhoneSheet,
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              children: [
+                                _InfoTile(
+                                  icon: Icons.phone_rounded,
+                                  label: 'Phone',
+                                  value: _displayPhone,
+                                  onEdit: _showEditPhoneSheet,
+                                ),
+                                Divider(
+                                  height: 1,
+                                  color: Colors.grey.withValues(alpha: 0.2),
+                                ),
+                                _InfoTile(
+                                  icon: Icons.email_rounded,
+                                  label: 'Email',
+                                  value: _displayEmail,
+                                  onEdit: _showEditEmailSheet,
+                                ),
+                                Divider(
+                                  height: 1,
+                                  color: Colors.grey.withValues(alpha: 0.2),
+                                ),
+                                _InfoTile(
+                                  icon: Icons.location_on_rounded,
+                                  label: 'Address',
+                                  value: _displayAddress,
+                                  onEdit: _showAddressOptionsSheet,
+                                  allowExpandedText: true,
+                                ),
+                                Divider(
+                                  height: 1,
+                                  color: Colors.grey.withValues(alpha: 0.2),
+                                ),
+                                _InfoTile(
+                                  icon: CupertinoIcons.gift_fill,
+                                  label: 'Birthday',
+                                  value: _displayBirthday,
+                                  onEdit: _showEditBirthdaySheet,
+                                ),
+                                Divider(
+                                  height: 1,
+                                  color: Colors.grey.withValues(alpha: 0.2),
+                                ),
+                                _InfoTile(
+                                  icon: CupertinoIcons.person_2_fill,
+                                  label: 'Gender',
+                                  value: _displayGender,
+                                  onEdit: _showEditGenderSheet,
+                                ),
+                              ],
+                            ),
                           ),
-                          _InfoTile(
-                            icon: Icons.email_rounded,
-                            label: 'Email',
-                            value: _displayEmail,
-                            onEdit: _showEditEmailSheet,
-                          ),
-                          _InfoTile(
-                            icon: Icons.location_on_rounded,
-                            label: 'Address',
-                            value: _displayAddress,
-                            onEdit: _showAddressOptionsSheet,
-                            allowExpandedText: true,
-                          ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
+                          _buildPremiumCard(),
+                          const SizedBox(height: 24),
                           const Padding(
                             padding: EdgeInsets.only(left: 4, bottom: 12),
                             child: Text(
@@ -1103,30 +1299,203 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildLuxuryHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _displayName,
+          style: const TextStyle(
+            fontSize: 34,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+            letterSpacing: -1.0,
+            height: 1.1,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          _displayEmail,
+          style: const TextStyle(
+            fontSize: 15,
+            color: Colors.black45,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTierBadge() {
+    final tier = _user?.loyaltyTier ?? 'Bronze';
+    List<Color> gradientColors;
+    IconData icon;
+    Color iconColor;
+
+    switch (tier) {
+      case 'Diamond':
+        gradientColors = [const Color(0xFFB9F2FF), const Color(0xFF6DD5FA)];
+        icon = CupertinoIcons.sparkles;
+        iconColor = Colors.blue.shade800;
+        break;
+      case 'Gold':
+        gradientColors = [const Color(0xFFFFD700), const Color(0xFFDAA520)];
+        icon = CupertinoIcons.star_fill;
+        iconColor = Colors.brown.shade800;
+        break;
+      case 'Silver':
+        gradientColors = [const Color(0xFFE0E0E0), const Color(0xFF9E9E9E)];
+        icon = CupertinoIcons.shield_fill;
+        iconColor = Colors.grey.shade800;
+        break;
+      case 'Bronze':
+      default:
+        gradientColors = [const Color(0xFFCD7F32), const Color(0xFFA0522D)];
+        icon = CupertinoIcons.rosette;
+        iconColor = Colors.white;
+        break;
+    }
+
     return Container(
-      width: 120,
-      height: 120,
-      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Theme.of(context).primaryColor.withOpacity(0.8),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.25),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: tier == 'Diamond'
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF6DD5FA).withValues(alpha: 0.4),
+                  blurRadius: 12,
+                  spreadRadius: 2,
+                ),
+              ]
+            : [],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: iconColor),
+          const SizedBox(width: 6),
+          Text(
+            '$tier Member',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: iconColor,
+              letterSpacing: -0.2,
+            ),
           ),
         ],
       ),
-      child: Text(
-        _initials,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-          fontSize: 44,
-          letterSpacing: 1,
+    );
+  }
+
+  Widget _buildPremiumCard() {
+    final isPremium = _user?.isPremium ?? false;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF141E30), Color(0xFF243B55)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF141E30).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  CupertinoIcons.shield_lefthalf_fill,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'CeylonDash Premium',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isPremium
+                ? 'Your premium subscription is active. Enjoy exclusive perks, zero delivery fees, and priority support.'
+                : 'Unlock zero delivery fees, priority customer support, and exclusive lifestyle rewards.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.7),
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                TopSnackbar.show(
+                  context,
+                  message: 'Premium portals are opening soon!',
+                  type: SnackbarType.success,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isPremium
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Colors.white,
+                foregroundColor: isPremium ? Colors.white : Colors.black,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: isPremium
+                      ? BorderSide(color: Colors.white.withValues(alpha: 0.2))
+                      : BorderSide.none,
+                ),
+              ),
+              child: Text(
+                isPremium ? 'Manage Subscription' : 'Upgrade to Premium',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1211,7 +1580,7 @@ class _AddressOptionTileState extends State<_AddressOptionTile>
                 ),
                 child: Icon(
                   widget.icon,
-                  color: Theme.of(context).primaryColor.withOpacity(0.8),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.8),
                   size: 24,
                 ),
               ),
@@ -1315,19 +1684,8 @@ class _InfoTileState extends State<_InfoTile>
       child: ScaleTransition(
         scale: _scale,
         child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(color: Colors.transparent),
           child: Row(
             crossAxisAlignment: widget.allowExpandedText
                 ? CrossAxisAlignment.start
@@ -1342,7 +1700,7 @@ class _InfoTileState extends State<_InfoTile>
                 ),
                 child: Icon(
                   widget.icon,
-                  color: Theme.of(context).primaryColor.withOpacity(0.8),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.8),
                   size: 24,
                 ),
               ),
@@ -1367,10 +1725,24 @@ class _InfoTileState extends State<_InfoTile>
                       const SizedBox(height: 4),
                       Text(
                         widget.value,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
+                          fontWeight:
+                              [
+                                'Add Birthday',
+                                'Select Gender',
+                                'No address yet',
+                              ].contains(widget.value)
+                              ? FontWeight.w500
+                              : FontWeight.w700,
+                          color:
+                              [
+                                'Add Birthday',
+                                'Select Gender',
+                                'No address yet',
+                              ].contains(widget.value)
+                              ? Colors.black45
+                              : Colors.black,
                           letterSpacing: -0.2,
                           height: 1.35,
                         ),

@@ -50,7 +50,9 @@ class _EmailInputFieldState extends State<EmailInputField> {
         boxShadow: _hasFocus
             ? [
                 BoxShadow(
-                  color: (_isValid ? Colors.green : Theme.of(context).primaryColor).withAlpha(35),
+                  color:
+                      (_isValid ? Colors.green : Theme.of(context).primaryColor)
+                          .withAlpha(35),
                   blurRadius: 14,
                   spreadRadius: 1,
                 ),
@@ -131,9 +133,15 @@ class _EmailInputFieldState extends State<EmailInputField> {
           ),
           focusedErrorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: Theme.of(context).colorScheme.error, width: 2),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.error,
+              width: 2,
+            ),
           ),
-          errorStyle: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+          errorStyle: TextStyle(
+            color: Theme.of(context).colorScheme.error,
+            fontSize: 12,
+          ),
         ),
       ),
     );

@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../services/database_service.dart';
-import '../services/auth_service.dart';
-import '../models/user_model.dart';
 import '../providers/accessibility_provider.dart';
 import '../widgets/top_snackbar.dart';
 
@@ -18,7 +16,6 @@ class AccessibilityScreen extends StatefulWidget {
 
 class _AccessibilityScreenState extends State<AccessibilityScreen> {
   final DatabaseService _db = DatabaseService();
-  final AuthService _auth = AuthService();
 
   List<String> _selectedNeeds = [];
   bool _isLoading = false;
@@ -94,8 +91,10 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
         'accessibilityNeeds': _selectedNeeds,
       });
       if (mounted) {
-        Provider.of<AccessibilityProvider>(context, listen: false)
-            .updateNeeds(_selectedNeeds);
+        Provider.of<AccessibilityProvider>(
+          context,
+          listen: false,
+        ).updateNeeds(_selectedNeeds);
       }
       if (mounted) {
         TopSnackbar.show(
@@ -127,7 +126,11 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.black87,
+            size: 20,
+          ),
           onPressed: () {
             HapticFeedback.lightImpact();
             Navigator.pop(context);
@@ -150,7 +153,10 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
               children: [
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     children: [
                       const Text(
                         'How can we assist you?',
@@ -212,12 +218,16 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.5) : Colors.transparent,
+                color: isSelected
+                    ? Theme.of(context).primaryColor.withValues(alpha: 0.5)
+                    : Colors.transparent,
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isSelected ? 0.05 : 0.03),
+                  color: Colors.black.withValues(
+                    alpha: isSelected ? 0.05 : 0.03,
+                  ),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -231,14 +241,18 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+                          ? Theme.of(
+                              context,
+                            ).primaryColor.withValues(alpha: 0.1)
                           : Colors.grey.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       icon,
                       size: 22,
-                      color: isSelected ? Theme.of(context).primaryColor : Colors.black38,
+                      color: isSelected
+                          ? Theme.of(context).primaryColor
+                          : Colors.black38,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -320,7 +334,9 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Theme.of(context).primaryColor,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.5),
+            disabledBackgroundColor: Theme.of(
+              context,
+            ).primaryColor.withValues(alpha: 0.5),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),

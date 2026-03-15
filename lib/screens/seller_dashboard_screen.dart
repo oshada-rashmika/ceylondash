@@ -12,10 +12,7 @@ class SellerDashboardScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Hello, Seller',
-              style: TextStyle(color: Colors.black),
-            ),
+            const Text('Hello, Seller', style: TextStyle(color: Colors.black)),
             ElevatedButton(
               onPressed: () async {
                 await AuthService().signOut();

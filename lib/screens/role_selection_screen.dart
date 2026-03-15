@@ -77,7 +77,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   child: Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withValues(alpha: 0.07),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.07),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -212,7 +214,11 @@ class _RoleCardState extends State<_RoleCard> {
                   color: Theme.of(context).primaryColor.withValues(alpha: 0.07),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(widget.icon, color: Theme.of(context).primaryColor, size: 28),
+                child: Icon(
+                  widget.icon,
+                  color: Theme.of(context).primaryColor,
+                  size: 28,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

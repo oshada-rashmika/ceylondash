@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-enum SnackbarType { success, error, warning }
+enum SnackbarType { success, error, warning, info }
 
 class _PendingSnackbar {
   final String message;
@@ -154,6 +154,11 @@ class _TopSnackbarWidgetState extends State<_TopSnackbarWidget>
         iconColor = Colors.black87;
         icon = Icons.warning_amber_outlined;
         border = Border.all(color: Theme.of(context).primaryColor, width: 1.5);
+      case SnackbarType.info:
+        bg = Colors.blue.shade50;
+        textColor = Colors.blue.shade900;
+        iconColor = Colors.blue.shade700;
+        icon = Icons.info_outline;
     }
 
     return Positioned(

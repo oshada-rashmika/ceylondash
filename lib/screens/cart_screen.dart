@@ -29,10 +29,7 @@ class CartScreen extends StatelessWidget {
             itemCount: buckets.length,
             itemBuilder: (context, index) {
               final bucket = buckets[index];
-              return _ShopCartBucketCard(
-                bucket: bucket,
-                user: user,
-              );
+              return _ShopCartBucketCard(bucket: bucket, user: user);
             },
           );
         },
@@ -98,7 +95,7 @@ class CartScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -176,7 +173,11 @@ class _ShopCartBucketCard extends StatelessWidget {
                     HapticFeedback.lightImpact();
                     cart.clearShop(bucket.shopId);
                   },
-                  icon: const Icon(Icons.close_rounded, size: 20, color: Colors.black38),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 20,
+                    color: Colors.black38,
+                  ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -188,7 +189,9 @@ class _ShopCartBucketCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               children: bucket.items.values
-                  .map((ci) => _CartItemRow(shopId: bucket.shopId, cartItem: ci))
+                  .map(
+                    (ci) => _CartItemRow(shopId: bucket.shopId, cartItem: ci),
+                  )
                   .toList(),
             ),
           ),
@@ -228,10 +231,8 @@ class _ShopCartBucketCard extends StatelessWidget {
                     Navigator.push(
                       context,
                       CupertinoPageRoute(
-                        builder: (_) => CheckoutScreen(
-                          shopId: bucket.shopId,
-                          user: user,
-                        ),
+                        builder: (_) =>
+                            CheckoutScreen(shopId: bucket.shopId, user: user),
                       ),
                     );
                   },
@@ -239,7 +240,10 @@ class _ShopCartBucketCard extends StatelessWidget {
                     backgroundColor: Colors.cyan,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -265,7 +269,7 @@ class _ShopCartBucketCard extends StatelessWidget {
 class _CartItemRow extends StatelessWidget {
   final String shopId;
   final CartItem cartItem;
-  
+
   const _CartItemRow({required this.shopId, required this.cartItem});
 
   @override

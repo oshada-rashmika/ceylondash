@@ -20,8 +20,7 @@ class AccessibilityProvider extends ChangeNotifier {
       final needs = user?.accessibilityNeeds ?? [];
       _activeNeeds = List<String>.from(needs);
       notifyListeners();
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void updateNeeds(List<String> needs) {
