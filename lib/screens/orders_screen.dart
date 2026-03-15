@@ -88,10 +88,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
   List<OrderModel> _activeOrders = [];
   List<OrderModel> _pastOrders = [];
   bool _isLoading = true;
+  late final PageController _pageController;
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     _loadOrders();
   }
 
@@ -118,87 +121,166 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void dispose() {
     _ordersSub?.cancel();
+    _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9F9FB),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          surfaceTintColor: Colors.white,
-          title: const Text(
-            'My Orders',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Colors.black,
-              letterSpacing: -0.8,
-            ),
-          ),
-          centerTitle: false,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.black.withOpacity(0.05),
-                    width: 1,
-                  ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'My Orders',
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                  letterSpacing: -1.0,
                 ),
               ),
-              child: TabBar(
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicatorWeight: 3,
-                indicatorColor: Theme.of(context).primaryColor,
-                labelColor: Theme.of(context).primaryColor,
-                unselectedLabelColor: Colors.black45,
-                labelStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.3,
-                ),
-                tabs: const [
-                  Tab(text: 'Active'),
-                  Tab(text: 'Past'),
-                ],
-              ),
             ),
-          ),
+            const SizedBox(height: 24),
+            _buildSegmentedControl(),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    )
+                  : PageView(
+                      controller: _pageController,
+                      physics: const BouncingScrollPhysics(),
+                      onPageChanged: (idx) {
+                        setState(() => _currentIndex = idx);
+                      },
+                      children: [
+                        _buildOrderList(
+                          _activeOrders,
+                          Icons.receipt_long_outlined,
+                          'No active orders right now',
+                          isActive: true,
+                        ),
+                        _buildOrderList(
+                          _pastOrders,
+                          Icons.history_rounded,
+                          'No past orders found',
+                          isActive: false,
+                        ),
+                      ],
+                    ),
+            ),
+          ],
         ),
-        body: _isLoading
-            ? Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).primaryColor,
+      ),
+    );
+  }
+
+  Widget _buildSegmentedControl() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final pillWidth = (width - 8) / 2;
+
+          return Container(
+            height: 48,
+            width: width,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE5E5EA),
+              borderRadius: BorderRadius.circular(32),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: Stack(
+              children: [
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  left: _currentIndex == 0 ? 0 : pillWidth,
+                  top: 0,
+                  bottom: 0,
+                  width: pillWidth,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              )
-            : TabBarView(
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  _buildOrderList(
-                    _activeOrders,
-                    Icons.receipt_long_outlined,
-                    'No active orders right now',
-                    isActive: true,
-                  ),
-                  _buildOrderList(
-                    _pastOrders,
-                    Icons.history_rounded,
-                    'No past orders found',
-                    isActive: false,
-                  ),
-                ],
-              ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          _pageController.animateToPage(
+                            0,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                          );
+                        },
+                        child: Center(
+                          child: Text(
+                            'Active',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _currentIndex == 0
+                                  ? Colors.black
+                                  : Colors.black45,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          _pageController.animateToPage(
+                            1,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                          );
+                        },
+                        child: Center(
+                          child: Text(
+                            'Past',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _currentIndex == 1
+                                  ? Colors.black
+                                  : Colors.black45,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -314,12 +396,13 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.black.withOpacity(0.03)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
               ),
             ],
           ),

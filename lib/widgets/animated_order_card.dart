@@ -10,8 +10,8 @@ const _statusSteps = ['placed', 'preparing', 'on_the_way', 'delivered'];
 const _statusLabels = ['Placed', 'Preparing', 'On Way', 'Delivered'];
 const _statusIcons = [
   Icons.receipt_long_rounded,
-  Icons.soup_kitchen_rounded,
-  Icons.delivery_dining_rounded,
+  Icons.inventory_2_rounded,
+  Icons.two_wheeler_rounded,
   Icons.check_circle_rounded,
 ];
 
@@ -22,8 +22,8 @@ int _statusIndex(String status) {
 
 IconData _orderIcon(String status) {
   return switch (status) {
-    'preparing' => Icons.soup_kitchen_rounded,
-    'on_the_way' => Icons.delivery_dining_rounded,
+    'preparing' => Icons.inventory_2_rounded,
+    'on_the_way' => Icons.two_wheeler_rounded,
     'delivered' => Icons.check_circle_rounded,
     'cancelled' => Icons.cancel_rounded,
     _ => Icons.receipt_long_rounded,
@@ -143,10 +143,12 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.black.withOpacity(0.03)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 24,
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 30,
+                spreadRadius: 0,
                 offset: const Offset(0, 10),
               ),
             ],
@@ -178,10 +180,10 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
                               ? o.orderName
                               : 'Order #${o.id.substring(0, 5)}',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
                             color: Colors.black,
-                            letterSpacing: -0.3,
+                            letterSpacing: -0.4,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -206,15 +208,15 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.cyan.withOpacity(0.1),
+                      color: Theme.of(context).primaryColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       _readableStatus(o.status),
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w800,
-                        color: Theme.of(context).primaryColor.withOpacity(0.8),
+                        color: Theme.of(context).primaryColor,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -256,31 +258,21 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
     bool active,
     bool shouldPulse,
   ) {
+    final Color iconColor = active
+        ? Theme.of(context).primaryColor
+        : const Color(0xFFE5E5EA);
+
     Widget iconBase = Semantics(
       label: '${_statusLabels[i]} ${active ? "done" : "pending"}',
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
           shape: BoxShape.circle,
-          color: active
-              ? Theme.of(context).primaryColor
-              : Colors.black.withOpacity(0.04),
-          boxShadow: active && !currentlyActiveStep
-              ? [
-                  BoxShadow(
-                    color: Theme.of(context).primaryColor.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
         ),
         child: Icon(
           _statusIcons[i],
-          size: 16,
-          color: active ? Colors.white : Colors.black26,
+          size: 20,
+          color: iconColor,
         ),
       ),
     );
@@ -289,20 +281,21 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
       return AnimatedBuilder(
         animation: _pulseController,
         builder: (context, child) {
-          final scale = 1.0 + (_pulseController.value * 0.15);
-          final shadowOpacity = (_pulseController.value * 0.35);
+          final scale = 1.0 + (_pulseController.value * 0.2);
+          final shadowOpacity = (_pulseController.value * 0.3);
 
           return Transform.scale(
             scale: scale,
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: Colors.white,
                 boxShadow: [
                   BoxShadow(
                     color: Theme.of(
                       context,
                     ).primaryColor.withOpacity(shadowOpacity),
-                    blurRadius: 15,
+                    blurRadius: 10,
                     spreadRadius: 2,
                   ),
                 ],
@@ -320,14 +313,14 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
   Widget _buildAnimatedLine(int i, int current) {
     return Expanded(
       child: Container(
-        height: 3,
+        height: 2,
         margin: const EdgeInsets.symmetric(horizontal: 4),
         child: Stack(
           alignment: Alignment.centerLeft,
           children: [
             Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(1),
                 color: Colors.black.withOpacity(0.04),
               ),
             ),
@@ -343,7 +336,7 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
                       return Container(
                         width: constraints.maxWidth * curvedValue,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(2),
+                          borderRadius: BorderRadius.circular(1),
                           color: Theme.of(context).primaryColor,
                         ),
                       );
