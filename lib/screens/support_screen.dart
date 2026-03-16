@@ -275,6 +275,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
           String? statusStr;
           String? agentName;
+          String? agentId;
           if (!chatSnap.hasData || !chatSnap.data!.exists) {
             isWaiting = false;
             isActive = false;
@@ -285,6 +286,7 @@ class _SupportScreenState extends State<SupportScreen> {
             final data = chatSnap.data!.data() as Map<String, dynamic>?;
             statusStr = data?['status'] as String?;
             agentName = data?['agentName'] as String?;
+            agentId = data?['agentId'] as String?;
             isWaiting = statusStr == 'waiting_for_agent';
             isActive = statusStr == 'active';
             isTyping = data?['isTyping'] ?? false;
@@ -524,6 +526,7 @@ class _SupportScreenState extends State<SupportScreen> {
                                             .submitRatingAndArchive(
                                               uid,
                                               _selectedRating,
+                                              agentId ?? '',
                                               agentName ?? 'Agent',
                                             );
                                         if (mounted) {

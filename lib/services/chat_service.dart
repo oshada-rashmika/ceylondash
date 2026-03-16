@@ -77,6 +77,14 @@ class ChatService {
     }, SetOptions(merge: true));
   }
 
+  /// Agent action: mark the chat as resolved without archiving.
+  Future<void> markChatResolved(String userId) async {
+    await FirebaseFirestore.instance
+        .collection('support_chats')
+        .doc(userId)
+        .update({'status': 'resolved'});
+  }
+
   /// Public API to resolve a chat (kept separate from older `markResolved`).
   Future<void> resolveChat(String userId) async {
     await _firestore.collection('support_chats').doc(userId).set({
@@ -87,40 +95,55 @@ class ChatService {
 
   /// Submit a rating and archive the chat messages into a `history` entry
   /// using a batched write to preserve integrity.
+  /// Customer action: submit rating and archive the chat to the root
+  /// `archived_chats` collection (retained for 30 days). This performs a
+  /// batched copy of messages then deletes the active messages and resets
+  /// the support chat to the bot state.
   Future<void> submitRatingAndArchive(
     String userId,
     int rating,
+    String agentId,
     String agentName,
   ) async {
     final batch = FirebaseFirestore.instance.batch();
 
-    final chatDocRef = _firestore.collection('support_chats').doc(userId);
-    final historyCollection = chatDocRef.collection('history');
-    final newHistoryRef = historyCollection.doc();
+    // New root archived doc
+    final archivedDocRef = FirebaseFirestore.instance
+        .collection('archived_chats')
+        .doc();
 
-    // 1) Write metadata to the history doc
-    batch.set(newHistoryRef, {
-      'resolvedAt': FieldValue.serverTimestamp(),
-      'rating': rating,
+    // expiry set to 30 days from now
+    final expireAt = DateTime.now().add(const Duration(days: 30));
+
+    // 1) write metadata to archived_chats/<newId>
+    batch.set(archivedDocRef, {
+      'userId': userId,
+      'agentId': agentId,
       'agentName': agentName,
+      'resolvedAt': FieldValue.serverTimestamp(),
+      'expireAt': Timestamp.fromDate(expireAt),
+      'rating': rating,
     });
 
-    // 2) Fetch current messages and copy them into history/<id>/messages
+    // 2) fetch messages from support_chats/<userId>/messages and copy/delete
+    final chatDocRef = _firestore.collection('support_chats').doc(userId);
     final messagesSnap = await chatDocRef.collection('messages').get();
+
     for (var msg in messagesSnap.docs) {
-      final target = newHistoryRef.collection('messages').doc(msg.id);
+      final target = archivedDocRef.collection('messages').doc(msg.id);
       batch.set(target, msg.data());
-      // 3) delete original message
+      // delete original
       batch.delete(msg.reference);
     }
 
-    // 4) Update main support_chats doc to reset to bot state and clear agent
+    // 3) update the main support_chats/<userId> doc to bot state and clear agent
     batch.update(chatDocRef, {
       'status': 'bot',
       'agentId': FieldValue.delete(),
       'lastUpdated': FieldValue.serverTimestamp(),
     });
 
+    // 4) commit the batched write
     await batch.commit();
   }
 

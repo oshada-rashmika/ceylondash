@@ -57,7 +57,7 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
   }
 
   void _markResolved() async {
-    await _chatService.resolveChat(widget.userId);
+    await _chatService.markChatResolved(widget.userId);
     if (mounted) Navigator.pop(context);
   }
 
@@ -74,75 +74,18 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.archive, color: Colors.orange),
-            tooltip: 'Resolve & Archive',
+          TextButton(
             onPressed: () async {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Resolve and Archive?'),
-                  content: const Text(
-                    'This will archive the chat (retained for 30 days) and return to the dashboard.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        final user = FirebaseAuth.instance.currentUser;
-                        final agentId = user?.uid ?? '';
-                        final agentName = user?.displayName ?? 'Agent';
-                        await _chatService.resolveAndArchiveChat(
-                          widget.userId,
-                          agentId,
-                          agentName,
-                        );
-                        if (mounted) Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Confirm',
-                        style: TextStyle(color: Colors.orange),
-                      ),
-                    ),
-                  ],
-                ),
-              );
+              await _chatService.markChatResolved(widget.userId);
+              if (mounted) Navigator.pop(context);
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Mark as Resolved?'),
-                  content: const Text(
-                    'This will close the active support chat.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _markResolved();
-                      },
-                      child: const Text(
-                        'Resolved',
-                        style: TextStyle(color: Colors.green),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-            tooltip: 'Mark Resolved',
+            child: const Text(
+              'Resolve',
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),

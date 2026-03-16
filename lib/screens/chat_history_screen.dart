@@ -17,9 +17,8 @@ class ChatHistoryScreen extends StatelessWidget {
     }
 
     final historyRef = FirebaseFirestore.instance
-        .collection('support_chats')
-        .doc(uid)
-        .collection('history')
+        .collection('archived_chats')
+        .where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
         .orderBy('resolvedAt', descending: true);
 
     return Scaffold(
