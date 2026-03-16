@@ -77,6 +77,53 @@ class ChatService {
     }, SetOptions(merge: true));
   }
 
+  /// Public API to resolve a chat (kept separate from older `markResolved`).
+  Future<void> resolveChat(String userId) async {
+    await _firestore.collection('support_chats').doc(userId).set({
+      'status': 'resolved',
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Submit a rating and archive the chat messages into a `history` entry
+  /// using a batched write to preserve integrity.
+  Future<void> submitRatingAndArchive(
+    String userId,
+    int rating,
+    String agentName,
+  ) async {
+    final batch = FirebaseFirestore.instance.batch();
+
+    final chatDocRef = _firestore.collection('support_chats').doc(userId);
+    final historyCollection = chatDocRef.collection('history');
+    final newHistoryRef = historyCollection.doc();
+
+    // 1) Write metadata to the history doc
+    batch.set(newHistoryRef, {
+      'resolvedAt': FieldValue.serverTimestamp(),
+      'rating': rating,
+      'agentName': agentName,
+    });
+
+    // 2) Fetch current messages and copy them into history/<id>/messages
+    final messagesSnap = await chatDocRef.collection('messages').get();
+    for (var msg in messagesSnap.docs) {
+      final target = newHistoryRef.collection('messages').doc(msg.id);
+      batch.set(target, msg.data());
+      // 3) delete original message
+      batch.delete(msg.reference);
+    }
+
+    // 4) Update main support_chats doc to reset to bot state and clear agent
+    batch.update(chatDocRef, {
+      'status': 'bot',
+      'agentId': FieldValue.delete(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
+
   Future<void> sendMessage({
     required String threadUserId,
     required String senderId,

@@ -56,7 +56,7 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
   }
 
   void _markResolved() async {
-    await _chatService.markResolved(widget.userId);
+    await _chatService.resolveChat(widget.userId);
     if (mounted) Navigator.pop(context);
   }
 
