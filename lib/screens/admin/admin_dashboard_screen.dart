@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/chat_service.dart';
+import 'admin_chat_history_screen.dart';
 import '../../services/auth_service.dart';
 import '../login_screen.dart';
 import 'admin_chat_screen.dart';
@@ -36,6 +37,18 @@ class AdminDashboardScreen extends StatelessWidget {
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.archive),
+            tooltip: 'Archived Chats',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AdminChatHistoryScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
@@ -140,7 +153,7 @@ class _AdminDashboardItemState extends State<_AdminDashboardItem> {
       if (user == null) {
         throw Exception('Agent not logged in');
       }
-      
+
       final agentDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)

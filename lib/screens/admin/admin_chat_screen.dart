@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/chat_service.dart';
 
 class AdminChatScreen extends StatefulWidget {
@@ -73,6 +74,45 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.archive, color: Colors.orange),
+            tooltip: 'Resolve & Archive',
+            onPressed: () async {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Resolve and Archive?'),
+                  content: const Text(
+                    'This will archive the chat (retained for 30 days) and return to the dashboard.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        final user = FirebaseAuth.instance.currentUser;
+                        final agentId = user?.uid ?? '';
+                        final agentName = user?.displayName ?? 'Agent';
+                        await _chatService.resolveAndArchiveChat(
+                          widget.userId,
+                          agentId,
+                          agentName,
+                        );
+                        if (mounted) Navigator.pop(context);
+                      },
+                      child: const Text(
+                        'Confirm',
+                        style: TextStyle(color: Colors.orange),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.check_circle_outline, color: Colors.green),
             onPressed: () {

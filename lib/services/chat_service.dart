@@ -124,6 +124,54 @@ class ChatService {
     await batch.commit();
   }
 
+  /// Resolve and archive an active support chat into the root
+  /// `archived_chats` collection with a 30-day expiry timestamp.
+  Future<void> resolveAndArchiveChat(
+    String userId,
+    String agentId,
+    String agentName,
+  ) async {
+    final batch = FirebaseFirestore.instance.batch();
+
+    // New root archived doc
+    final archivedDocRef = FirebaseFirestore.instance
+        .collection('archived_chats')
+        .doc();
+
+    // expiry set to 30 days from now
+    final expireAt = DateTime.now().add(const Duration(days: 30));
+
+    // 1) write metadata to archived_chats/<newId>
+    batch.set(archivedDocRef, {
+      'userId': userId,
+      'agentId': agentId,
+      'agentName': agentName,
+      'resolvedAt': FieldValue.serverTimestamp(),
+      'expireAt': Timestamp.fromDate(expireAt),
+    });
+
+    // 2) fetch messages from support_chats/<userId>/messages and copy/delete
+    final chatDocRef = _firestore.collection('support_chats').doc(userId);
+    final messagesSnap = await chatDocRef.collection('messages').get();
+
+    for (var msg in messagesSnap.docs) {
+      final target = archivedDocRef.collection('messages').doc(msg.id);
+      batch.set(target, msg.data());
+      // delete original
+      batch.delete(msg.reference);
+    }
+
+    // 3) update the main support_chats/<userId> doc to bot state and clear agent
+    batch.update(chatDocRef, {
+      'status': 'bot',
+      'agentId': FieldValue.delete(),
+      'lastUpdated': FieldValue.serverTimestamp(),
+    });
+
+    // 4) commit the batched write
+    await batch.commit();
+  }
+
   Future<void> sendMessage({
     required String threadUserId,
     required String senderId,
