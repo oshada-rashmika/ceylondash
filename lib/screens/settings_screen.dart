@@ -137,8 +137,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   type: SnackbarType.error,
                                 );
                               } finally {
-                                if (context.mounted)
+                                if (context.mounted) {
                                   setState(() => isLoading = false);
+                                }
                               }
                             },
                       child: isLoading
@@ -363,7 +364,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ),
-                  if (trailing != null) trailing,
+                  ?trailing,
                 ],
               ),
             ),
@@ -432,7 +433,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Biometric Login',
                 trailing: CupertinoSwitch(
                   value: _biometricEnabled,
-                  activeColor: Colors.cyan.shade600,
+                  activeTrackColor: Colors.cyan.shade600,
                   onChanged: (val) {
                     HapticFeedback.lightImpact();
                     setState(() => _biometricEnabled = val);
@@ -450,7 +451,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Order Notifications',
                 trailing: CupertinoSwitch(
                   value: _orderNotifications,
-                  activeColor: Colors.cyan.shade600,
+                  activeTrackColor: Colors.cyan.shade600,
                   onChanged: (val) {
                     HapticFeedback.lightImpact();
                     setState(() => _orderNotifications = val);
@@ -462,7 +463,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Promotional Alerts',
                 trailing: CupertinoSwitch(
                   value: _promoAlerts,
-                  activeColor: Colors.cyan.shade600,
+                  activeTrackColor: Colors.cyan.shade600,
                   onChanged: (val) {
                     HapticFeedback.lightImpact();
                     setState(() => _promoAlerts = val);

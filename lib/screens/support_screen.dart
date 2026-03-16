@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/chat_service.dart';
@@ -24,6 +25,9 @@ class _SupportScreenState extends State<SupportScreen> {
     "Where is my order?",
     "How to use promo codes?",
     "Refund policy",
+    "Change delivery address",
+    "Payment methods",
+    "Report a missing item",
   ];
 
   @override
@@ -68,7 +72,8 @@ class _SupportScreenState extends State<SupportScreen> {
     await Future.delayed(const Duration(milliseconds: 600));
 
     // Bot Response
-    String answer = "I'm sorry, I don't have information on that right now.";
+    String answer =
+        "I'm sorry, I don't have information on that right now. Please contact a live agent for assistance.";
     if (question == "Where is my order?") {
       answer =
           "You can track your order by visiting the 'Orders' section in your dashboard. It displays real-time status updates.";
@@ -78,6 +83,15 @@ class _SupportScreenState extends State<SupportScreen> {
     } else if (question == "Refund policy") {
       answer =
           "Our refund policy allows you to request a refund within 14 days of your purchase if the item is undamaged.";
+    } else if (question == "Change delivery address") {
+      answer =
+          "You can change your delivery address from your profile settings, or adjust it during checkout before placing the order.";
+    } else if (question == "Payment methods") {
+      answer =
+          "We accept all major credit cards, debit cards, and local digital payment methods.";
+    } else if (question == "Report a missing item") {
+      answer =
+          "We apologize for the inconvenience. Please contact our live agent right away to resolve missing item issues.";
     }
 
     await _chatService.sendMessage(
@@ -95,11 +109,11 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _contactAgent() async {
-    final _uid = this._uid;
-    if (_uid == null) return;
-    await _chatService.connectToAgent(_uid, _userName);
+    final uid = this._uid;
+    if (uid == null) return;
+    await _chatService.connectToAgent(uid, _userName);
     await _chatService.sendMessage(
-      threadUserId: _uid,
+      threadUserId: uid,
       senderId: 'system',
       text: "Transferring to a live agent. Please hold...",
       isBot: true,
@@ -107,40 +121,80 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   void _sendMessage() async {
-    final _uid = this._uid;
-    if (_msgController.text.trim().isEmpty || _uid == null) return;
+    final uid = this._uid;
+    if (_msgController.text.trim().isEmpty || uid == null) return;
     final text = _msgController.text.trim();
     _msgController.clear();
     await _chatService.sendMessage(
-      threadUserId: _uid,
-      senderId: _uid,
+      threadUserId: uid,
+      senderId: uid,
       text: text,
       isBot: false,
     );
   }
 
+  Future<void> _showClearChatDialog() async {
+    final uid = this._uid;
+    if (uid == null) return;
+
+    final confirm = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Start a new chat?'),
+        content: const Text('This will clear your current conversation.'),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear Chat'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _chatService.clearChat(uid);
+      if (mounted) {
+        setState(() {
+          _askedBotFirstQuestion = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final _uid = this._uid;
-    if (_uid == null) {
+    final uid = this._uid;
+    if (uid == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Support')),
         body: const Center(child: Text('Please log in to use support.')),
       );
     }
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6), // Premium off-white
+      backgroundColor: const Color(0xFFF5F5F7), // Premium off-white
       appBar: AppBar(
         title: const Text(
           'Live Support',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.white,
-        elevation: 1,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.trash),
+            onPressed: _showClearChatDialog,
+          ),
+        ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: _chatService.getSupportChatStream(_uid),
+        stream: _chatService.getSupportChatStream(uid),
         builder: (context, chatSnap) {
           final bool isWaiting;
           final bool isActive;
@@ -162,7 +216,7 @@ class _SupportScreenState extends State<SupportScreen> {
             children: [
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
-                  stream: _chatService.getMessagesStream(_uid),
+                  stream: _chatService.getMessagesStream(uid),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
                       return const Center(child: CircularProgressIndicator());
@@ -170,13 +224,23 @@ class _SupportScreenState extends State<SupportScreen> {
 
                     final docs = snapshot.data!.docs;
 
+                    final int itemCount = docs.length + 1;
+
                     return ListView.builder(
                       reverse: true,
                       padding: const EdgeInsets.all(16),
-                      itemCount: docs.length,
+                      itemCount: itemCount,
                       itemBuilder: (context, index) {
+                        if (index == docs.length) {
+                          return _buildChatBubble(
+                            "Hello! Welcome to CeylonDash Premium Support. How can we assist you today?",
+                            false,
+                            true,
+                          );
+                        }
+
                         final data = docs[index].data() as Map<String, dynamic>;
-                        final isMe = data['senderId'] == _uid;
+                        final isMe = data['senderId'] == uid;
                         final isBot = data['isBot'] ?? false;
                         final isSystem = data['senderId'] == 'system';
 
@@ -225,26 +289,44 @@ class _SupportScreenState extends State<SupportScreen> {
 
               if (!isWaiting && !isActive && !_askedBotFirstQuestion)
                 Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.all(16),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _faqOptions
-                        .map(
-                          (q) => ActionChip(
-                            label: Text(
-                              q,
-                              style: const TextStyle(color: Colors.black87),
+                  color: Colors.transparent,
+                  height: 60,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: _faqOptions
+                          .map(
+                            (q) => Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: ActionChip(
+                                label: Text(
+                                  q,
+                                  style: const TextStyle(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                backgroundColor: Colors.white,
+                                elevation: 0,
+                                pressElevation: 0,
+                                shadowColor: Colors.black.withValues(
+                                  alpha: 0.05,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(
+                                    color: Colors.grey.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                onPressed: () => _handleLocalFaq(q),
+                              ),
                             ),
-                            backgroundColor: Colors.grey[200],
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            onPressed: () => _handleLocalFaq(q),
-                          ),
-                        )
-                        .toList(),
+                          )
+                          .toList(),
+                    ),
                   ),
                 ),
 
@@ -299,23 +381,31 @@ class _SupportScreenState extends State<SupportScreen> {
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isMe ? Colors.black : Colors.white,
+          color: isMe ? null : Colors.white,
+          gradient: isMe
+              ? const LinearGradient(
+                  colors: [Color(0xFF141E30), Color(0xFF243B55)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
           borderRadius: BorderRadius.circular(20).copyWith(
             bottomRight: isMe
-                ? const Radius.circular(0)
+                ? const Radius.circular(4)
                 : const Radius.circular(20),
             bottomLeft: !isMe
-                ? const Radius.circular(0)
+                ? const Radius.circular(4)
                 : const Radius.circular(20),
           ),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
+            if (!isMe)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
           ],
         ),
         constraints: BoxConstraints(
@@ -326,6 +416,7 @@ class _SupportScreenState extends State<SupportScreen> {
           style: TextStyle(
             color: isMe ? Colors.white : Colors.black87,
             fontSize: 15,
+            height: 1.4,
           ),
         ),
       ),

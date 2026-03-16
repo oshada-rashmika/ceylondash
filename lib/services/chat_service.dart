@@ -70,4 +70,18 @@ class ChatService {
         .orderBy('lastUpdated', descending: true)
         .snapshots();
   }
+
+  Future<void> clearChat(String userId) async {
+    final messages = await _firestore
+        .collection('support_chats')
+        .doc(userId)
+        .collection('messages')
+        .get();
+
+    for (var doc in messages.docs) {
+      await doc.reference.delete();
+    }
+
+    await _firestore.collection('support_chats').doc(userId).delete();
+  }
 }
