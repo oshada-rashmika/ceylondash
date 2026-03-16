@@ -20,12 +20,14 @@ import 'screens/rider_dashboard_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'screens/customer_dashboard_shell.dart';
 import 'screens/profile_screen.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
 import 'widgets/slide_page_route.dart';
 import 'widgets/top_snackbar.dart';
 import 'services/database_service.dart';
 import 'services/notification_service.dart';
 import 'models/user_model.dart';
 import 'screens/seller_dashboard_screen.dart';
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 late SharedPreferences prefs;
@@ -286,6 +288,8 @@ class _RoleRouterGateState extends State<RoleRouterGate> {
       return const SellerDashboardScreen();
     } else if (role == 'rider') {
       return const RiderDashboardScreen();
+    } else if (role == 'admin') {
+      return const AdminDashboardScreen();
     }
     return const CustomerDashboardShell();
   }
@@ -315,4 +319,3 @@ class _RoleRouterGateState extends State<RoleRouterGate> {
     );
   }
 }
-

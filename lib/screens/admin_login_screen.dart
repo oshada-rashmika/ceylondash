@@ -6,6 +6,7 @@ import '../widgets/email_input_field.dart';
 import '../widgets/password_input_field.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/top_snackbar.dart';
+import 'admin/admin_dashboard_screen.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -79,7 +80,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
       }
 
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+        );
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
