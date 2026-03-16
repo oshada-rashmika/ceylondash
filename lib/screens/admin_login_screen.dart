@@ -86,7 +86,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
           context,
           MaterialPageRoute(
             builder: (_) => const AdminDashboardScreen(),
-          ), // The support screen we built earlier
+          ),
           (route) => false,
         );
       } else {

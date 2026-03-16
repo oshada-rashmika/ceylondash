@@ -140,13 +140,13 @@ class _AdminDashboardItemState extends State<_AdminDashboardItem> {
       if (user == null) {
         throw Exception('Agent not logged in');
       }
-
-      // We might want agent's real name. Fallback or use auth display name.
-      String agentName = user.displayName ?? 'Agent';
-      if (agentName.isEmpty || agentName == 'Agent') {
-        // Optionally try to fetch from DatabaseService if needed, but 'Agent' is a safe fallback
-        agentName = 'Agent';
-      }
+      
+      final agentDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final String agentName =
+          agentDoc.data()?['name'] ?? user.displayName ?? 'Support Agent';
 
       final success = await widget.chatService.acceptSupportRequest(
         widget.userId,
