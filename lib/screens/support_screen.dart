@@ -135,7 +135,8 @@ class _SupportScreenState extends State<SupportScreen> {
       threadUserId: uid,
       senderId: 'system',
       text: "Transferring to a live agent. Please hold...",
-      isBot: true,
+      isBot: false,
+      isSystem: true,
     );
   }
 
@@ -264,13 +265,28 @@ class _SupportScreenState extends State<SupportScreen> {
                         final data = docs[index].data() as Map<String, dynamic>;
                         final isMe = data['senderId'] == uid;
                         final isBot = data['isBot'] ?? false;
-                        final isSystem = data['senderId'] == 'system';
+                        final isSystem =
+                            data['isSystem'] == true ||
+                            data['senderId'] == 'system';
 
-                        return _buildChatBubble(
-                          data['text'],
-                          isMe,
-                          isBot || isSystem,
-                        );
+                        if (isSystem) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            child: Center(
+                              child: Text(
+                                data['text'] ?? '',
+                                style: const TextStyle(
+                                  color: Color(0xFF8E8E93),
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return _buildChatBubble(data['text'], isMe, isBot);
                       },
                     );
                   },

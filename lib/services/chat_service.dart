@@ -25,6 +25,44 @@ class ChatService {
     }, SetOptions(merge: true));
   }
 
+  Future<bool> acceptSupportRequest(
+    String userId,
+    String agentId,
+    String agentName,
+  ) async {
+    final docRef = _firestore.collection('support_chats').doc(userId);
+    final messagesRef = docRef.collection('messages').doc();
+
+    try {
+      return await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(docRef);
+
+        if (!snapshot.exists || snapshot.get('status') != 'waiting_for_agent') {
+          return false;
+        }
+
+        transaction.update(docRef, {
+          'status': 'active',
+          'agentId': agentId,
+          'agentName': agentName,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+
+        transaction.set(messagesRef, {
+          'senderId': 'system',
+          'text': 'Hello! You are connected to $agentName.',
+          'timestamp': FieldValue.serverTimestamp(),
+          'isSystem': true,
+          'isBot': false,
+        });
+
+        return true;
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<void> assignAgent(String userId) async {
     await _firestore.collection('support_chats').doc(userId).set({
       'status': 'active',
@@ -44,6 +82,7 @@ class ChatService {
     required String senderId,
     required String text,
     required bool isBot,
+    bool isSystem = false,
   }) async {
     final docRef = _firestore
         .collection('support_chats')
@@ -56,6 +95,7 @@ class ChatService {
       'text': text,
       'timestamp': FieldValue.serverTimestamp(),
       'isBot': isBot,
+      if (isSystem) 'isSystem': true,
     });
 
     await _firestore.collection('support_chats').doc(threadUserId).set({

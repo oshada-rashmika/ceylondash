@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/chat_service.dart';
 import '../../services/auth_service.dart';
 import '../login_screen.dart';
@@ -92,76 +93,177 @@ class AdminDashboardScreen extends StatelessWidget {
                 }
               }
 
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 0,
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  leading: CircleAvatar(
-                    backgroundColor: status == 'waiting_for_agent'
-                        ? Colors.red.shade100
-                        : Colors.green.shade100,
-                    child: Icon(
-                      status == 'waiting_for_agent'
-                          ? Icons.warning_rounded
-                          : Icons.chat_bubble_outline,
-                      color: status == 'waiting_for_agent'
-                          ? Colors.red
-                          : Colors.green,
-                    ),
-                  ),
-                  title: Text(
-                    userName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  subtitle: Text(
-                    status == 'waiting_for_agent'
-                        ? 'Needs assistance'
-                        : 'Active chat',
-                    style: TextStyle(color: Colors.grey[700]),
-                  ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        timeAgo,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                      if (status == 'waiting_for_agent')
-                        const Padding(
-                          padding: EdgeInsets.only(top: 4.0),
-                          child: Icon(
-                            Icons.circle,
-                            color: Colors.red,
-                            size: 10,
-                          ),
-                        ),
-                    ],
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            AdminChatScreen(userId: userId, userName: userName),
-                      ),
-                    );
-                  },
-                ),
+              return _AdminDashboardItem(
+                userId: userId,
+                userName: userName,
+                status: status,
+                timeAgo: timeAgo,
+                chatService: chatService,
               );
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _AdminDashboardItem extends StatefulWidget {
+  final String userId;
+  final String userName;
+  final String status;
+  final String timeAgo;
+  final ChatService chatService;
+
+  const _AdminDashboardItem({
+    required this.userId,
+    required this.userName,
+    required this.status,
+    required this.timeAgo,
+    required this.chatService,
+  });
+
+  @override
+  State<_AdminDashboardItem> createState() => _AdminDashboardItemState();
+}
+
+class _AdminDashboardItemState extends State<_AdminDashboardItem> {
+  bool _isClaiming = false;
+
+  Future<void> _claimChat() async {
+    setState(() {
+      _isClaiming = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('Agent not logged in');
+      }
+
+      // We might want agent's real name. Fallback or use auth display name.
+      String agentName = user.displayName ?? 'Agent';
+      if (agentName.isEmpty || agentName == 'Agent') {
+        // Optionally try to fetch from DatabaseService if needed, but 'Agent' is a safe fallback
+        agentName = 'Agent';
+      }
+
+      final success = await widget.chatService.acceptSupportRequest(
+        widget.userId,
+        user.uid,
+        agentName,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AdminChatScreen(
+              userId: widget.userId,
+              userName: widget.userName,
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Request already claimed by another agent.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error claiming chat: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isClaiming = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 0,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: CircleAvatar(
+          backgroundColor: widget.status == 'waiting_for_agent'
+              ? Colors.red.shade100
+              : Colors.green.shade100,
+          child: Icon(
+            widget.status == 'waiting_for_agent'
+                ? Icons.warning_rounded
+                : Icons.chat_bubble_outline,
+            color: widget.status == 'waiting_for_agent'
+                ? Colors.red
+                : Colors.green,
+          ),
+        ),
+        title: Text(
+          widget.userName,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: Text(
+          widget.status == 'waiting_for_agent'
+              ? 'Needs assistance'
+              : 'Active chat',
+          style: TextStyle(color: Colors.grey[700]),
+        ),
+        trailing: widget.status == 'waiting_for_agent'
+            ? _isClaiming
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(),
+                    )
+                  : ElevatedButton(
+                      onPressed: _claimChat,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Accept'),
+                    )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    widget.timeAgo,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+        onTap: widget.status == 'active'
+            ? () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdminChatScreen(
+                      userId: widget.userId,
+                      userName: widget.userName,
+                    ),
+                  ),
+                );
+              }
+            : null,
       ),
     );
   }
