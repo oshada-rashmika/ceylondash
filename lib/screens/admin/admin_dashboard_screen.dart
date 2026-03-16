@@ -1,10 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/chat_service.dart';
+import '../../services/auth_service.dart';
+import '../login_screen.dart';
 import 'admin_chat_screen.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
+
+  void _handleLogout(BuildContext context) async {
+    await AuthService().signOut();
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,6 +26,7 @@ class AdminDashboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F6),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text(
           'Admin Dashboard',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
@@ -20,15 +34,25 @@ class AdminDashboardScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () => _handleLogout(context),
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: chatService.getActiveSupportChats(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final docs = snapshot.data!.docs;
+          final docs = snapshot.data!.docs.toList();
           if (docs.isEmpty) {
             return const Center(
               child: Text(
@@ -37,6 +61,17 @@ class AdminDashboardScreen extends StatelessWidget {
               ),
             );
           }
+
+          docs.sort((a, b) {
+            final dataA = a.data() as Map<String, dynamic>;
+            final dataB = b.data() as Map<String, dynamic>;
+            final timeA = dataA['lastUpdated'] as Timestamp?;
+            final timeB = dataB['lastUpdated'] as Timestamp?;
+            if (timeA == null && timeB == null) return 0;
+            if (timeA == null) return 1;
+            if (timeB == null) return -1;
+            return timeB.compareTo(timeA);
+          });
 
           return ListView.builder(
             itemCount: docs.length,

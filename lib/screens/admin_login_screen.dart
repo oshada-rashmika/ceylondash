@@ -80,9 +80,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
       }
 
       if (mounted) {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+          (route) => false,
         );
       }
     } on FirebaseAuthException catch (e) {

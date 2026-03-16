@@ -67,7 +67,6 @@ class ChatService {
     return _firestore
         .collection('support_chats')
         .where('status', whereIn: ['waiting_for_agent', 'active'])
-        .orderBy('lastUpdated', descending: true)
         .snapshots();
   }
 
