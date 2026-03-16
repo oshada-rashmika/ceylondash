@@ -133,7 +133,13 @@ class _SupportScreenState extends State<SupportScreen> {
   Future<void> _contactAgent() async {
     final uid = this._uid;
     if (uid == null) return;
-    await _chatService.connectToAgent(uid, _userName);
+    await FirebaseFirestore.instance.collection('support_chats').doc(uid).set({
+      'userId': uid,
+      'userName': FirebaseAuth.instance.currentUser?.displayName ?? _userName,
+      'status': 'waiting_for_agent',
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
     await _chatService.sendMessage(
       threadUserId: uid,
       senderId: 'system',
@@ -161,17 +167,21 @@ class _SupportScreenState extends State<SupportScreen> {
           .doc(uid)
           .update({
             'status': 'waiting_for_agent',
+            'userName':
+                FirebaseAuth.instance.currentUser?.displayName ?? _userName,
             'lastUpdated': FieldValue.serverTimestamp(),
           });
     } catch (e) {
       // If update fails (doc may not exist), set with merge
-      await FirebaseFirestore.instance.collection('support_chats').doc(uid).set(
-        {
-          'status': 'waiting_for_agent',
-          'lastUpdated': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await FirebaseFirestore.instance
+          .collection('support_chats')
+          .doc(uid)
+          .set({
+            'status': 'waiting_for_agent',
+            'userName':
+                FirebaseAuth.instance.currentUser?.displayName ?? _userName,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
     }
 
     // Write an automated system message informing the user

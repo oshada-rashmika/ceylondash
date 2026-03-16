@@ -92,7 +92,6 @@ class AdminDashboardScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
               final String userId = docs[index].id;
-              final String userName = data['userName'] ?? 'Customer';
               final String status = data['status'] ?? 'bot';
               final Timestamp? lastUpdated = data['lastUpdated'] as Timestamp?;
 
@@ -106,12 +105,27 @@ class AdminDashboardScreen extends StatelessWidget {
                 }
               }
 
-              return _AdminDashboardItem(
-                userId: userId,
-                userName: userName,
-                status: status,
-                timeAgo: timeAgo,
-                chatService: chatService,
+              return FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(userId)
+                    .get(),
+                builder: (context, userSnap) {
+                  String userName = data['userName'] ?? 'Customer';
+                  if (userSnap.hasData && userSnap.data!.exists) {
+                    final udata =
+                        userSnap.data!.data() as Map<String, dynamic>?;
+                    userName = udata?['name'] ?? userName;
+                  }
+
+                  return _AdminDashboardItem(
+                    userId: userId,
+                    userName: userName,
+                    status: status,
+                    timeAgo: timeAgo,
+                    chatService: chatService,
+                  );
+                },
               );
             },
           );
