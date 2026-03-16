@@ -49,7 +49,7 @@ class ChatHistoryScreen extends StatelessWidget {
               final ts = data['resolvedAt'] as Timestamp?;
               final resolvedAt = ts?.toDate();
               final agentName = data['agentName'] ?? 'Agent';
-              final rating = data['rating'] ?? 0;
+              final rating = data['rating'];
 
               return InkWell(
                 borderRadius: BorderRadius.circular(12),
@@ -84,16 +84,27 @@ class ChatHistoryScreen extends StatelessWidget {
                           : 'Unknown date',
                       style: const TextStyle(color: Colors.grey),
                     ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(5, (i) {
-                        return Icon(
-                          i < rating ? Icons.star : Icons.star_border,
-                          color: i < rating ? Colors.amber : Colors.grey[300],
-                          size: 20,
-                        );
-                      }),
-                    ),
+                    trailing: rating == null
+                        ? Text(
+                            'Pending Rating',
+                            style: TextStyle(
+                              fontStyle: FontStyle.italic,
+                              color: Colors.grey[500],
+                            ),
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(5, (i) {
+                              final r = (rating is int)
+                                  ? rating
+                                  : (rating as num).toInt();
+                              return Icon(
+                                i < r ? Icons.star : Icons.star_border,
+                                color: i < r ? Colors.amber : Colors.grey[300],
+                                size: 20,
+                              );
+                            }),
+                          ),
                   ),
                 ),
               );

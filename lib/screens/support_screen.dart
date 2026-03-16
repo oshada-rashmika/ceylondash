@@ -526,8 +526,6 @@ class _SupportScreenState extends State<SupportScreen> {
                                             .submitRatingAndArchive(
                                               uid,
                                               _selectedRating,
-                                              agentId ?? '',
-                                              agentName ?? 'Agent',
                                             );
                                         if (mounted) {
                                           ScaffoldMessenger.of(

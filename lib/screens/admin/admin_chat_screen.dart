@@ -57,7 +57,10 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
   }
 
   void _markResolved() async {
-    await _chatService.markChatResolved(widget.userId);
+    final user = FirebaseAuth.instance.currentUser;
+    final agentId = user?.uid ?? '';
+    final agentName = user?.displayName ?? 'Agent';
+    await _chatService.markChatResolved(widget.userId, agentId, agentName);
     if (mounted) Navigator.pop(context);
   }
 
@@ -76,7 +79,14 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
         actions: [
           TextButton(
             onPressed: () async {
-              await _chatService.markChatResolved(widget.userId);
+              final user = FirebaseAuth.instance.currentUser;
+              final agentId = user?.uid ?? '';
+              final agentName = user?.displayName ?? 'Agent';
+              await _chatService.markChatResolved(
+                widget.userId,
+                agentId,
+                agentName,
+              );
               if (mounted) Navigator.pop(context);
             },
             child: const Text(

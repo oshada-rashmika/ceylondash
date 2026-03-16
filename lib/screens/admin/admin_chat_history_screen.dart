@@ -70,6 +70,8 @@ class AdminChatHistoryScreen extends StatelessWidget {
                       }
                     }
 
+                    final rating = data['rating'];
+
                     return Card(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -91,6 +93,30 @@ class AdminChatHistoryScreen extends StatelessWidget {
                               'Auto-deletes in 30 days · $expiresIn',
                               style: const TextStyle(color: Colors.grey),
                             ),
+                            const SizedBox(height: 6),
+                            if (rating == null)
+                              Text(
+                                'Pending Rating',
+                                style: TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.grey[500],
+                                ),
+                              )
+                            else
+                              Row(
+                                children: List.generate(5, (i) {
+                                  final r = (rating is int)
+                                      ? rating
+                                      : (rating as num).toInt();
+                                  return Icon(
+                                    i < r ? Icons.star : Icons.star_border,
+                                    color: i < r
+                                        ? Colors.amber
+                                        : Colors.grey[300],
+                                    size: 18,
+                                  );
+                                }),
+                              ),
                           ],
                         ),
                         trailing: const Icon(Icons.chevron_right),
