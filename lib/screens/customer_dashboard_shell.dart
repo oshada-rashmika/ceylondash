@@ -9,6 +9,7 @@ import 'orders_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'accessibility_screen.dart';
+import 'support_screen.dart';
 import '../widgets/top_snackbar.dart';
 
 class CustomerDashboardShell extends StatefulWidget {
@@ -217,6 +218,13 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
                         context,
                         CupertinoPageRoute(
                           builder: (_) => const AccessibilityScreen(),
+                        ),
+                      );
+                    } else if (labels[index] == 'Support') {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => const SupportScreen(),
                         ),
                       );
                     } else {
