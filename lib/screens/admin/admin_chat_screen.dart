@@ -19,11 +19,25 @@ class AdminChatScreen extends StatefulWidget {
 class _AdminChatScreenState extends State<AdminChatScreen> {
   final ChatService _chatService = ChatService();
   final TextEditingController _msgController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _chatService.assignAgent(widget.userId);
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _msgController.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    _chatService.updateTypingStatus(widget.userId, _focusNode.hasFocus);
   }
 
   void _sendMessage() async {
@@ -31,6 +45,7 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
 
     final text = _msgController.text.trim();
     _msgController.clear();
+    _chatService.updateTypingStatus(widget.userId, false);
 
     await _chatService.sendMessage(
       threadUserId: widget.userId,
@@ -128,6 +143,7 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _msgController,
+                    focusNode: _focusNode,
                     decoration: InputDecoration(
                       hintText: 'Type reply...',
                       border: OutlineInputBorder(

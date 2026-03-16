@@ -75,8 +75,27 @@ class _SupportScreenState extends State<SupportScreen> {
     String answer =
         "I'm sorry, I don't have information on that right now. Please contact a live agent for assistance.";
     if (question == "Where is my order?") {
-      answer =
-          "You can track your order by visiting the 'Orders' section in your dashboard. It displays real-time status updates.";
+      try {
+        final orderQuery = await FirebaseFirestore.instance
+            .collection('orders')
+            .where('userId', isEqualTo: _uid)
+            .orderBy('createdAt', descending: true)
+            .limit(1)
+            .get();
+
+        if (orderQuery.docs.isNotEmpty) {
+          final orderData = orderQuery.docs.first.data();
+          final orderId = orderQuery.docs.first.id;
+          final status = orderData['status'] ?? 'unknown';
+          answer =
+              "Your latest order (#${orderId.substring(0, 5)}) is currently $status.";
+        } else {
+          answer = "You currently have no active orders.";
+        }
+      } catch (e) {
+        answer =
+            "You can track your order by visiting the 'Orders' section in your dashboard. It displays real-time status updates.";
+      }
     } else if (question == "How to use promo codes?") {
       answer =
           "To use a promo code, enter it at checkout before completing the payment.";
@@ -198,15 +217,18 @@ class _SupportScreenState extends State<SupportScreen> {
         builder: (context, chatSnap) {
           final bool isWaiting;
           final bool isActive;
+          final bool isTyping;
 
           if (!chatSnap.hasData || !chatSnap.data!.exists) {
             isWaiting = false;
             isActive = false;
+            isTyping = false;
           } else {
             final data = chatSnap.data!.data() as Map<String, dynamic>?;
             final status = data?['status'];
             isWaiting = status == 'waiting_for_agent';
             isActive = status == 'active';
+            isTyping = data?['isTyping'] ?? false;
           }
 
           final showAgentButton =
@@ -254,6 +276,30 @@ class _SupportScreenState extends State<SupportScreen> {
                   },
                 ),
               ),
+
+              if (isTyping)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 16, bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: _buildTypingIndicator(),
+                  ),
+                ),
 
               if (showAgentButton)
                 Padding(
@@ -372,6 +418,38 @@ class _SupportScreenState extends State<SupportScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildTypingIndicator() {
+    return SizedBox(
+      width: 40,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(3, (index) {
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: Duration(milliseconds: 600 + (index * 200)),
+            curve: Curves.easeInOutSine,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: (value + 0.5) % 1.0,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              );
+            },
+            onEnd: () {
+              if (mounted) setState(() {});
+            },
+          );
+        }),
       ),
     );
   }

@@ -84,4 +84,10 @@ class ChatService {
 
     await _firestore.collection('support_chats').doc(userId).delete();
   }
+
+  Future<void> updateTypingStatus(String userId, bool isTyping) async {
+    await _firestore.collection('support_chats').doc(userId).set({
+      'isTyping': isTyping,
+    }, SetOptions(merge: true));
+  }
 }
