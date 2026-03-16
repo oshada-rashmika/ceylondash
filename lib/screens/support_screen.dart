@@ -154,6 +154,37 @@ class _SupportScreenState extends State<SupportScreen> {
       text: text,
       isBot: false,
     );
+    // Auto-escalate to a live agent when a custom message is sent
+    try {
+      await FirebaseFirestore.instance
+          .collection('support_chats')
+          .doc(uid)
+          .update({
+            'status': 'waiting_for_agent',
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      // If update fails (doc may not exist), set with merge
+      await FirebaseFirestore.instance.collection('support_chats').doc(uid).set(
+        {
+          'status': 'waiting_for_agent',
+          'lastUpdated': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    }
+
+    // Write an automated system message informing the user
+    await FirebaseFirestore.instance
+        .collection('support_chats')
+        .doc(uid)
+        .collection('messages')
+        .add({
+          'senderId': 'system',
+          'text': 'Transferring you to a live agent. Please hold...',
+          'timestamp': FieldValue.serverTimestamp(),
+          'isSystem': true,
+        });
   }
 
   Future<void> _showClearChatDialog() async {
@@ -510,6 +541,26 @@ class _SupportScreenState extends State<SupportScreen> {
                                     style: TextStyle(fontSize: 16),
                                   ),
                                 ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : (isWaiting)
+                    ? Container(
+                        key: const ValueKey('connecting'),
+                        padding: const EdgeInsets.all(16),
+                        color: Colors.white,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            CupertinoActivityIndicator(),
+                            SizedBox(width: 12),
+                            Text(
+                              'Connecting to a premium agent...',
+                              style: TextStyle(
+                                color: Color(0xFF8E8E93),
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
