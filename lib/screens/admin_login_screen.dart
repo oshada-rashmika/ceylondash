@@ -6,9 +6,14 @@ import '../widgets/email_input_field.dart';
 import '../widgets/password_input_field.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/top_snackbar.dart';
+import 'admin/admin_dashboard_screen.dart';
+
+import 'admin/supervisor_dashboard_screen.dart';
 
 class AdminLoginScreen extends StatefulWidget {
-  const AdminLoginScreen({super.key});
+  final String portalType;
+
+  const AdminLoginScreen({super.key, this.portalType = 'agent'});
 
   @override
   State<AdminLoginScreen> createState() => _AdminLoginScreenState();
@@ -66,20 +71,31 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
       );
 
       final user = await _dbService.getUser(cred.user!.uid);
-      if (user == null || user.role != 'admin') {
-        await _authService.signOut();
-        if (mounted) {
-          TopSnackbar.show(
-            context,
-            message: 'Access denied. Admin privileges required.',
-            type: SnackbarType.error,
-          );
-        }
-        return;
-      }
+      final role = user?.role ?? 'customer';
 
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+      if (!mounted) return;
+
+      if (role == 'supervisor') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const SupervisorDashboardScreen()),
+          (route) => false,
+        );
+      } else if (role == 'agent') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AdminDashboardScreen(),
+          ),
+          (route) => false,
+        );
+      } else {
+        await _authService.signOut();
+        TopSnackbar.show(
+          context,
+          message: 'Unauthorized. Staff access only.',
+          type: SnackbarType.error,
+        );
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
@@ -152,9 +168,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
                   const SizedBox(height: 20),
                   _anim(
                     1,
-                    const Text(
-                      'Admin Login',
-                      style: TextStyle(
+                    Text(
+                      widget.portalType == 'supervisor'
+                          ? 'Supervisor Portal'
+                          : 'Agent Portal',
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
@@ -179,7 +197,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
                   _anim(
                     4,
                     CustomButton(
-                      text: 'Sign In as Admin',
+                      text: widget.portalType == 'supervisor'
+                          ? 'Sign In as Supervisor'
+                          : 'Sign In as Agent',
                       isLoading: _isLoading,
                       icon: Icons.shield_outlined,
                       onPressed: _handleAdminLogin,

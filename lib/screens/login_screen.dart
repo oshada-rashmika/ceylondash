@@ -221,6 +221,132 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
+  void _showStaffPortalSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        padding: const EdgeInsets.only(
+          top: 16,
+          bottom: 48,
+          left: 24,
+          right: 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Select Staff Portal',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 32),
+            _buildPortalButton(
+              context,
+              title: 'Agent Portal',
+              subtitle: 'Manage live customer support',
+              icon: Icons.support_agent_rounded,
+              color: Colors.blue,
+              portalType: 'agent',
+            ),
+            const SizedBox(height: 16),
+            _buildPortalButton(
+              context,
+              title: 'Supervisor Portal',
+              subtitle: 'System overview and analytics',
+              icon: Icons.security_rounded,
+              color: Colors.deepPurple,
+              portalType: 'supervisor',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPortalButton(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required String portalType,
+  }) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          SlidePageRoute(page: AdminLoginScreen(portalType: portalType)),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withOpacity(0.2)),
+          borderRadius: BorderRadius.circular(20),
+          color: color.withOpacity(0.04),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey[400]),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -355,13 +481,10 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                         const SizedBox(height: 12),
                         CustomButton(
-                          text: 'Admin Login',
+                          text: 'Staff Login',
                           isOutlined: true,
                           icon: Icons.admin_panel_settings_outlined,
-                          onPressed: () => Navigator.push(
-                            context,
-                            SlidePageRoute(page: const AdminLoginScreen()),
-                          ),
+                          onPressed: () => _showStaffPortalSheet(context),
                         ),
                         const SizedBox(height: 32),
                         Row(

@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/chat_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/database_service.dart';
+import 'chat_history_screen.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
@@ -17,6 +19,7 @@ class _SupportScreenState extends State<SupportScreen> {
   final DatabaseService _dbService = DatabaseService();
   final String? _uid = FirebaseAuth.instance.currentUser?.uid;
   final TextEditingController _msgController = TextEditingController();
+  int _selectedRating = 0;
 
   String _userName = 'Customer';
   bool _askedBotFirstQuestion = false;
@@ -130,12 +133,19 @@ class _SupportScreenState extends State<SupportScreen> {
   Future<void> _contactAgent() async {
     final uid = this._uid;
     if (uid == null) return;
-    await _chatService.connectToAgent(uid, _userName);
+    await FirebaseFirestore.instance.collection('support_chats').doc(uid).set({
+      'userId': uid,
+      'userName': FirebaseAuth.instance.currentUser?.displayName ?? _userName,
+      'status': 'waiting_for_agent',
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
     await _chatService.sendMessage(
       threadUserId: uid,
       senderId: 'system',
       text: "Transferring to a live agent. Please hold...",
-      isBot: true,
+      isBot: false,
+      isSystem: true,
     );
   }
 
@@ -150,6 +160,41 @@ class _SupportScreenState extends State<SupportScreen> {
       text: text,
       isBot: false,
     );
+    // Auto-escalate to a live agent when a custom message is sent
+    try {
+      await FirebaseFirestore.instance
+          .collection('support_chats')
+          .doc(uid)
+          .update({
+            'status': 'waiting_for_agent',
+            'userName':
+                FirebaseAuth.instance.currentUser?.displayName ?? _userName,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      // If update fails (doc may not exist), set with merge
+      await FirebaseFirestore.instance
+          .collection('support_chats')
+          .doc(uid)
+          .set({
+            'status': 'waiting_for_agent',
+            'userName':
+                FirebaseAuth.instance.currentUser?.displayName ?? _userName,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    }
+
+    // Write an automated system message informing the user
+    await FirebaseFirestore.instance
+        .collection('support_chats')
+        .doc(uid)
+        .collection('messages')
+        .add({
+          'senderId': 'system',
+          'text': 'Transferring you to a live agent. Please hold...',
+          'timestamp': FieldValue.serverTimestamp(),
+          'isSystem': true,
+        });
   }
 
   Future<void> _showClearChatDialog() async {
@@ -207,6 +252,15 @@ class _SupportScreenState extends State<SupportScreen> {
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
           IconButton(
+            icon: const Icon(CupertinoIcons.clock),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ChatHistoryScreen()),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(CupertinoIcons.trash),
             onPressed: _showClearChatDialog,
           ),
@@ -219,15 +273,22 @@ class _SupportScreenState extends State<SupportScreen> {
           final bool isActive;
           final bool isTyping;
 
+          String? statusStr;
+          String? agentName;
+          String? agentId;
           if (!chatSnap.hasData || !chatSnap.data!.exists) {
             isWaiting = false;
             isActive = false;
             isTyping = false;
+            statusStr = null;
+            agentName = null;
           } else {
             final data = chatSnap.data!.data() as Map<String, dynamic>?;
-            final status = data?['status'];
-            isWaiting = status == 'waiting_for_agent';
-            isActive = status == 'active';
+            statusStr = data?['status'] as String?;
+            agentName = data?['agentName'] as String?;
+            agentId = data?['agentId'] as String?;
+            isWaiting = statusStr == 'waiting_for_agent';
+            isActive = statusStr == 'active';
             isTyping = data?['isTyping'] ?? false;
           }
 
@@ -264,13 +325,28 @@ class _SupportScreenState extends State<SupportScreen> {
                         final data = docs[index].data() as Map<String, dynamic>;
                         final isMe = data['senderId'] == uid;
                         final isBot = data['isBot'] ?? false;
-                        final isSystem = data['senderId'] == 'system';
+                        final isSystem =
+                            data['isSystem'] == true ||
+                            data['senderId'] == 'system';
 
-                        return _buildChatBubble(
-                          data['text'],
-                          isMe,
-                          isBot || isSystem,
-                        );
+                        if (isSystem) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            child: Center(
+                              child: Text(
+                                data['text'] ?? '',
+                                style: const TextStyle(
+                                  color: Color(0xFF8E8E93),
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return _buildChatBubble(data['text'], isMe, isBot);
                       },
                     );
                   },
@@ -376,45 +452,171 @@ class _SupportScreenState extends State<SupportScreen> {
                   ),
                 ),
 
-              if (isWaiting || isActive)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.white,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _msgController,
-                          decoration: InputDecoration(
-                            hintText: 'Type a message...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide.none,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: (statusStr == 'resolved')
+                    ? Container(
+                        key: const ValueKey('rating_card'),
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
                             ),
-                            filled: true,
-                            fillColor: Colors.grey[200],
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 10,
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Issue Resolved. How was your experience?',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                          ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(5, (i) {
+                                final idx = i + 1;
+                                final filled = _selectedRating >= idx;
+                                return GestureDetector(
+                                  onTap: () async {
+                                    HapticFeedback.mediumImpact();
+                                    setState(() {
+                                      _selectedRating = idx;
+                                    });
+                                  },
+                                  child: AnimatedScale(
+                                    scale: filled ? 1.2 : 1.0,
+                                    duration: const Duration(milliseconds: 180),
+                                    curve: Curves.easeOut,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6.0,
+                                      ),
+                                      child: Icon(
+                                        Icons.star,
+                                        color: filled
+                                            ? Colors.amber
+                                            : Colors.grey[300],
+                                        size: 36,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _selectedRating == 0
+                                    ? null
+                                    : () async {
+                                        if (uid == null) return;
+                                        await _chatService
+                                            .submitRatingAndArchive(
+                                              uid,
+                                              _selectedRating,
+                                            );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Thanks for your feedback!',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12.0),
+                                  child: Text(
+                                    'Submit Rating',
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : (isWaiting)
+                    ? Container(
+                        key: const ValueKey('connecting'),
+                        padding: const EdgeInsets.all(16),
+                        color: Colors.white,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            CupertinoActivityIndicator(),
+                            SizedBox(width: 12),
+                            Text(
+                              'Connecting to a premium agent...',
+                              style: TextStyle(
+                                color: Color(0xFF8E8E93),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Container(
+                        key: const ValueKey('message_input'),
+                        padding: const EdgeInsets.all(16),
+                        color: Colors.white,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _msgController,
+                                decoration: InputDecoration(
+                                  hintText: 'Type a message...',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[200],
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            CircleAvatar(
+                              backgroundColor: Colors.black,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.send,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                onPressed: _sendMessage,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      CircleAvatar(
-                        backgroundColor: Colors.black,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.send,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          onPressed: _sendMessage,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              ),
             ],
           );
         },

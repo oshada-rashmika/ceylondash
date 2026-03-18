@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/chat_service.dart';
 
 class AdminChatScreen extends StatefulWidget {
@@ -56,7 +57,10 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
   }
 
   void _markResolved() async {
-    await _chatService.markResolved(widget.userId);
+    final user = FirebaseAuth.instance.currentUser;
+    final agentId = user?.uid ?? '';
+    final agentName = user?.displayName ?? 'Agent';
+    await _chatService.markChatResolved(widget.userId, agentId, agentName);
     if (mounted) Navigator.pop(context);
   }
 
@@ -73,36 +77,25 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.check_circle_outline, color: Colors.green),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Mark as Resolved?'),
-                  content: const Text(
-                    'This will close the active support chat.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _markResolved();
-                      },
-                      child: const Text(
-                        'Resolved',
-                        style: TextStyle(color: Colors.green),
-                      ),
-                    ),
-                  ],
-                ),
+          TextButton(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              final agentId = user?.uid ?? '';
+              final agentName = user?.displayName ?? 'Agent';
+              await _chatService.markChatResolved(
+                widget.userId,
+                agentId,
+                agentName,
               );
+              if (mounted) Navigator.pop(context);
             },
-            tooltip: 'Mark Resolved',
+            child: const Text(
+              'Resolve',
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
