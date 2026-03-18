@@ -30,7 +30,7 @@ class AdminDashboardScreen extends StatelessWidget {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text(
-          'Admin Dashboard',
+          'Agent Dashboard',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
