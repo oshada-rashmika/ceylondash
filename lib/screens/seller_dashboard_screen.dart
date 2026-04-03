@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -50,7 +50,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
     },
   ];
 
-  int _issueCount = 2;
+  final int _issueCount = 2;
 
   @override
   void initState() {
@@ -328,7 +328,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 shrinkWrap: true,
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                 itemCount: issues.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (_, i) {
                   final issue = issues[i];
                   return Container(

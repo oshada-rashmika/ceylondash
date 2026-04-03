@@ -11,38 +11,6 @@ import '../widgets/slide_page_route.dart';
 const _activeStatuses = {'processing', 'placed', 'preparing', 'on_the_way'};
 const _recentStatuses = {'delivered', 'cancelled'};
 
-const _statusSteps = ['placed', 'preparing', 'on_the_way', 'delivered'];
-const _statusLabels = ['Placed', 'Preparing', 'On Way', 'Delivered'];
-const _statusIcons = [
-  Icons.receipt_long_rounded,
-  Icons.soup_kitchen_rounded,
-  Icons.delivery_dining_rounded,
-  Icons.check_circle_rounded,
-];
-
-int _statusIndex(String status) {
-  final i = _statusSteps.indexOf(status);
-  return i == -1 ? 0 : i;
-}
-
-IconData _orderIcon(String status) {
-  return switch (status) {
-    'preparing' => Icons.soup_kitchen_rounded,
-    'on_the_way' => Icons.delivery_dining_rounded,
-    'delivered' => Icons.check_circle_rounded,
-    'cancelled' => Icons.cancel_rounded,
-    _ => Icons.receipt_long_rounded,
-  };
-}
-
-String _readableStatus(String s) {
-  return switch (s) {
-    'on_the_way' => 'On the Way',
-    'processing' => 'Processing',
-    _ => '${s[0].toUpperCase()}${s.substring(1)}',
-  };
-}
-
 String _formatTimestamp(dynamic ts) {
   if (ts == null) return '';
   DateTime dt;

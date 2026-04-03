@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -54,14 +56,6 @@ class _AdminChatScreenState extends State<AdminChatScreen> {
       text: text,
       isBot: false,
     );
-  }
-
-  void _markResolved() async {
-    final user = FirebaseAuth.instance.currentUser;
-    final agentId = user?.uid ?? '';
-    final agentName = user?.displayName ?? 'Agent';
-    await _chatService.markChatResolved(widget.userId, agentId, agentName);
-    if (mounted) Navigator.pop(context);
   }
 
   @override
