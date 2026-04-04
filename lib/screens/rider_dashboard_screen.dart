@@ -210,7 +210,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
           IndexedStack(index: _currentIndex, children: screens),
           Positioned(
             right: 16,
-            bottom: 96,
+            bottom: MediaQuery.of(context).padding.bottom + 90,
             child: FloatingActionButton(
               heroTag: 'independent_qr_scanner_fab',
               backgroundColor: Colors.cyan,
