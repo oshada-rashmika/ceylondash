@@ -208,6 +208,25 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       body: Stack(
         children: [
           IndexedStack(index: _currentIndex, children: screens),
+          Positioned(
+            right: 16,
+            bottom: 96,
+            child: FloatingActionButton(
+              heroTag: 'independent_qr_scanner_fab',
+              backgroundColor: Colors.cyan,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
+                );
+              },
+              child: const Icon(Icons.qr_code_scanner_rounded),
+            ),
+          ),
           if (_isMenuOpen || _menuCtrl.isAnimating)
             Positioned.fill(
               child: AnimatedBuilder(
@@ -302,10 +321,14 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
               HapticFeedback.lightImpact();
               _toggleMenu();
               if (index == 2) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
-                );
+                Future.microtask(() {
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
+                    );
+                  }
+                });
               }
             },
             child: Icon(icons[index], color: Colors.cyan.shade700),
