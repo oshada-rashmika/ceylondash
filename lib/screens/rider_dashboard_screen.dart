@@ -11,6 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/rider_bloc.dart';
 import '../services/rider_service.dart';
 import '../widgets/job_card.dart';
+import '../widgets/my_route_tab.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
   const RiderDashboardScreen({super.key});
@@ -142,12 +143,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                   ),
               ],
             ),
-      const Center(
-        child: Text(
-          'My Route',
-          style: TextStyle(color: Colors.black54, fontSize: 18),
-        ),
-      ),
+      const MyRouteTab(),
       const Center(
         child: Text(
           'Chat',

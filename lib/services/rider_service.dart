@@ -56,4 +56,8 @@ class RiderService {
   Future<void> claimJob(String orderId, String riderId) async {
     await _db.claimJob(orderId, riderId);
   }
+
+  Stream<List<OrderModel>> getMyActiveRouteStream(String riderUid) {
+    return _db.getMyActiveRouteStream(riderUid);
+  }
 }

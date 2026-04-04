@@ -154,6 +154,18 @@ class DatabaseService {
     });
   }
 
+  Stream<List<OrderModel>> getMyActiveRouteStream(String riderUid) {
+    return _db
+        .collection('orders')
+        .where('riderId', isEqualTo: riderUid)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => OrderModel.fromFirestore(d))
+            .where((o) =>
+                o.status == 'on_the_way' || o.status == 'out_for_delivery')
+            .toList());
+  }
+
   Future<List<ShopModel>> getAllShops() async {
     final snap = await _db.collection('shops').get();
     return snap.docs.map((d) => ShopModel.fromJson(d.id, d.data())).toList();
