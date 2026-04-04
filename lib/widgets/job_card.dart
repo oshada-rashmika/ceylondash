@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/order_model.dart';
-import '../blocs/rider_bloc.dart';
+import '../services/rider_service.dart';
 import 'top_snackbar.dart';
 
 class JobCard extends StatefulWidget {
@@ -16,14 +16,24 @@ class JobCard extends StatefulWidget {
 class _JobCardState extends State<JobCard> {
   bool _isClaiming = false;
 
-  void _claimJob() {
+  void _claimJob() async {
     setState(() => _isClaiming = true);
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      context.read<RiderBloc>().add(ClaimJobEvent(orderId: widget.order.id, riderUid: uid));
-      TopSnackbar.show(context, message: 'Job Claimed successfully!', type: SnackbarType.success);
+      try {
+        await RiderService().claimJob(widget.order.id, uid);
+        if (mounted) {
+          TopSnackbar.show(context, message: 'Job Claimed successfully!', type: SnackbarType.success);
+        }
+      } catch (e) {
+        if (mounted) {
+          TopSnackbar.show(context, message: 'Failed to claim job', type: SnackbarType.error);
+        }
+      } finally {
+        if (mounted) setState(() => _isClaiming = false);
+      }
     } else {
-      setState(() => _isClaiming = false);
+      if (mounted) setState(() => _isClaiming = false);
     }
   }
 
