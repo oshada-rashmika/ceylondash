@@ -54,6 +54,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
+    // Force rider offline on fresh startup to ensure proper boot sequence
+    _db.updateUserFields(uid, {'isAvailable': false});
+
     _userSub = _db.streamUser(uid).listen((user) {
       if (!mounted) return;
       if (user != null && user.isAvailable != null) {
