@@ -136,6 +136,24 @@ class DatabaseService {
         );
   }
 
+  Stream<List<OrderModel>> getPendingJobsStream() {
+    return _db
+        .collection('orders')
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map((d) => OrderModel.fromFirestore(d)).toList(),
+        );
+  }
+
+  Future<void> claimJob(String orderId, String riderId) async {
+    await _db.collection('orders').doc(orderId).update({
+      'status': 'in_transit',
+      'riderId': riderId,
+      'timestamps.updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<List<ShopModel>> getAllShops() async {
     final snap = await _db.collection('shops').get();
     return snap.docs.map((d) => ShopModel.fromJson(d.id, d.data())).toList();
