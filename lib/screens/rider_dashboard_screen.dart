@@ -10,6 +10,7 @@ import 'profile_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/rider_bloc.dart';
 import '../services/rider_service.dart';
+import '../widgets/job_card.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
   const RiderDashboardScreen({super.key});
@@ -101,12 +102,21 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
           final screens = [
             Stack(
               children: [
-                const Center(
-                  child: Text(
-                    'Job Pool',
-                    style: TextStyle(color: Colors.black54, fontSize: 18),
-                  ),
-                ),
+                riderState.pendingJobs.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No available jobs around you.',
+                          style: TextStyle(color: Colors.black54, fontSize: 16),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: riderState.pendingJobs.length,
+                        padding: const EdgeInsets.only(top: 16, bottom: 80),
+                        itemBuilder: (context, index) {
+                          final job = riderState.pendingJobs[index];
+                          return JobCard(order: job);
+                        },
+                      ),
                 if (!isOnline)
                   Positioned.fill(
                     child: BackdropFilter(
