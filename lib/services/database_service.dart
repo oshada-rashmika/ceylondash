@@ -148,7 +148,7 @@ class DatabaseService {
 
   Future<void> claimJob(String orderId, String riderId) async {
     await _db.collection('orders').doc(orderId).update({
-      'status': 'in_transit',
+      'status': 'on_the_way',
       'riderId': riderId,
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
     });
