@@ -12,6 +12,7 @@ import '../blocs/rider_bloc.dart';
 import '../services/rider_service.dart';
 import '../widgets/job_card.dart';
 import '../widgets/my_route_tab.dart';
+import '../screens/rider_qr_scanner_screen.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
   const RiderDashboardScreen({super.key});
@@ -300,6 +301,12 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
             onPressed: () {
               HapticFeedback.lightImpact();
               _toggleMenu();
+              if (index == 2) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
+                );
+              }
             },
             child: Icon(icons[index], color: Colors.cyan.shade700),
           ),
