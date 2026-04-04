@@ -139,7 +139,7 @@ class DatabaseService {
   Stream<List<OrderModel>> getPendingJobsStream() {
     return _db
         .collection('orders')
-        .where('status', isEqualTo: 'pending')
+        .where('status', isEqualTo: 'processing')
         .snapshots()
         .map(
           (snap) => snap.docs.map((d) => OrderModel.fromFirestore(d)).toList(),
