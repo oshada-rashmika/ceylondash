@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'database_service.dart';
+import '../models/order_model.dart';
 
 class RiderService {
   final DatabaseService _db = DatabaseService();
@@ -46,5 +47,13 @@ class RiderService {
     await _db.updateUserFields(uid, {
       'isAvailable': isAvailable,
     });
+  }
+
+  Stream<List<OrderModel>> getPendingJobsStream() {
+    return _db.getPendingJobsStream();
+  }
+
+  Future<void> claimJob(String orderId, String riderId) async {
+    await _db.claimJob(orderId, riderId);
   }
 }

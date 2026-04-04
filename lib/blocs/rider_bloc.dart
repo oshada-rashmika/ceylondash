@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/rider_service.dart';
+import '../models/order_model.dart';
 
 // Events
 abstract class RiderEvent {}
@@ -18,33 +19,46 @@ class SetInitialAvailability extends RiderEvent {
   SetInitialAvailability({required this.isAvailable});
 }
 
+class PendingJobsUpdated extends RiderEvent {
+  final List<OrderModel> jobs;
+  PendingJobsUpdated(this.jobs);
+}
+
+class ClaimJobEvent extends RiderEvent {
+  final String orderId;
+  final String riderUid;
+  ClaimJobEvent({required this.orderId, required this.riderUid});
+}
+
 // States
 abstract class RiderState {
   final bool isAvailable;
-  RiderState({required this.isAvailable});
+  final List<OrderModel> pendingJobs;
+  RiderState({required this.isAvailable, this.pendingJobs = const []});
 }
 
 class RiderInitial extends RiderState {
-  RiderInitial({super.isAvailable = false});
+  RiderInitial({super.isAvailable = false, super.pendingJobs = const []});
 }
 
 class RiderStatusUpdating extends RiderState {
-  RiderStatusUpdating({required super.isAvailable});
+  RiderStatusUpdating({required super.isAvailable, super.pendingJobs = const []});
 }
 
 class RiderStatusUpdated extends RiderState {
-  RiderStatusUpdated({required super.isAvailable});
+  RiderStatusUpdated({required super.isAvailable, super.pendingJobs = const []});
 }
 
 class RiderStatusError extends RiderState {
   final String message;
-  RiderStatusError({required super.isAvailable, required this.message});
+  RiderStatusError({required super.isAvailable, super.pendingJobs = const [], required this.message});
 }
 
 // BLoC
 class RiderBloc extends Bloc<RiderEvent, RiderState> {
   final RiderService _riderService;
   StreamSubscription<Position>? _locationSubscription;
+  StreamSubscription<List<OrderModel>>? _jobsSubscription;
   String? _uid;
 
   RiderBloc({required RiderService riderService})
@@ -52,6 +66,18 @@ class RiderBloc extends Bloc<RiderEvent, RiderState> {
         super(RiderInitial()) {
     on<ToggleAvailabilityStatus>(_onToggleAvailabilityStatus);
     on<SetInitialAvailability>(_onSetInitialAvailability);
+    on<PendingJobsUpdated>(_onPendingJobsUpdated);
+    on<ClaimJobEvent>(_onClaimJob);
+  }
+
+  void _onPendingJobsUpdated(PendingJobsUpdated event, Emitter<RiderState> emit) {
+    emit(RiderStatusUpdated(isAvailable: state.isAvailable, pendingJobs: event.jobs));
+  }
+
+  Future<void> _onClaimJob(ClaimJobEvent event, Emitter<RiderState> emit) async {
+    try {
+      await _riderService.claimJob(event.orderId, event.riderUid);
+    } catch (_) {}
   }
 
   void _onSetInitialAvailability(
@@ -85,13 +111,21 @@ class RiderBloc extends Bloc<RiderEvent, RiderState> {
           }
         });
 
-        emit(RiderStatusUpdated(isAvailable: true));
+        await _jobsSubscription?.cancel();
+        _jobsSubscription = _riderService.getPendingJobsStream().listen((jobs) {
+          add(PendingJobsUpdated(jobs));
+        });
+
+        emit(RiderStatusUpdated(isAvailable: true, pendingJobs: state.pendingJobs));
       } else {
         await _locationSubscription?.cancel();
         _locationSubscription = null;
         
+        await _jobsSubscription?.cancel();
+        _jobsSubscription = null;
+        
         await _riderService.updateRiderAvailability(event.uid, false);
-        emit(RiderStatusUpdated(isAvailable: false));
+        emit(RiderStatusUpdated(isAvailable: false, pendingJobs: const []));
       }
     } catch (e) {
       emit(RiderStatusError(
@@ -102,6 +136,7 @@ class RiderBloc extends Bloc<RiderEvent, RiderState> {
   @override
   Future<void> close() {
     _locationSubscription?.cancel();
+    _jobsSubscription?.cancel();
     return super.close();
   }
 }
