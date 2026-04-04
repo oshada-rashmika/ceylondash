@@ -136,6 +136,54 @@ class DatabaseService {
         );
   }
 
+  Stream<List<OrderModel>> getPendingJobsStream() {
+    return _db
+        .collection('orders')
+        .where('status', isEqualTo: 'processing')
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map((d) => OrderModel.fromFirestore(d)).toList(),
+        );
+  }
+
+  Future<void> claimJob(String orderId, String riderId) async {
+    await _db.collection('orders').doc(orderId).update({
+      'status': 'on_the_way',
+      'riderId': riderId,
+      'timestamps.updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<List<OrderModel>> getMyActiveRouteStream(String riderUid) {
+    return _db
+        .collection('orders')
+        .where('riderId', isEqualTo: riderUid)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => OrderModel.fromFirestore(d))
+            .where((o) =>
+                o.status == 'on_the_way' || o.status == 'out_for_delivery')
+            .toList());
+  }
+
+  Future<void> verifyDelivery(String orderId, String inputPin) async {
+    final doc = await _db.collection('orders').doc(orderId).get();
+    if (!doc.exists) throw Exception('Order does not exist');
+    final data = doc.data() as Map<String, dynamic>;
+    final verifiedPin = data['verification']?['handoverPin'] ?? 
+                        data['rawData']?['handoverPin'] ?? 
+                        data['handoverPin'];
+    if (verifiedPin != null && verifiedPin.toString() != inputPin) {
+      throw Exception('Incorrect PIN');
+    }
+
+    await _db.collection('orders').doc(orderId).update({
+      'status': 'delivered',
+      'timestamps.deliveredAt': FieldValue.serverTimestamp(),
+      'timestamps.updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<List<ShopModel>> getAllShops() async {
     final snap = await _db.collection('shops').get();
     return snap.docs.map((d) => ShopModel.fromJson(d.id, d.data())).toList();

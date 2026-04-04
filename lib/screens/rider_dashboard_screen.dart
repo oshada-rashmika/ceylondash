@@ -6,8 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/database_service.dart';
 import '../models/user_model.dart';
-import '../widgets/top_snackbar.dart';
 import 'profile_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../blocs/rider_bloc.dart';
+import '../services/rider_service.dart';
+import '../widgets/job_card.dart';
+import '../widgets/my_route_tab.dart';
+import '../screens/rider_qr_scanner_screen.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
   const RiderDashboardScreen({super.key});
@@ -19,7 +24,8 @@ class RiderDashboardScreen extends StatefulWidget {
 class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
-  bool _isOnline = false;
+  
+  late final RiderBloc _riderBloc;
 
   late final AnimationController _menuCtrl;
   late final Animation<double> _menuAnim;
@@ -31,6 +37,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
   @override
   void initState() {
     super.initState();
+    _riderBloc = RiderBloc(riderService: RiderService());
     _menuCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -47,43 +54,22 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
+    // Force rider offline on fresh startup to ensure proper boot sequence
+    _db.updateUserFields(uid, {'isAvailable': false});
+
     _userSub = _db.streamUser(uid).listen((user) {
       if (!mounted) return;
       if (user != null && user.isAvailable != null) {
-        setState(() {
-          _isOnline = user.isAvailable!;
-        });
+        _riderBloc.add(SetInitialAvailability(isAvailable: user.isAvailable!));
       }
     });
   }
 
-  Future<void> _toggleOnlineStatus(bool val) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
 
-    // Optimistic UI update
-    setState(() {
-      _isOnline = val;
-    });
-
-    try {
-      await _db.updateUserFields(uid, {'isAvailable': val});
-    } catch (_) {
-      if (!mounted) return;
-      // Revert on failure
-      setState(() {
-        _isOnline = !val;
-      });
-      TopSnackbar.show(
-        context,
-        message: 'Failed to update status. Please try again.',
-        type: SnackbarType.error,
-      );
-    }
-  }
 
   @override
   void dispose() {
+    _riderBloc.close();
     _userSub?.cancel();
     _menuCtrl.dispose();
     super.dispose();
@@ -110,19 +96,58 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      const Center(
-        child: Text(
-          'Job Pool',
-          style: TextStyle(color: Colors.black54, fontSize: 18),
-        ),
-      ),
-      const Center(
-        child: Text(
-          'My Route',
-          style: TextStyle(color: Colors.black54, fontSize: 18),
-        ),
-      ),
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    
+    return BlocProvider.value(
+      value: _riderBloc,
+      child: BlocBuilder<RiderBloc, RiderState>(
+        builder: (context, riderState) {
+          final isOnline = riderState.isAvailable;
+          
+          final screens = [
+            Stack(
+              children: [
+                riderState.pendingJobs.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No available jobs around you.',
+                          style: TextStyle(color: Colors.black54, fontSize: 16),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: riderState.pendingJobs.length,
+                        padding: const EdgeInsets.only(top: 16, bottom: 80),
+                        itemBuilder: (context, index) {
+                          final job = riderState.pendingJobs[index];
+                          return JobCard(order: job);
+                        },
+                      ),
+                if (!isOnline)
+                  Positioned.fill(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.location_off, size: 64, color: Colors.black45),
+                            SizedBox(height: 16),
+                            Text(
+                              "Go Online to view available jobs",
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+      const MyRouteTab(),
       const Center(
         child: Text(
           'Chat',
@@ -156,9 +181,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _isOnline ? 'Online' : 'Offline',
+                      isOnline ? 'Online' : 'Offline',
                       style: TextStyle(
-                        color: _isOnline
+                        color: isOnline
                             ? Colors.green.shade600
                             : Colors.black45,
                         fontWeight: FontWeight.bold,
@@ -167,8 +192,12 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                     ),
                     const SizedBox(width: 4),
                     Switch(
-                      value: _isOnline,
-                      onChanged: _toggleOnlineStatus,
+                      value: isOnline,
+                      onChanged: (val) {
+                        if (uid.isNotEmpty) {
+                          _riderBloc.add(ToggleAvailabilityStatus(isAvailable: val, uid: uid));
+                        }
+                      },
                       activeThumbColor: Colors.white,
                       activeTrackColor: Colors.green.shade500,
                       inactiveThumbColor: Colors.white,
@@ -182,6 +211,25 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       body: Stack(
         children: [
           IndexedStack(index: _currentIndex, children: screens),
+          Positioned(
+            right: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 90,
+            child: FloatingActionButton(
+              heroTag: 'independent_qr_scanner_fab',
+              backgroundColor: Colors.cyan,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
+                );
+              },
+              child: const Icon(Icons.qr_code_scanner_rounded),
+            ),
+          ),
           if (_isMenuOpen || _menuCtrl.isAnimating)
             Positioned.fill(
               child: AnimatedBuilder(
@@ -212,6 +260,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: _buildRadialFab(),
       bottomNavigationBar: _buildBottomAppBar(),
+    );
+        },
+      ),
     );
   }
 
@@ -272,6 +323,16 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
             onPressed: () {
               HapticFeedback.lightImpact();
               _toggleMenu();
+              if (index == 2) {
+                Future.microtask(() {
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
+                    );
+                  }
+                });
+              }
             },
             child: Icon(icons[index], color: Colors.cyan.shade700),
           ),
