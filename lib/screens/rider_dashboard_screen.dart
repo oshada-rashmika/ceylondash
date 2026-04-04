@@ -6,8 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/database_service.dart';
 import '../models/user_model.dart';
-import '../widgets/top_snackbar.dart';
 import 'profile_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../blocs/rider_bloc.dart';
+import '../services/rider_service.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
   const RiderDashboardScreen({super.key});
@@ -19,7 +21,8 @@ class RiderDashboardScreen extends StatefulWidget {
 class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
-  bool _isOnline = false;
+  
+  late final RiderBloc _riderBloc;
 
   late final AnimationController _menuCtrl;
   late final Animation<double> _menuAnim;
@@ -31,6 +34,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
   @override
   void initState() {
     super.initState();
+    _riderBloc = RiderBloc(riderService: RiderService());
     _menuCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -50,40 +54,16 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     _userSub = _db.streamUser(uid).listen((user) {
       if (!mounted) return;
       if (user != null && user.isAvailable != null) {
-        setState(() {
-          _isOnline = user.isAvailable!;
-        });
+        _riderBloc.add(SetInitialAvailability(isAvailable: user.isAvailable!));
       }
     });
   }
 
-  Future<void> _toggleOnlineStatus(bool val) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
 
-    // Optimistic UI update
-    setState(() {
-      _isOnline = val;
-    });
-
-    try {
-      await _db.updateUserFields(uid, {'isAvailable': val});
-    } catch (_) {
-      if (!mounted) return;
-      // Revert on failure
-      setState(() {
-        _isOnline = !val;
-      });
-      TopSnackbar.show(
-        context,
-        message: 'Failed to update status. Please try again.',
-        type: SnackbarType.error,
-      );
-    }
-  }
 
   @override
   void dispose() {
+    _riderBloc.close();
     _userSub?.cancel();
     _menuCtrl.dispose();
     super.dispose();
@@ -110,13 +90,48 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      const Center(
-        child: Text(
-          'Job Pool',
-          style: TextStyle(color: Colors.black54, fontSize: 18),
-        ),
-      ),
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    
+    return BlocProvider.value(
+      value: _riderBloc,
+      child: BlocBuilder<RiderBloc, RiderState>(
+        builder: (context, riderState) {
+          final isOnline = riderState.isAvailable;
+          
+          final screens = [
+            Stack(
+              children: [
+                const Center(
+                  child: Text(
+                    'Job Pool',
+                    style: TextStyle(color: Colors.black54, fontSize: 18),
+                  ),
+                ),
+                if (!isOnline)
+                  Positioned.fill(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.location_off, size: 64, color: Colors.black45),
+                            SizedBox(height: 16),
+                            Text(
+                              "Go Online to view available jobs",
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black54),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
       const Center(
         child: Text(
           'My Route',
@@ -156,9 +171,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _isOnline ? 'Online' : 'Offline',
+                      isOnline ? 'Online' : 'Offline',
                       style: TextStyle(
-                        color: _isOnline
+                        color: isOnline
                             ? Colors.green.shade600
                             : Colors.black45,
                         fontWeight: FontWeight.bold,
@@ -167,8 +182,12 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                     ),
                     const SizedBox(width: 4),
                     Switch(
-                      value: _isOnline,
-                      onChanged: _toggleOnlineStatus,
+                      value: isOnline,
+                      onChanged: (val) {
+                        if (uid.isNotEmpty) {
+                          _riderBloc.add(ToggleAvailabilityStatus(isAvailable: val, uid: uid));
+                        }
+                      },
                       activeThumbColor: Colors.white,
                       activeTrackColor: Colors.green.shade500,
                       inactiveThumbColor: Colors.white,
@@ -212,6 +231,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: _buildRadialFab(),
       bottomNavigationBar: _buildBottomAppBar(),
+    );
+        },
+      ),
     );
   }
 
