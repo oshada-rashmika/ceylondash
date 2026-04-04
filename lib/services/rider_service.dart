@@ -60,4 +60,8 @@ class RiderService {
   Stream<List<OrderModel>> getMyActiveRouteStream(String riderUid) {
     return _db.getMyActiveRouteStream(riderUid);
   }
+
+  Future<void> verifyDelivery(String orderId, String inputPin) async {
+    await _db.verifyDelivery(orderId, inputPin);
+  }
 }
