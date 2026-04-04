@@ -166,6 +166,24 @@ class DatabaseService {
             .toList());
   }
 
+  Future<void> verifyDelivery(String orderId, String inputPin) async {
+    final doc = await _db.collection('orders').doc(orderId).get();
+    if (!doc.exists) throw Exception('Order does not exist');
+    final data = doc.data() as Map<String, dynamic>;
+    final verifiedPin = data['verification']?['handoverPin'] ?? 
+                        data['rawData']?['handoverPin'] ?? 
+                        data['handoverPin'];
+    if (verifiedPin != null && verifiedPin.toString() != inputPin) {
+      throw Exception('Incorrect PIN');
+    }
+
+    await _db.collection('orders').doc(orderId).update({
+      'status': 'delivered',
+      'timestamps.deliveredAt': FieldValue.serverTimestamp(),
+      'timestamps.updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<List<ShopModel>> getAllShops() async {
     final snap = await _db.collection('shops').get();
     return snap.docs.map((d) => ShopModel.fromJson(d.id, d.data())).toList();

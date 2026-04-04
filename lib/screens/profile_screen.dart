@@ -16,6 +16,7 @@ import '../widgets/slide_page_route.dart';
 import 'map_selection_screen.dart';
 import 'promotions_screen.dart';
 import 'settings_screen.dart';
+import 'rider_delivery_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -1264,6 +1265,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   SlidePageRoute(
                                     page: PromotionsScreen(user: _user!),
                                   ),
+                                );
+                              },
+                            ),
+                          if (_user?.role == 'rider')
+                            _SettingsTile(
+                              icon: Icons.history_rounded,
+                              label: 'Delivery History',
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.push(
+                                  context,
+                                  SlidePageRoute(page: const RiderDeliveryHistoryScreen()),
                                 );
                               },
                             ),

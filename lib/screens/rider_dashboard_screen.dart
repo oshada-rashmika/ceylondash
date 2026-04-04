@@ -12,6 +12,7 @@ import '../blocs/rider_bloc.dart';
 import '../services/rider_service.dart';
 import '../widgets/job_card.dart';
 import '../widgets/my_route_tab.dart';
+import '../screens/rider_qr_scanner_screen.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
   const RiderDashboardScreen({super.key});
@@ -52,6 +53,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
   void _listenToRiderStatus() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
+
+    // Force rider offline on fresh startup to ensure proper boot sequence
+    _db.updateUserFields(uid, {'isAvailable': false});
 
     _userSub = _db.streamUser(uid).listen((user) {
       if (!mounted) return;
@@ -207,6 +211,25 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       body: Stack(
         children: [
           IndexedStack(index: _currentIndex, children: screens),
+          Positioned(
+            right: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 90,
+            child: FloatingActionButton(
+              heroTag: 'independent_qr_scanner_fab',
+              backgroundColor: Colors.cyan,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
+                );
+              },
+              child: const Icon(Icons.qr_code_scanner_rounded),
+            ),
+          ),
           if (_isMenuOpen || _menuCtrl.isAnimating)
             Positioned.fill(
               child: AnimatedBuilder(
@@ -300,6 +323,16 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
             onPressed: () {
               HapticFeedback.lightImpact();
               _toggleMenu();
+              if (index == 2) {
+                Future.microtask(() {
+                  if (context.mounted) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
+                    );
+                  }
+                });
+              }
             },
             child: Icon(icons[index], color: Colors.cyan.shade700),
           ),
