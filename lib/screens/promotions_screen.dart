@@ -135,7 +135,10 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
               physics: const BouncingScrollPhysics(),
               itemCount: _promotions.length,
               itemBuilder: (context, index) {
-                return _PromotionCard(promotion: _promotions[index]);
+                final promo = _promotions[index];
+                final isClaimed =
+                    widget.user.usedPromotions?.contains(promo.id) ?? false;
+                return _PromotionCard(promotion: promo, isClaimed: isClaimed);
               },
             ),
     );
@@ -182,8 +185,9 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
 
 class _PromotionCard extends StatelessWidget {
   final PromotionModel promotion;
+  final bool isClaimed;
 
-  const _PromotionCard({required this.promotion});
+  const _PromotionCard({required this.promotion, required this.isClaimed});
 
   @override
   Widget build(BuildContext context) {
@@ -196,102 +200,128 @@ class _PromotionCard extends StatelessWidget {
         ? Colors.purple.shade700
         : Colors.orange.shade700;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    '${promotion.discountPercentage.toStringAsFixed(0)}% OFF',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      color: Theme.of(context).primaryColor,
-                      letterSpacing: -1.0,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badgeColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    badgeText,
-                    style: TextStyle(
-                      color: badgeTextColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ],
+    return Opacity(
+      opacity: isClaimed ? 0.6 : 1.0,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
             ),
-            const SizedBox(height: 16),
-            Text(
-              promotion.title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Colors.black87,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              promotion.description,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black54,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-            ),
-            if (promotion.isAutoApplied) ...[
-              const SizedBox(height: 16),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.check_circle_rounded,
-                    color: Theme.of(context).colorScheme.secondary,
-                    size: 16,
+                  Expanded(
+                    child: Text(
+                      '${promotion.discountPercentage.toStringAsFixed(0)}% OFF',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                        color: isClaimed
+                            ? Colors.grey
+                            : Theme.of(context).primaryColor,
+                        letterSpacing: -1.0,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'Auto-applied at checkout',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black45,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: TextStyle(
+                        color: badgeTextColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              Text(
+                promotion.title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black87,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                promotion.description,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54,
+                  fontWeight: FontWeight.w500,
+                  height: 1.4,
+                ),
+              ),
+              if (promotion.isAutoApplied && !isClaimed) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: Theme.of(context).colorScheme.secondary,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Auto-applied at checkout',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black45,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (isClaimed) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.grey,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'You have already claimed it',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

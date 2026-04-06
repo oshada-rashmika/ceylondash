@@ -19,7 +19,7 @@ class AgentManagementModule extends StatelessWidget {
 class AgentsView extends StatelessWidget {
   const AgentsView({super.key});
 
-  void _showAddDialog(BuildContext context) {
+  Future<void> _showAddDialog(BuildContext context) async {
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
@@ -28,13 +28,14 @@ class AgentsView extends StatelessWidget {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: const Text('Add Agent'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: const Text('Add Support Agent'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
-                TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Email Address')),
+                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
+                TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Work Email')),
                 TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'Phone Number')),
               ],
             ),
@@ -42,6 +43,10 @@ class AgentsView extends StatelessWidget {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               onPressed: () {
                 final agent = UserModel(
                   uid: const Uuid().v4(),
@@ -54,7 +59,7 @@ class AgentsView extends StatelessWidget {
                 context.read<AgentsBloc>().add(AddAgent(agent));
                 Navigator.pop(ctx);
               },
-              child: const Text('Add'),
+              child: const Text('Provision Account'),
             ),
           ],
         );
@@ -65,10 +70,12 @@ class AgentsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FB),
-      floatingActionButton: FloatingActionButton(
+      backgroundColor: const Color(0xFFF0F2F5),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddDialog(context),
-        child: const Icon(Icons.person_add),
+        label: const Text('Enlist Agent', style: TextStyle(fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.person_add_rounded),
+        backgroundColor: Colors.blueAccent,
       ),
       body: SafeArea(
         child: Padding(
@@ -76,54 +83,23 @@ class AgentsView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Agent Management',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
-              ),
+              _buildHeader(),
               const SizedBox(height: 24),
               Expanded(
                 child: BlocBuilder<AgentsBloc, AgentsState>(
                   builder: (context, state) {
                     if (state is AgentsLoading) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(child: CircularProgressIndicator(color: Colors.blueAccent));
                     } else if (state is AgentsError) {
                       return Center(child: Text('Error: ${state.message}'));
                     } else if (state is AgentsLoaded) {
                       if (state.agents.isEmpty) {
-                        return const Center(child: Text('No active agents'));
+                        return _buildEmptyState();
                       }
                       return ListView.builder(
                         itemCount: state.agents.length,
                         itemBuilder: (context, index) {
-                          final agent = state.agents[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            child: ListTile(
-                              leading: const CircleAvatar(
-                                backgroundColor: Color(0xFF141E30),
-                                child: Icon(Icons.support_agent, color: Colors.white),
-                              ),
-                              title: Text(agent.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text('${agent.email ?? 'No email'}\n${agent.phone}'),
-                              isThreeLine: true,
-                              trailing: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red.shade50,
-                                  foregroundColor: Colors.red,
-                                  elevation: 0,
-                                ),
-                                icon: const Icon(Icons.person_off, size: 16),
-                                label: const Text('Deactivate'),
-                                onPressed: () {
-                                  context.read<AgentsBloc>().add(DeactivateAgent(agent.uid));
-                                },
-                              ),
-                            ),
-                          );
+                          return _buildAgentCard(context, state.agents[index]);
                         },
                       );
                     }
@@ -134,6 +110,118 @@ class AgentsView extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Team Directory',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: Colors.black.withAlpha(220),
+            letterSpacing: -1.2,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Manage your support and operations team',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black.withAlpha(120),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAgentCard(BuildContext context, UserModel agent) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(20),
+        leading: Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: Colors.blueAccent.withAlpha(20),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(Icons.support_agent_rounded, color: Colors.blueAccent, size: 30),
+        ),
+        title: Text(
+          agent.name,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Agent ID: CD-${agent.uid.substring(0, 4).toUpperCase()}',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.alternate_email_rounded, size: 14, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(agent.email ?? 'No email', style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        trailing: Container(
+          decoration: BoxDecoration(
+            color: Colors.redAccent.withAlpha(20),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.person_remove_rounded, color: Colors.redAccent, size: 20),
+            onPressed: () {
+              context.read<AgentsBloc>().add(DeactivateAgent(agent.uid));
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.people_outline_rounded, size: 80, color: Colors.grey.withAlpha(80)),
+          const SizedBox(height: 24),
+          const Text(
+            'Unit Empty',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Enlist support agents to start managing chats.',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
       ),
     );
   }

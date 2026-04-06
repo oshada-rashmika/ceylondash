@@ -24,18 +24,63 @@ class LiveSupportView extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF9F9FB),
-        appBar: const PreferredSize(
-          preferredSize: Size.fromHeight(60),
-          child: ColorfulTabBar(),
+        backgroundColor: const Color(0xFFF0F2F5),
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(160),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Monitoring Station',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.black.withAlpha(220),
+                        letterSpacing: -1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Oversee live agent performance and history',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black.withAlpha(120),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelColor: Colors.blueAccent,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: Colors.blueAccent,
+                indicatorWeight: 4,
+                indicatorSize: TabBarIndicatorSize.label,
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                tabs: [
+                  Tab(text: "Live Ongoing"),
+                  Tab(text: "Archived History"),
+                ],
+              ),
+            ],
+          ),
         ),
         body: BlocBuilder<SupportChatsBloc, SupportChatsState>(
           builder: (context, state) {
             if (state.isLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: CircularProgressIndicator(color: Colors.blueAccent));
             }
             if (state.error != null) {
-              return Center(child: Text('Error: ${state.error}'));
+              return Center(child: Text('Monitor Offline: ${state.error}'));
             }
 
             return TabBarView(
@@ -53,9 +98,25 @@ class LiveSupportView extends StatelessWidget {
   Widget _buildChatList(List<QueryDocumentSnapshot> chats, String collectionName, BuildContext context) {
     if (chats.isEmpty) {
       return Center(
-        child: Text(
-          collectionName == 'support_chats' ? 'No ongoing support chats.' : 'No archived chats.',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              collectionName == 'support_chats' ? Icons.chat_bubble_outline_rounded : Icons.history_edu_rounded, 
+              size: 80, 
+              color: Colors.grey.withAlpha(80)
+            ),
+            const SizedBox(height: 24),
+            Text(
+              collectionName == 'support_chats' ? 'No Live Traffic' : 'No Archive Entries',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'All clear! Agents are currently idling.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
         ),
       );
     }
@@ -65,55 +126,75 @@ class LiveSupportView extends StatelessWidget {
       itemBuilder: (context, index) {
         final data = chats[index].data() as Map<String, dynamic>;
         final String chatId = chats[index].id;
-        final String agentName = data['agentName'] ?? 'Unknown Agent';
-        final String customerName = data['customerName'] ?? 'Unknown Customer';
-        final String lastMessage = data['lastMessage'] ?? 'No messages yet';
+        final String customerName = data['userName'] ?? data['customerName'] ?? 'Pro-User';
+        final String agentName = data['agentName'] ?? 'Awaiting Agent';
+        final String lastMessage = data['lastMessage'] ?? 'System: Conversation Handover';
+        final String status = data['status'] ?? 'pending';
 
-        return Card(
-          elevation: 0,
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(8),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
+            contentPadding: const EdgeInsets.all(20),
             leading: Stack(
               children: [
-                const CircleAvatar(
-                  radius: 24,
-                  backgroundColor: Color(0xFFE3E8FF),
-                  child: Icon(Icons.support_agent, color: Colors.blueAccent),
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withAlpha(20),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(Icons.support_agent_rounded, color: Colors.blueAccent, size: 30),
                 ),
-                if (collectionName == 'support_chats')
+                if (collectionName == 'support_chats' && status == 'active')
                   Positioned(
                     right: 0,
                     bottom: 0,
                     child: Container(
-                      width: 14,
-                      height: 14,
+                      width: 16,
+                      height: 16,
                       decoration: BoxDecoration(
                         color: Colors.green,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: Colors.white, width: 3),
                       ),
                     ),
                   ),
               ],
             ),
             title: Text(
-              '$customerName - $agentName',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              customerName,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                lastMessage,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text(
+                  'Operator: $agentName',
+                  style: const TextStyle(fontSize: 13, color: Colors.blueAccent, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  lastMessage,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+              ],
             ),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 28),
             onTap: () {
               Navigator.push(
                 context,
@@ -130,27 +211,6 @@ class LiveSupportView extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class ColorfulTabBar extends StatelessWidget {
-  const ColorfulTabBar({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: const TabBar(
-        labelColor: Colors.blueAccent,
-        unselectedLabelColor: Colors.grey,
-        indicatorColor: Colors.blueAccent,
-        labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        tabs: [
-          Tab(text: "Ongoing"),
-          Tab(text: "Archived"),
-        ],
-      ),
     );
   }
 }

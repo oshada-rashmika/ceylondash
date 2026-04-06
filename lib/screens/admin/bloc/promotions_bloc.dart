@@ -19,6 +19,11 @@ class DeletePromotion extends PromotionsEvent {
   DeletePromotion(this.id);
 }
 
+class UpdatePromotion extends PromotionsEvent {
+  final PromotionModel promotion;
+  UpdatePromotion(this.promotion);
+}
+
 // --- States ---
 abstract class PromotionsState {}
 class PromotionsLoading extends PromotionsState {}
@@ -41,6 +46,7 @@ class PromotionsBloc extends Bloc<PromotionsEvent, PromotionsState> {
     on<PromotionsUpdated>(_onPromotionsUpdated);
     on<AddPromotion>(_onAddPromotion);
     on<DeletePromotion>(_onDeletePromotion);
+    on<UpdatePromotion>(_onUpdatePromotion);
   }
 
   void _onLoadPromotions(LoadPromotions event, Emitter<PromotionsState> emit) {
@@ -60,13 +66,21 @@ class PromotionsBloc extends Bloc<PromotionsEvent, PromotionsState> {
     try {
       await _db.createPromotion(event.promotion);
     } catch (e) {
-      // Handle error if needed, but stream will auto-update otherwise
+      // Handle error
     }
   }
 
   Future<void> _onDeletePromotion(DeletePromotion event, Emitter<PromotionsState> emit) async {
     try {
       await _db.deletePromotion(event.id);
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  Future<void> _onUpdatePromotion(UpdatePromotion event, Emitter<PromotionsState> emit) async {
+    try {
+      await _db.updatePromotion(event.promotion.id, event.promotion.toMap());
     } catch (e) {
       // Handle error
     }

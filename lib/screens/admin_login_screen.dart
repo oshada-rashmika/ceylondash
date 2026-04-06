@@ -10,7 +10,7 @@ import '../widgets/custom_button.dart';
 import '../widgets/top_snackbar.dart';
 import 'admin/admin_dashboard_screen.dart';
 import '../utils/validators.dart';
-import 'admin/supervisor_dashboard_screen.dart';
+import 'admin/supervisor_dashboard_shell.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   final String portalType;
@@ -89,7 +89,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
       if (role == 'supervisor') {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const SupervisorDashboardScreen()),
+          MaterialPageRoute(builder: (_) => const SupervisorDashboardShell()),
           (route) => false,
         );
       } else if (role == 'agent') {
