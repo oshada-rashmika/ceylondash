@@ -14,6 +14,7 @@ import 'screens/role_selection_screen.dart';
 import 'screens/customer_register_screen.dart';
 import 'screens/seller_register_screen.dart';
 import 'screens/rider_register_screen.dart';
+import 'screens/seller_dashboard_shell.dart';
 import 'screens/rider_dashboard_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'screens/customer_dashboard_shell.dart';
