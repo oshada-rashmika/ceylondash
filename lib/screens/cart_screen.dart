@@ -282,6 +282,24 @@ class _CartItemRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 54,
+              height: 54,
+              color: const Color(0xFFF5F5F7),
+              child: Image.network(
+                item.image,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.image_not_supported_outlined,
+                  size: 20,
+                  color: Colors.black12,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
