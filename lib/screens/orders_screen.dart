@@ -65,6 +65,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   StreamSubscription<List<OrderModel>>? _ordersSub;
   List<OrderModel> _activeOrders = [];
   List<OrderModel> _pastOrders = [];
+  List<OrderModel> _returnOrders = [];
   bool _isLoading = true;
   late final PageController _pageController;
   int _currentIndex = 0;
@@ -90,6 +91,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
             .toList();
         _pastOrders = orders
             .where((o) => _recentStatuses.contains(o.status))
+            .toList();
+        _returnOrders = orders
+            .where((o) => o.status == 'Return Requested')
             .toList();
         _isLoading = false;
       });
@@ -153,6 +157,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           'No past orders found',
                           isActive: false,
                         ),
+                        _buildOrderList(
+                          _returnOrders,
+                          Icons.assignment_return_rounded,
+                          'No return requests yet',
+                          isActive: false,
+                        ),
                       ],
                     ),
             ),
@@ -168,7 +178,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
-          final pillWidth = (width - 8) / 2;
+          final pillWidth = (width - 8) / 3;
 
           return Container(
             height: 48,
@@ -183,7 +193,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 250),
                   curve: Curves.easeOutCubic,
-                  left: _currentIndex == 0 ? 0 : pillWidth,
+                  left: _currentIndex * pillWidth,
                   top: 0,
                   bottom: 0,
                   width: pillWidth,
@@ -203,62 +213,41 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
                 Row(
                   children: [
-                    Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          _pageController.animateToPage(
-                            0,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOutCubic,
-                          );
-                        },
-                        child: Center(
-                          child: Text(
-                            'Active',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: _currentIndex == 0
-                                  ? Colors.black
-                                  : Colors.black45,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          _pageController.animateToPage(
-                            1,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOutCubic,
-                          );
-                        },
-                        child: Center(
-                          child: Text(
-                            'Past',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: _currentIndex == 1
-                                  ? Colors.black
-                                  : Colors.black45,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    _buildTabItem('Active', 0),
+                    _buildTabItem('Past', 1),
+                    _buildTabItem('Returns', 2),
                   ],
                 ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildTabItem(String label, int index) {
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+          );
+        },
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _currentIndex == index ? Colors.black : Colors.black45,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -352,7 +341,26 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
   @override
   Widget build(BuildContext context) {
     final ts = _formatTimestamp(widget.order.timestamps['createdAt']);
-    final cancelled = widget.order.status == 'cancelled';
+    final status = widget.order.status;
+    final isCancelled = status == 'cancelled';
+    final isReturn = status == 'Return Requested';
+
+    Color getStatusColor() {
+      if (isCancelled || isReturn) return Colors.red.shade600;
+      return Colors.cyan.shade600;
+    }
+
+    IconData getStatusIcon() {
+      if (isCancelled) return Icons.cancel_rounded;
+      if (isReturn) return Icons.assignment_return_rounded;
+      return Icons.check_circle_rounded;
+    }
+
+    String getStatusText() {
+      if (isCancelled) return 'Cancelled';
+      if (isReturn) return 'Return Requested';
+      return 'Delivered';
+    }
 
     return GestureDetector(
       onTapDown: (_) {
@@ -391,17 +399,15 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: cancelled
-                        ? Colors.black.withValues(alpha: 0.04)
+                    color: isCancelled || isReturn
+                        ? Colors.red.withValues(alpha: 0.05)
                         : Colors.cyan.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    cancelled
-                        ? Icons.cancel_rounded
-                        : Icons.check_circle_rounded,
-                    size: 22,
-                    color: cancelled ? Colors.black38 : Colors.cyan.shade600,
+                    getStatusIcon(),
+                    size: 20,
+                    color: getStatusColor(),
                   ),
                 ),
               ),
@@ -438,11 +444,11 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
                 ),
               ),
               Text(
-                cancelled ? 'Cancelled' : 'Delivered',
+                getStatusText(),
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: cancelled ? Colors.black38 : Colors.cyan.shade700,
+                  color: getStatusColor(),
                   letterSpacing: -0.2,
                 ),
               ),
@@ -453,3 +459,4 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
     );
   }
 }
+
