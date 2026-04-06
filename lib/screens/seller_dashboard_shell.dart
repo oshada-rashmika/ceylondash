@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'seller_dashboard_screen.dart';
 import 'seller_shipments_tab.dart';
 import 'chat_list_screen.dart';
-import 'profile_screen.dart';
+import 'seller_profile_screen.dart';
 
 class SellerDashboardShell extends StatefulWidget {
   const SellerDashboardShell({super.key});
@@ -69,7 +69,7 @@ class _SellerDashboardShellState extends State<SellerDashboardShell>
       SellerDashboardScreen(onNavigateToTab: _onNavTap),
       const SellerShipmentsTab(),
       ChatListScreen(isActive: _currentIndex == 2),
-      const ProfileScreen(),
+      const SellerProfileScreen(),
     ];
 
     return Scaffold(
