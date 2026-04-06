@@ -83,6 +83,18 @@ class DatabaseService {
     return null;
   }
 
+  Future<UserModel?> getUserByEmail(String email) async {
+    final query = await _db
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (query.docs.isNotEmpty) {
+      return UserModel.fromFirestore(query.docs.first);
+    }
+    return null;
+  }
+
   Stream<UserModel?> streamUser(String uid) {
     return _db.collection('users').doc(uid).snapshots().map((doc) {
       if (doc.exists) return UserModel.fromFirestore(doc);
@@ -404,5 +416,84 @@ class DatabaseService {
       batch.update(doc.reference, {'isRead': true});
     }
     await batch.commit();
+  }
+
+  // --- Admin Dashboard Methods ---
+
+  Future<int> getTotalOrdersCount() async {
+    try {
+      final snap = await _db.collection('orders').count().get();
+      return snap.count ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> getActiveUsersCount() async {
+    try {
+      final snap = await _db.collection('users').where('role', isEqualTo: 'customer').count().get();
+      return snap.count ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> getActiveRidersCount() async {
+    try {
+      final snap = await _db.collection('users').where('role', isEqualTo: 'rider').count().get();
+      return snap.count ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<double> getTotalRevenue() async {
+    try {
+      final snap = await _db.collection('orders').where('status', isEqualTo: 'delivered').get();
+      double total = 0;
+      for (var doc in snap.docs) {
+        final data = doc.data();
+        total += (data['totalAmount'] ?? 0).toDouble();
+      }
+      return total;
+    } catch (_) {
+      return 0.0;
+    }
+  }
+
+  Stream<List<UserModel>> getAgentsStream() {
+    return _db.collection('users').where('role', isEqualTo: 'agent').snapshots().map(
+      (snap) => snap.docs.map((doc) => UserModel.fromFirestore(doc)).toList()
+    );
+  }
+
+  Future<void> createAgentDocument(UserModel agent) async {
+    await _db.collection('users').doc(agent.uid).set(agent.toMap());
+  }
+
+  Future<void> deactivateAgent(String uid) async {
+    await _db.collection('users').doc(uid).delete();
+  }
+
+  Stream<List<PromotionModel>> streamAllPromotions() {
+    return _db.collection('promotions').snapshots().map(
+      (snap) => snap.docs.map((doc) => PromotionModel.fromMap(doc.id, doc.data())).toList()
+    );
+  }
+
+  Future<void> updatePromotion(String id, Map<String, dynamic> data) async {
+    await _db.collection('promotions').doc(id).update(data);
+  }
+
+  Future<void> deletePromotion(String id) async {
+    await _db.collection('promotions').doc(id).delete();
+  }
+
+  Stream<QuerySnapshot> getOngoingSupportChatsStream() {
+    return _db.collection('support_chats').where('status', isEqualTo: 'active').snapshots();
+  }
+  
+  Stream<QuerySnapshot> getArchivedSupportChatsStream() {
+    return _db.collection('archived_chats').orderBy('archivedAt', descending: true).snapshots();
   }
 }
