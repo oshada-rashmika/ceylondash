@@ -13,6 +13,7 @@ import '../widgets/slide_page_route.dart';
 import 'cart_screen.dart';
 import 'shop_detail_screen.dart';
 import 'global_search_screen.dart';
+import 'customer_dashboard_shell.dart';
 import '../widgets/animated_order_card.dart';
 
 const _activeStatuses = {
@@ -396,39 +397,59 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Active Orders',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black,
-                  letterSpacing: -0.8,
-                ),
-              ),
-              if (_isSearching) ...[
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${activeOrders.length}',
+              Row(
+                children: [
+                  const Text(
+                    'Active Orders',
                     style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                      letterSpacing: -0.8,
+                    ),
+                  ),
+                  if (_isSearching) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${activeOrders.length}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (activeOrders.length > 1)
+                TextButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    CustomerDashboardShell.of(context)?.setIndex(1);
+                  },
+                  child: Text(
+                    'See More',
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                 ),
-              ],
             ],
           ),
         ),
@@ -441,7 +462,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
             _isSearching ? 'No Active Order Matches' : 'No Active Orders',
           )
         else
-          ...activeOrders.map((o) => AnimatedOrderCard(order: o)),
+          ...activeOrders.take(1).map((o) => AnimatedOrderCard(order: o)),
       ],
     );
   }

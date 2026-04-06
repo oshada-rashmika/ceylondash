@@ -15,11 +15,15 @@ import '../widgets/top_snackbar.dart';
 class CustomerDashboardShell extends StatefulWidget {
   const CustomerDashboardShell({super.key});
 
+  static CustomerDashboardShellState? of(BuildContext context) {
+    return context.findAncestorStateOfType<CustomerDashboardShellState>();
+  }
+
   @override
-  State<CustomerDashboardShell> createState() => _CustomerDashboardShellState();
+  State<CustomerDashboardShell> createState() => CustomerDashboardShellState();
 }
 
-class _CustomerDashboardShellState extends State<CustomerDashboardShell>
+class CustomerDashboardShellState extends State<CustomerDashboardShell>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
 
@@ -53,6 +57,8 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell>
     HapticFeedback.lightImpact();
     setState(() => _currentIndex = index);
   }
+
+  void setIndex(int index) => _onNavTap(index);
 
   void _toggleMenu() {
     HapticFeedback.lightImpact();
