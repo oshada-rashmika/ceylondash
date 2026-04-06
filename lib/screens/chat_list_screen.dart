@@ -1,42 +1,11 @@
 import 'package:flutter/material.dart';
-
-class _ChatPreview {
-  final String name;
-  final String message;
-  final String time;
-  final int unreadCount;
-
-  const _ChatPreview({
-    required this.name,
-    required this.message,
-    required this.time,
-    this.unreadCount = 0,
-  });
-}
-
-const _chatPreviews = [
-  _ChatPreview(
-    name: 'Tech Store',
-    message: 'Your order is packed and ready for dispatch.',
-    time: '10:42 AM',
-    unreadCount: 2,
-  ),
-  _ChatPreview(
-    name: 'Delivery Rider',
-    message: 'I am five minutes away from your drop-off point.',
-    time: '9:18 AM',
-  ),
-  _ChatPreview(
-    name: 'Fresh Mart',
-    message: 'We swapped one item and updated your basket total.',
-    time: 'Yesterday',
-  ),
-  _ChatPreview(
-    name: 'Support Desk',
-    message: 'Let us know if you want help with your latest order.',
-    time: 'Tue',
-  ),
-];
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart';
+import '../services/database_service.dart';
+import '../models/user_model.dart';
+import '../models/order_model.dart';
+import '../features/chat/presentation/screens/chat_screen.dart';
+import 'package:intl/intl.dart';
 
 class ChatListScreen extends StatefulWidget {
   final bool isActive;
@@ -47,66 +16,56 @@ class ChatListScreen extends StatefulWidget {
   State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _entranceController;
-  late final List<Animation<double>> _fadeAnimations;
-  late final List<Animation<Offset>> _slideAnimations;
-  bool _hasAnimated = false;
+class _ChatListScreenState extends State<ChatListScreen> {
+  final _authService = AuthService();
+  final _dbService = DatabaseService();
+
+  UserModel? _user;
+  Stream<List<OrderModel>>? _ordersStream;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 850),
-    );
-    _fadeAnimations = List.generate(_chatPreviews.length, (index) {
-      final start = index * 0.12;
-      final end = (start + 0.35).clamp(0.0, 1.0);
-      return CurvedAnimation(
-        parent: _entranceController,
-        curve: Interval(start, end, curve: Curves.easeOut),
-      );
-    });
-    _slideAnimations = List.generate(_chatPreviews.length, (index) {
-      final start = index * 0.12;
-      final end = (start + 0.4).clamp(0.0, 1.0);
-      return Tween<Offset>(
-        begin: const Offset(0, 0.08),
-        end: Offset.zero,
-      ).animate(
-        CurvedAnimation(
-          parent: _entranceController,
-          curve: Interval(start, end, curve: Curves.easeOutCubic),
-        ),
-      );
-    });
-
-    if (widget.isActive) {
-      _entranceController.forward();
-      _hasAnimated = true;
-    }
+    _initData();
   }
 
-  @override
-  void didUpdateWidget(covariant ChatListScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isActive && !_hasAnimated) {
-      _entranceController.forward(from: 0);
-      _hasAnimated = true;
+  Future<void> _initData() async {
+    final uid = _authService.currentUser?.uid;
+    if (uid != null) {
+      _user = await _dbService.getUser(uid);
+      if (_user != null) {
+        final isRider = _user!.role == 'rider';
+        _ordersStream = isRider
+            ? _dbService.getMyActiveRouteStream(uid)
+            : _dbService.streamCustomerOrders(uid);
+      }
     }
-  }
-
-  @override
-  void dispose() {
-    _entranceController.dispose();
-    super.dispose();
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
+    final uid = _authService.currentUser?.uid;
+
+    if (uid == null) {
+      return const Scaffold(body: Center(child: Text("Please login to see chats.")));
+    }
+
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_user == null || _ordersStream == null) {
+      return const Scaffold(body: Center(child: Text("User not found.")));
+    }
+
+    final isRider = _user!.role == 'rider';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -134,7 +93,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Stay in sync with stores, riders, and support.',
+                        'Active chats linked to your orders.',
                         style: TextStyle(
                           fontSize: 14,
                           height: 1.4,
@@ -146,21 +105,58 @@ class _ChatListScreenState extends State<ChatListScreen>
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList.builder(
-                  itemCount: _chatPreviews.length,
-                  itemBuilder: (context, index) {
-                    final chat = _chatPreviews[index];
-                    return FadeTransition(
-                      opacity: _fadeAnimations[index],
-                      child: SlideTransition(
-                        position: _slideAnimations[index],
-                        child: _ChatTile(chat: chat),
+              StreamBuilder<List<OrderModel>>(
+                stream: _ordersStream,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Text(
+                          "Error loading orders: ${snapshot.error}",
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     );
-                  },
-                ),
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SliverToBoxAdapter(
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  
+                  final allOrders = snapshot.data ?? [];
+                  final displayOrders = allOrders.where((o) => o.status != 'delivered' && o.status != 'cancelled').toList();
+
+                  if (displayOrders.isEmpty) {
+                    return const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Text(
+                          "No active orders found.",
+                          style: TextStyle(color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList.builder(
+                      itemCount: displayOrders.length,
+                      itemBuilder: (context, index) {
+                        final order = displayOrders[index];
+                        return _ChatTile(
+                          order: order,
+                          currentUser: _user!,
+                          isRider: isRider,
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ],
@@ -172,13 +168,32 @@ class _ChatListScreenState extends State<ChatListScreen>
 }
 
 class _ChatTile extends StatelessWidget {
-  final _ChatPreview chat;
+  final OrderModel order;
+  final UserModel currentUser;
+  final bool isRider;
 
-  const _ChatTile({required this.chat});
+  const _ChatTile({
+    required this.order,
+    required this.currentUser,
+    required this.isRider,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final initial = chat.name.characters.first.toUpperCase();
+    final chatName = isRider ? 'Customer (${order.orderName})' : 'Delivery Rider (${order.orderName})';
+    final initial = chatName.characters.first.toUpperCase();
+    
+    // Format timestamp
+    String timeStr = '';
+    final updatedAt = order.timestamps['updatedAt'];
+    if (updatedAt != null) {
+      final dt = (updatedAt is Timestamp) ? updatedAt.toDate() : DateTime.now();
+      timeStr = DateFormat('hh:mm a').format(dt);
+    } else {
+      timeStr = 'Just now';
+    }
+
+    final messagePreview = 'Chat regarding order ${order.id.substring(0, 5)}...';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -186,7 +201,18 @@ class _ChatTile extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChatScreen(
+                  trackingId: order.id,
+                  currentUserId: currentUser.uid,
+                  currentUserName: currentUser.name,
+                ),
+              ),
+            );
+          },
           borderRadius: BorderRadius.circular(20),
           splashColor: Colors.cyan.withAlpha(28),
           highlightColor: Colors.cyan.withAlpha(12),
@@ -209,7 +235,7 @@ class _ChatTile extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 24,
-                      backgroundColor: Colors.black,
+                      backgroundColor: isRider ? Colors.deepPurple : Colors.black,
                       child: Text(
                         initial,
                         style: const TextStyle(
@@ -229,7 +255,7 @@ class _ChatTile extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  chat.name,
+                                  chatName,
                                   style: const TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
@@ -241,7 +267,7 @@ class _ChatTile extends StatelessWidget {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                chat.time,
+                                timeStr,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -251,41 +277,15 @@ class _ChatTile extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  chat.message,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    height: 1.35,
-                                    color: Colors.black54,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (chat.unreadCount > 0) ...[
-                                const SizedBox(width: 12),
-                                Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.cyan,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    chat.unreadCount.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
+                          Text(
+                            messagePreview,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              height: 1.35,
+                              color: Colors.black54,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -300,3 +300,4 @@ class _ChatTile extends StatelessWidget {
     );
   }
 }
+

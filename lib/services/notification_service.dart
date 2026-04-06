@@ -104,4 +104,38 @@ class NotificationService {
       matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
     );
   }
+
+  Future<void> showLocalNotification({
+    int? id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    const AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails(
+          'immediate_channel_id',
+          'Immediate Notifications',
+          channelDescription: 'Used for real-time updates like chat and orders',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: true,
+        );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidNotificationDetails,
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      id: id ?? DateTime.now().millisecond, // Unique ID for each notification
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
+      payload: payload,
+    );
+  }
 }
