@@ -1,11 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/order_model.dart';
+import '../models/user_model.dart';
+import '../services/database_service.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final OrderModel order;
 
   const OrderDetailScreen({super.key, required this.order});
+
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  final DatabaseService _db = DatabaseService();
+  String? _riderName;
+  String? _sellerName;
+  bool _loadingNames = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNames();
+  }
+
+  Future<void> _fetchNames() async {
+    try {
+      final futures = <Future<void>>[];
+
+      if (widget.order.riderId != null) {
+        futures.add(_db.getUser(widget.order.riderId!).then((user) {
+          if (mounted) setState(() => _riderName = user?.name);
+        }));
+      }
+
+      futures.add(_db.getUser(widget.order.sellerId).then((user) {
+        if (mounted) {
+          setState(() {
+            _sellerName = user?.businessName ?? user?.name;
+          });
+        }
+      }));
+
+      await Future.wait(futures);
+    } catch (e) {
+      debugPrint("Error fetching names: $e");
+    } finally {
+      if (mounted) setState(() => _loadingNames = false);
+    }
+  }
 
   String _formatTimestamp(dynamic ts) {
     if (ts == null) return '';
@@ -20,18 +64,8 @@ class OrderDetailScreen extends StatelessWidget {
       }
     }
     final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
     final amPm = dt.hour >= 12 ? 'PM' : 'AM';
@@ -75,12 +109,12 @@ class OrderDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = order.orderName.isNotEmpty
-        ? order.orderName
-        : 'Order #${order.id.substring(0, 5)}';
+    final title = widget.order.orderName.isNotEmpty
+        ? widget.order.orderName
+        : 'Order #${widget.order.id.substring(0, 5)}';
 
     final textScaler = MediaQuery.textScalerOf(context);
-    final (primaryColor, bgColor) = _getStatusColors(context, order.status);
+    final (primaryColor, bgColor) = _getStatusColors(context, widget.order.status);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FB),
@@ -89,10 +123,7 @@ class OrderDetailScreen extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.black87,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87),
           onPressed: () {
             HapticFeedback.lightImpact();
             Navigator.pop(context);
@@ -143,7 +174,7 @@ class OrderDetailScreen extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        _orderIcon(order.status),
+                        _orderIcon(widget.order.status),
                         color: primaryColor,
                         size: 48,
                       ),
@@ -153,7 +184,7 @@ class OrderDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'Order ${_readableStatus(order.status)}',
+                'Order ${_readableStatus(widget.order.status)}',
                 style: TextStyle(
                   fontSize: textScaler.scale(22),
                   fontWeight: FontWeight.bold,
@@ -161,7 +192,6 @@ class OrderDetailScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-
               LayoutBuilder(
                 builder: (context, constraints) {
                   final boxWidth = constraints.constrainWidth();
@@ -176,9 +206,7 @@ class OrderDetailScreen extends StatelessWidget {
                         width: dashedWidth,
                         height: dashedHeight,
                         child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                          ),
+                          decoration: BoxDecoration(color: Colors.grey.shade300),
                         ),
                       );
                     }),
@@ -186,52 +214,43 @@ class OrderDetailScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 32),
-
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeOut,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: Transform.translate(
-                      offset: Offset(0, 20 * (1 - value)),
-                      child: Column(
-                        children: [
-                          _buildDetailRow(
-                            context,
-                            'Created',
-                            _formatTimestamp(order.timestamps['createdAt']),
-                          ),
-                          const SizedBox(height: 20),
-                          _buildDetailRow(
-                            context,
-                            'Status',
-                            _readableStatus(order.status),
-                          ),
-                          const SizedBox(height: 20),
-                          _buildDetailRow(context, 'Seller ID', order.sellerId),
-                          const SizedBox(height: 20),
-                          _buildDetailRow(
-                            context,
-                            'Rider ID',
-                            order.riderId ?? 'Assigning Rider...',
-                          ),
-                          if ((order.status == 'delivered' ||
-                                  order.status == 'past') &&
-                              order.timestamps['deliveredAt'] != null) ...[
-                            const SizedBox(height: 20),
-                            _buildDetailRow(
-                              context,
-                              'Delivered At',
-                              _formatTimestamp(order.timestamps['deliveredAt']),
-                            ),
-                          ],
-                        ],
-                      ),
+              Column(
+                children: [
+                  _buildDetailRow(
+                    context,
+                    'Created',
+                    _formatTimestamp(widget.order.timestamps['createdAt']),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildDetailRow(
+                    context,
+                    'Status',
+                    _readableStatus(widget.order.status),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildDetailRow(
+                    context,
+                    'Seller',
+                    _loadingNames ? 'Loading...' : (_sellerName ?? widget.order.sellerId),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildDetailRow(
+                    context,
+                    'Rider',
+                    _loadingNames 
+                      ? 'Loading...' 
+                      : (widget.order.riderId == null ? 'Assigning Rider...' : (_riderName ?? 'Unknown Rider')),
+                  ),
+                  if ((widget.order.status == 'delivered' || widget.order.status == 'past') &&
+                      widget.order.timestamps['deliveredAt'] != null) ...[
+                    const SizedBox(height: 20),
+                    _buildDetailRow(
+                      context,
+                      'Delivered At',
+                      _formatTimestamp(widget.order.timestamps['deliveredAt']),
                     ),
-                  );
-                },
+                  ],
+                ],
               ),
             ],
           ),
@@ -270,3 +289,4 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 }
+

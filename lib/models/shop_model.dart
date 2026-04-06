@@ -29,6 +29,7 @@ class ShopModel {
   final String headerImage;
   final List<String> categories;
   final List<ShopItemModel> items;
+  final String? sellerId;
 
   const ShopModel({
     required this.id,
@@ -38,6 +39,7 @@ class ShopModel {
     required this.headerImage,
     required this.categories,
     required this.items,
+    this.sellerId,
   });
 
   factory ShopModel.fromJson(String id, Map<String, dynamic> json) {
@@ -62,6 +64,7 @@ class ShopModel {
       headerImage: (json['headerImage'] as String?) ?? '',
       categories: categories,
       items: items,
+      sellerId: json['sellerId'] as String?,
     );
   }
 }

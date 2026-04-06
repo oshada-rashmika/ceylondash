@@ -95,6 +95,9 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
 
   Future<void> _loadUser() async {
     final fbUser = FirebaseAuth.instance.currentUser;
+    try {
+      await _db.seedBotSellers();
+    } catch (_) {}
     if (fbUser == null) {
       if (mounted) setState(() => _userLoading = false);
       return;

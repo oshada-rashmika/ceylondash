@@ -23,6 +23,7 @@ class UserModel {
   final String? businessName;
   final String? businessAddress;
   final String? socials;
+  final String? shopId;
 
   final String? courierId;
   final List<String>? usedPromotions;
@@ -48,6 +49,7 @@ class UserModel {
     this.businessName,
     this.businessAddress,
     this.socials,
+    this.shopId,
     this.courierId,
     this.accessibilityNeeds,
     this.usedPromotions,
@@ -83,6 +85,7 @@ class UserModel {
       businessName: data['businessName'],
       businessAddress: data['businessAddress'],
       socials: data['socials'],
+      shopId: data['shopId'],
       courierId: data['courierId'],
       accessibilityNeeds: data['accessibilityNeeds'] != null
           ? List<String>.from(data['accessibilityNeeds'])
@@ -118,6 +121,7 @@ class UserModel {
       if (businessName != null) 'businessName': businessName,
       if (businessAddress != null) 'businessAddress': businessAddress,
       if (socials != null) 'socials': socials,
+      if (shopId != null) 'shopId': shopId,
       if (courierId != null) 'courierId': courierId,
       if (accessibilityNeeds != null) 'accessibilityNeeds': accessibilityNeeds,
       if (usedPromotions != null) 'usedPromotions': usedPromotions,
