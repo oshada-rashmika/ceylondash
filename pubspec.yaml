@@ -53,6 +53,7 @@ dependencies:
   geolocator: ^14.0.2
   flutter_bloc: ^9.1.1
   mobile_scanner: ^7.2.0
+  payhere_mobilesdk_flutter: ^3.2.2
 
 dev_dependencies:
   flutter_test:
