@@ -106,6 +106,7 @@ class NotificationService {
   }
 
   Future<void> showLocalNotification({
+    int? id,
     required String title,
     required String body,
     String? payload,
@@ -130,7 +131,7 @@ class NotificationService {
     );
 
     await flutterLocalNotificationsPlugin.show(
-      id: DateTime.now().millisecond, // Unique ID for each notification
+      id: id ?? DateTime.now().millisecond, // Unique ID for each notification
       title: title,
       body: body,
       notificationDetails: notificationDetails,

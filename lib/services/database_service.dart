@@ -187,7 +187,6 @@ class DatabaseService {
     return _db
         .collection('orders')
         .where('customerId', isEqualTo: customerId)
-        .orderBy('timestamps.createdAt', descending: true)
         .snapshots()
         .map(
           (snap) => snap.docs.map((d) => OrderModel.fromFirestore(d)).toList(),
@@ -387,6 +386,10 @@ class DatabaseService {
 
   Future<void> markNotificationAsRead(String notificationId) async {
     await _db.collection('notifications').doc(notificationId).update({'isRead': true});
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    await _db.collection('notifications').doc(notificationId).delete();
   }
 
   Future<void> markAllNotificationsAsRead(String userId) async {

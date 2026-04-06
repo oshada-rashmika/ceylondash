@@ -106,74 +106,96 @@ class _NotificationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return InkWell(
-      onTap: () {
-        context.read<NotificationProvider>().markAsRead(notification.id);
-        // Handle navigation based on type?
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(16),
+    return Dismissible(
+      key: Key(notification.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.redAccent.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-          border: !notification.isRead 
-            ? Border.all(color: theme.primaryColor.withValues(alpha: 0.1), width: 1.5)
-            : null,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildIconContainer(context),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        notification.title,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: notification.isRead ? FontWeight.w600 : FontWeight.w800,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        DateFormat('h:mm a').format(notification.createdAt),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.black26,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    notification.body,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: notification.isRead ? Colors.black45 : Colors.black87,
-                      fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.w600,
-                      height: 1.4,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+      ),
+      onDismissed: (direction) {
+        context.read<NotificationProvider>().deleteNotification(notification.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Notification cleared'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      },
+      child: InkWell(
+        onTap: () {
+          context.read<NotificationProvider>().markAsRead(notification.id);
+          // Handle navigation based on type?
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
               ),
-            ),
-          ],
+            ],
+            border: !notification.isRead 
+              ? Border.all(color: theme.primaryColor.withValues(alpha: 0.1), width: 1.5)
+              : null,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildIconContainer(context),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          notification.title,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: notification.isRead ? FontWeight.w600 : FontWeight.w800,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          DateFormat('h:mm a').format(notification.createdAt),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black26,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      notification.body,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: notification.isRead ? Colors.black45 : Colors.black87,
+                        fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.w600,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
