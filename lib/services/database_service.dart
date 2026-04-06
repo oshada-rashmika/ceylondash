@@ -4,6 +4,7 @@ import '../models/order_model.dart';
 import '../models/user_model.dart';
 import '../models/promotion_model.dart';
 import '../models/shop_model.dart';
+import '../models/notification_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -56,6 +57,19 @@ class DatabaseService {
     return promotions;
   }
 
+  Future<void> createPromotion(PromotionModel promotion) async {
+    final docRef = _db.collection('promotions').doc();
+    await docRef.set(promotion.toMap());
+    
+    // Notify all customers about the new promotion
+    await broadcastNotification(
+      title: 'New Special Offer! 🎁',
+      body: 'A new promotion "${promotion.title}" is now available. Check it out!',
+      type: NotificationType.promo,
+      relatedId: docRef.id,
+    );
+  }
+
   Future<void> createUser(UserModel user) async {
     await _db.collection('users').doc(user.uid).set(user.toJson());
     debugPrint('🔥 Firestore User Created: ${user.uid}');
@@ -94,13 +108,20 @@ class DatabaseService {
     final orderData = order.toMap();
     orderData['id'] = orderRef.id;
     batch.set(orderRef, orderData);
-    if (appliedPromoCode != null && userId != null) {
-      final userRef = _db.collection('users').doc(userId);
-      batch.update(userRef, {
-        'usedPromotions': FieldValue.arrayUnion([appliedPromoCode]),
-      });
-    }
     await batch.commit();
+
+    // Notify customer about the new order
+    await createNotification(
+      NotificationModel(
+        id: '',
+        userId: userId ?? order.customerId,
+        title: 'Order Placed! 🛍️',
+        body: 'Your order #${orderRef.id.substring(0, 5).toUpperCase()} has been successfully placed.',
+        type: NotificationType.order,
+        createdAt: DateTime.now(),
+        relatedId: orderRef.id,
+      ),
+    );
 
     return orderRef.id;
   }
@@ -110,13 +131,50 @@ class DatabaseService {
       'status': newStatus,
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
     });
+
+    final orderDoc = await _db.collection('orders').doc(orderId).get();
+    if (orderDoc.exists) {
+      final customerId = orderDoc.data()?['customerId'];
+      if (customerId != null) {
+        await createNotification(
+          NotificationModel(
+            id: '',
+            userId: customerId,
+            title: 'Order Updated',
+            body: 'Your order status is now ${newStatus.replaceAll('_', ' ')}',
+            type: NotificationType.order,
+            createdAt: DateTime.now(),
+            relatedId: orderId,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> assignRider(String orderId, String riderId) async {
     await _db.collection('orders').doc(orderId).update({
       'riderId': riderId,
+      'status': 'assigned',
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
     });
+
+    final orderDoc = await _db.collection('orders').doc(orderId).get();
+    if (orderDoc.exists) {
+      final customerId = orderDoc.data()?['customerId'];
+      if (customerId != null) {
+        await createNotification(
+          NotificationModel(
+            id: '',
+            userId: customerId,
+            title: 'Rider Assigned! 🛵',
+            body: 'A rider has been assigned to your order. They will pick it up soon!',
+            type: NotificationType.order,
+            createdAt: DateTime.now(),
+            relatedId: orderId,
+          ),
+        );
+      }
+    }
   }
 
   Stream<OrderModel> streamOrder(String orderId) {
@@ -152,6 +210,24 @@ class DatabaseService {
       'riderId': riderId,
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
     });
+
+    final orderDoc = await _db.collection('orders').doc(orderId).get();
+    if (orderDoc.exists) {
+      final customerId = orderDoc.data()?['customerId'];
+      if (customerId != null) {
+        await createNotification(
+          NotificationModel(
+            id: '',
+            userId: customerId,
+            title: 'Rider on the way! 🚀',
+            body: 'Your rider has claimed the order and is heading to the restaurant.',
+            type: NotificationType.order,
+            createdAt: DateTime.now(),
+            relatedId: orderId,
+          ),
+        );
+      }
+    }
   }
 
   Stream<List<OrderModel>> getMyActiveRouteStream(String riderUid) {
@@ -182,6 +258,21 @@ class DatabaseService {
       'timestamps.deliveredAt': FieldValue.serverTimestamp(),
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
     });
+
+    final customerId = data['customerId'];
+    if (customerId != null) {
+      await createNotification(
+        NotificationModel(
+          id: '',
+          userId: customerId,
+          title: 'Order Delivered',
+          body: 'Your order has been safely delivered. Enjoy!',
+          type: NotificationType.order,
+          createdAt: DateTime.now(),
+          relatedId: orderId,
+        ),
+      );
+    }
   }
 
   Future<List<ShopModel>> getAllShops() async {
@@ -238,24 +329,7 @@ class DatabaseService {
     
     await _db.collection('shops').doc(shop2Id).set({'sellerId': seller2Id}, SetOptions(merge: true));
 
-    // 3. The Burger Joint (New Bot Seller)
-    final shop3Id = 'eccOdl5dxuLlexMlfJ9G';
-    final seller3Id = 'seller_burger_joint';
-    
-    final seller3Ref = _db.collection('users').doc(seller3Id);
-    await seller3Ref.set({
-      'uid': seller3Id,
-      'name': 'Burger Joint Manager',
-      'email': 'manager@burgerjoint.com',
-      'fcmToken': '',
-      'phone': '+94700000003',
-      'role': 'seller',
-      'businessName': 'The Burger Joint',
-      'businessAddress': 'Galle Face',
-      'shopId': shop3Id,
-    }, SetOptions(merge: true));
-    
-    await _db.collection('shops').doc(shop3Id).set({'sellerId': seller3Id}, SetOptions(merge: true));
+    await _db.collection('shops').doc(shop2Id).set({'sellerId': seller2Id}, SetOptions(merge: true));
 
     debugPrint('✅ Bot Sellers and Shop Links seeded successfully!');
   }
@@ -267,5 +341,65 @@ class DatabaseService {
       ...reportData,
       'createdAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  // --- Notification Methods ---
+
+  Future<void> createNotification(NotificationModel notification) async {
+    await _db.collection('notifications').add(notification.toMap());
+  }
+
+  Future<void> broadcastNotification({
+    required String title,
+    required String body,
+    required NotificationType type,
+    String? relatedId,
+  }) async {
+    final customersSnap = await _db
+        .collection('users')
+        .where('role', isEqualTo: 'customer')
+        .get();
+
+    final batch = _db.batch();
+    for (var doc in customersSnap.docs) {
+      final notifRef = _db.collection('notifications').doc();
+      batch.set(notifRef, {
+        'userId': doc.id,
+        'title': title,
+        'body': body,
+        'type': type.name,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+        'relatedId': relatedId,
+      });
+    }
+    await batch.commit();
+  }
+
+  Stream<List<NotificationModel>> streamNotifications(String userId) {
+    return _db
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => NotificationModel.fromFirestore(d)).toList());
+  }
+
+  Future<void> markNotificationAsRead(String notificationId) async {
+    await _db.collection('notifications').doc(notificationId).update({'isRead': true});
+  }
+
+  Future<void> markAllNotificationsAsRead(String userId) async {
+    final unreadSnap = await _db
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    final batch = _db.batch();
+    for (var doc in unreadSnap.docs) {
+      batch.update(doc.reference, {'isRead': true});
+    }
+    await batch.commit();
   }
 }

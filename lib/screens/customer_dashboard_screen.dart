@@ -14,6 +14,8 @@ import 'cart_screen.dart';
 import 'shop_detail_screen.dart';
 import 'global_search_screen.dart';
 import 'customer_dashboard_shell.dart';
+import 'notifications_screen.dart';
+import '../providers/notification_provider.dart';
 import '../widgets/animated_order_card.dart';
 
 const _activeStatuses = {
@@ -260,9 +262,29 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
                   ],
                 ),
               ),
+              Consumer<NotificationProvider>(
+                builder: (context, provider, _) {
+                  return _buildIconButton(
+                    context,
+                    icon: Icons.notifications_none_rounded,
+                    count: provider.unreadCount,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(builder: (_) => const NotificationsScreen()),
+                      );
+                    },
+                  );
+                },
+              ),
+              const SizedBox(width: 16),
               Consumer<CartProvider>(
                 builder: (context, cart, _) {
-                  return GestureDetector(
+                  return _buildIconButton(
+                    context,
+                    icon: Icons.shopping_bag_outlined,
+                    count: cart.globalItemCount,
                     onTap: () {
                       HapticFeedback.selectionClick();
                       Navigator.push(
@@ -272,53 +294,6 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
                         ),
                       );
                     },
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.shopping_bag_outlined,
-                            color: Colors.black87,
-                            size: 22,
-                          ),
-                        ),
-                        if (cart.globalItemCount > 0)
-                          Positioned(
-                            top: -2,
-                            right: -2,
-                            child: Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
-                                shape: BoxShape.circle,
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                '${cart.globalItemCount > 9 ? '9+' : cart.globalItemCount}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
                   );
                 },
               ),
@@ -326,6 +301,61 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen>
           ),
           const SizedBox(height: 32),
           _buildSearchBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconButton(
+    BuildContext context, {
+    required IconData icon,
+    required int count,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.black87, size: 22),
+          ),
+          if (count > 0)
+            Positioned(
+              top: -2,
+              right: -2,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${count > 9 ? '9+' : count}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

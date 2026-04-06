@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/notification_model.dart';
+import 'database_service.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -278,6 +280,21 @@ class ChatService {
     await _firestore.collection('support_chats').doc(threadUserId).set({
       'lastUpdated': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    // Notify customer if sender is not them
+    if (senderId != threadUserId && !isBot && !isSystem) {
+      await DatabaseService().createNotification(
+        NotificationModel(
+          id: '',
+          userId: threadUserId,
+          title: 'New Support Message',
+          body: text,
+          type: NotificationType.support,
+          createdAt: DateTime.now(),
+          relatedId: threadUserId,
+        ),
+      );
+    }
   }
 
   Stream<QuerySnapshot> getActiveSupportChats() {

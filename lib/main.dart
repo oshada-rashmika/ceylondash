@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'providers/cart_provider.dart';
 import 'providers/accessibility_provider.dart';
+import 'providers/notification_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/admin_login_screen.dart';
 import 'screens/role_selection_screen.dart';
@@ -24,6 +25,7 @@ import 'widgets/top_snackbar.dart';
 import 'services/database_service.dart';
 import 'services/notification_service.dart';
 import 'models/user_model.dart';
+import 'models/notification_model.dart';
 import 'screens/seller_dashboard_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -41,6 +43,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => AccessibilityProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const CeylonDashApp(),
     ),
@@ -268,6 +271,34 @@ class _RoleRouterGateState extends State<RoleRouterGate> {
     if (_cachedRole == null) {
       _userFuture = DatabaseService().getUser(widget.uid);
     }
+
+    // Initialize notification service early
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<NotificationProvider>().initialize(widget.uid);
+
+        // --- Temporary TEST Notification for Troubleshooting ---
+        // This will create a local notification document only if the list is empty
+        _seedTestNotification();
+      }
+    });
+  }
+
+  Future<void> _seedTestNotification() async {
+    final provider = context.read<NotificationProvider>();
+    if (provider.notifications.isEmpty) {
+      await DatabaseService().createNotification(
+        NotificationModel(
+          id: '',
+          userId: widget.uid,
+          title: 'System Check ✅',
+          body:
+              'Your notification system is now active and monitoring for updates.',
+          type: NotificationType.order,
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
   }
 
   @override
@@ -278,6 +309,7 @@ class _RoleRouterGateState extends State<RoleRouterGate> {
       if (_cachedRole == null) {
         _userFuture = DatabaseService().getUser(widget.uid);
       }
+      context.read<NotificationProvider>().initialize(widget.uid);
     }
   }
 

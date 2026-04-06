@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/message_model.dart';
+import '../../../../models/notification_model.dart';
+import '../../../../services/database_service.dart';
 import 'package:uuid/uuid.dart';
 
 class ChatService {
@@ -60,9 +62,34 @@ class ChatService {
         .doc(messageId)
         .set(message.toMap());
         
-    // Also update parent chat document update time
     await _firestore.collection('chats').doc(trackingId).set({
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    // Notify recipient
+    try {
+      final orderDoc = await _firestore.collection('orders').doc(trackingId).get();
+      if (orderDoc.exists) {
+        final data = orderDoc.data()!;
+        final customerId = data['customerId'];
+        final riderId = data['riderId'];
+        
+        final recipientId = (senderId == customerId) ? riderId : customerId;
+        
+        if (recipientId != null && recipientId.isNotEmpty) {
+          await DatabaseService().createNotification(
+            NotificationModel(
+              id: '',
+              userId: recipientId,
+              title: 'New Message',
+              body: text ?? 'Sent an attachment',
+              type: NotificationType.chat,
+              createdAt: DateTime.now(),
+              relatedId: trackingId,
+            ),
+          );
+        }
+      }
+    } catch (_) {}
   }
 }
