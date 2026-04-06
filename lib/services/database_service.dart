@@ -206,24 +206,22 @@ class DatabaseService {
       'fcmToken': '',
       'phone': '+94768223528',
       'role': 'seller',
-      'businessName': 'SENU',
+      'businessName': 'Gadget Hub',
       'businessAddress': 'SVDJHDSFSFE',
       'shopId': shop1Id,
     }, SetOptions(merge: true));
     
     await _db.collection('shops').doc(shop1Id).set({'sellerId': seller1Id}, SetOptions(merge: true));
 
-    // 2. Urban Wear
+    // 2. Urban Wear (Existing test seller)
     final shop2Id = 'Uij5NuEdftwRTf0eVUmY';
     final seller2Id = 'test_seller_456';
     
     final seller2Ref = _db.collection('users').doc(seller2Id);
     await seller2Ref.set({
       'uid': seller2Id,
-      'name': 'Urban Wear Manager',
-      'email': 'urbanwear@bot.com',
-      'fcmToken': '',
-      'phone': '+94700000001',
+      'name': 'Urban Wear Seller',
+      'email': 'urbanwear@example.com',
       'role': 'seller',
       'businessName': 'Urban Wear',
       'businessAddress': 'Colombo 07',
@@ -232,20 +230,20 @@ class DatabaseService {
     
     await _db.collection('shops').doc(shop2Id).set({'sellerId': seller2Id}, SetOptions(merge: true));
 
-    // 3. Shop 3 (Fresh Express)
+    // 3. The Burger Joint (New Bot Seller)
     final shop3Id = 'eccOdl5dxuLlexMlfJ9G';
-    final seller3Id = 'seller_shop_3';
+    final seller3Id = 'seller_burger_joint';
     
     final seller3Ref = _db.collection('users').doc(seller3Id);
     await seller3Ref.set({
       'uid': seller3Id,
-      'name': 'Fresh Express Manager',
-      'email': 'freshexpress@bot.com',
+      'name': 'Burger Joint Manager',
+      'email': 'manager@burgerjoint.com',
       'fcmToken': '',
-      'phone': '+94700000002',
+      'phone': '+94700000003',
       'role': 'seller',
-      'businessName': 'Fresh Express',
-      'businessAddress': 'Kandy City',
+      'businessName': 'The Burger Joint',
+      'businessAddress': 'Galle Face',
       'shopId': shop3Id,
     }, SetOptions(merge: true));
     
