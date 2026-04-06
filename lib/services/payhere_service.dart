@@ -5,8 +5,10 @@ import 'package:payhere_mobilesdk_flutter/payhere_mobilesdk_flutter.dart';
 
 class PayHereService {
   final String _merchantId = "1228224"; // Or appropriate Merchant ID
-  final String _hashGenerationUrl = "https://ceylondash-backend.vercel.app/api/payhere/generate-hash";
-  final String _webhookUrl = "https://ceylondash-backend.vercel.app/api/payhere/webhook";
+  final String _hashGenerationUrl =
+      "https://ceylondash-backend.vercel.app/api/payhere/generate-hash";
+  final String _webhookUrl =
+      "https://ceylondash-backend.vercel.app/api/payhere/webhook";
 
   Future<void> startCheckout({
     required BuildContext context,
@@ -40,7 +42,8 @@ class PayHereService {
 
       final responseData = jsonDecode(response.body);
       final String hash = responseData['hash'];
-      final String merchantIdFromBackend = responseData['merchant_id'] ?? _merchantId;
+      final String merchantIdFromBackend =
+          responseData['merchant_id'] ?? _merchantId;
 
       // Step B: Map parameters
       Map<String, dynamic> paymentObject = {
