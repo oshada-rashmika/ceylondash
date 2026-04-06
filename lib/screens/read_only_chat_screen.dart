@@ -47,12 +47,6 @@ class ReadOnlyChatScreen extends StatelessWidget {
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
                     final data = docs[index].data() as Map<String, dynamic>;
-                    final isMe =
-                        data['senderId'] ==
-                        FirebaseFirestore
-                            .instance
-                            .app
-                            .name; // unlikely; keep simple
                     final isBot = data['isBot'] ?? false;
                     final isSystem =
                         data['isSystem'] == true ||

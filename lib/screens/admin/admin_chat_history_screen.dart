@@ -28,10 +28,12 @@ class AdminChatHistoryScreen extends StatelessWidget {
                   .orderBy('resolvedAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.hasError)
+                if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
-                if (!snapshot.hasData)
+                }
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
+                }
 
                 final docs = snapshot.data!.docs;
                 if (docs.isEmpty) {
@@ -170,16 +172,19 @@ class AdminChatHistoryDetailScreen extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: messagesRef.snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError)
+          if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
-          if (!snapshot.hasData)
+          }
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
 
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty)
+          if (docs.isEmpty) {
             return const Center(
               child: Text('No messages in this archived chat.'),
             );
+          }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),

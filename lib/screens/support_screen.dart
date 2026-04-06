@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -131,7 +133,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _contactAgent() async {
-    final uid = this._uid;
+    final uid = _uid;
     if (uid == null) return;
     await FirebaseFirestore.instance.collection('support_chats').doc(uid).set({
       'userId': uid,
@@ -150,7 +152,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   void _sendMessage() async {
-    final uid = this._uid;
+    final uid = _uid;
     if (_msgController.text.trim().isEmpty || uid == null) return;
     final text = _msgController.text.trim();
     _msgController.clear();
@@ -198,7 +200,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Future<void> _showClearChatDialog() async {
-    final uid = this._uid;
+    final uid = _uid;
     if (uid == null) return;
 
     final confirm = await showCupertinoDialog<bool>(
@@ -232,7 +234,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = this._uid;
+    final uid = _uid;
     if (uid == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Support')),
@@ -274,19 +276,14 @@ class _SupportScreenState extends State<SupportScreen> {
           final bool isTyping;
 
           String? statusStr;
-          String? agentName;
-          String? agentId;
           if (!chatSnap.hasData || !chatSnap.data!.exists) {
             isWaiting = false;
             isActive = false;
             isTyping = false;
             statusStr = null;
-            agentName = null;
           } else {
             final data = chatSnap.data!.data() as Map<String, dynamic>?;
             statusStr = data?['status'] as String?;
-            agentName = data?['agentName'] as String?;
-            agentId = data?['agentId'] as String?;
             isWaiting = statusStr == 'waiting_for_agent';
             isActive = statusStr == 'active';
             isTyping = data?['isTyping'] ?? false;
@@ -464,7 +461,7 @@ class _SupportScreenState extends State<SupportScreen> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.06),
+                              color: Colors.black.withValues(alpha: 0.06),
                               blurRadius: 12,
                               offset: const Offset(0, 6),
                             ),
@@ -521,7 +518,6 @@ class _SupportScreenState extends State<SupportScreen> {
                                 onPressed: _selectedRating == 0
                                     ? null
                                     : () async {
-                                        if (uid == null) return;
                                         await _chatService
                                             .submitRatingAndArchive(
                                               uid,
