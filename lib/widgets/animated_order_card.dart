@@ -16,14 +16,17 @@ const _statusIcons = [
 ];
 
 int _statusIndex(String status) {
-  final i = _statusSteps.indexOf(status);
-  return i == -1 ? 0 : i;
+  if (status == 'placed' || status == 'processing') return 0;
+  if (status == 'preparing' || status == 'pickup_scheduled' || status == 'picked_up' || status == 'assigned') return 1;
+  if (status == 'on_the_way' || status == 'in_transit' || status == 'out_for_delivery') return 2;
+  if (status == 'delivered') return 3;
+  return 0;
 }
 
 IconData _orderIcon(String status) {
   return switch (status) {
-    'preparing' => Icons.inventory_2_rounded,
-    'on_the_way' => Icons.two_wheeler_rounded,
+    'preparing' || 'picked_up' || 'pickup_scheduled' => Icons.inventory_2_rounded,
+    'on_the_way' || 'in_transit' || 'out_for_delivery' => Icons.two_wheeler_rounded,
     'delivered' => Icons.check_circle_rounded,
     'cancelled' => Icons.cancel_rounded,
     _ => Icons.receipt_long_rounded,
@@ -33,8 +36,13 @@ IconData _orderIcon(String status) {
 String _readableStatus(String s) {
   return switch (s) {
     'on_the_way' => 'On the Way',
+    'in_transit' => 'In Transit',
+    'out_for_delivery' => 'Out for Delivery',
+    'pickup_scheduled' => 'Pickup Scheduled',
+    'picked_up' => 'Picked Up',
     'processing' => 'Processing',
-    _ => '${s[0].toUpperCase()}${s.substring(1)}',
+    'assigned' => 'Assigned to Rider',
+    _ => '${s[0].toUpperCase()}${s.substring(1).replaceAll("_", " ")}',
   };
 }
 

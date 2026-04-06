@@ -15,7 +15,17 @@ import 'shop_detail_screen.dart';
 import 'global_search_screen.dart';
 import '../widgets/animated_order_card.dart';
 
-const _activeStatuses = {'processing', 'placed', 'preparing', 'on_the_way'};
+const _activeStatuses = {
+  'processing',
+  'placed',
+  'preparing',
+  'on_the_way',
+  'in_transit',
+  'out_for_delivery',
+  'pickup_scheduled',
+  'picked_up',
+  'assigned'
+};
 
 class CustomerDashboardScreen extends StatefulWidget {
   const CustomerDashboardScreen({super.key});

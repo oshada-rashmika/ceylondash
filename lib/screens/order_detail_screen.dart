@@ -41,10 +41,9 @@ class OrderDetailScreen extends StatelessWidget {
 
   IconData _orderIcon(String status) {
     return switch (status) {
-      'preparing' => Icons.soup_kitchen_rounded,
-      'on_the_way' => Icons.delivery_dining_rounded,
-      'delivered' => Icons.check_circle_rounded,
-      'past' => Icons.check_circle_rounded,
+      'preparing' || 'pickup_scheduled' || 'picked_up' => Icons.soup_kitchen_rounded,
+      'on_the_way' || 'in_transit' || 'out_for_delivery' => Icons.delivery_dining_rounded,
+      'delivered' || 'past' => Icons.check_circle_rounded,
       'cancelled' => Icons.cancel_rounded,
       _ => Icons.receipt_long_rounded,
     };
@@ -53,8 +52,13 @@ class OrderDetailScreen extends StatelessWidget {
   String _readableStatus(String s) {
     return switch (s) {
       'on_the_way' => 'On the Way',
+      'in_transit' => 'In Transit',
+      'out_for_delivery' => 'Out for Delivery',
+      'pickup_scheduled' => 'Pickup Scheduled',
+      'picked_up' => 'Picked Up',
       'processing' => 'Processing',
-      _ => '${s[0].toUpperCase()}${s.substring(1)}',
+      'assigned' => 'Assigned to Rider',
+      _ => '${s[0].toUpperCase()}${s.substring(1).replaceAll("_", " ")}',
     };
   }
 

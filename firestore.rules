@@ -5,37 +5,31 @@ service cloud.firestore {
 
     // Users collection: role-based access
     match /users/{userId} {
-      // Allow a user to read their own document
-      allow read: if request.auth != null && request.auth.uid == userId;
-
-      // Allow creation only if the auth UID matches the document ID
-      // and the role field is one of the allowed values
-      allow create: if request.auth != null
-                    && request.auth.uid == userId
-                    && request.resource.data.uid == userId
-                    && request.resource.data.role in ['customer', 'rider', 'seller', 'admin'];
-
-      // Allow update only on own document; role field cannot be changed
-      allow update: if request.auth != null
-                    && request.auth.uid == userId
-                    && request.resource.data.role == resource.data.role;
-
-      // Deny delete for all users
+      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
       allow delete: if false;
     }
 
-    // Admin: allow reading any user document if the requester is an admin
-    match /users/{userId} {
-      allow read: if request.auth != null
-                  && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    // Orders collection (existing — unchanged)
+    // Orders collection
     match /orders/{orderId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
+      allow read, create, update: if request.auth != null;
       allow delete: if false;
+    }
+
+    // Chats and support_chats subcollections
+    // This recursive match ensures all 'messages' subcollections are accessible to authenticated users
+    match /{path=**}/messages/{messageId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow access to the parent chat documents themselves
+    match /chats/{trackingId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /support_chats/{userId} {
+      allow read, write: if request.auth != null;
     }
   }
 }

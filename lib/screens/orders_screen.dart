@@ -8,7 +8,17 @@ import 'order_detail_screen.dart';
 import '../widgets/animated_order_card.dart';
 import '../widgets/slide_page_route.dart';
 
-const _activeStatuses = {'processing', 'placed', 'preparing', 'on_the_way'};
+const _activeStatuses = {
+  'processing',
+  'placed',
+  'preparing',
+  'on_the_way',
+  'in_transit',
+  'out_for_delivery',
+  'pickup_scheduled',
+  'picked_up',
+  'assigned'
+};
 const _recentStatuses = {'delivered', 'cancelled'};
 
 String _formatTimestamp(dynamic ts) {
