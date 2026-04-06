@@ -505,8 +505,31 @@ class DatabaseService {
   Stream<QuerySnapshot> getOngoingSupportChatsStream() {
     return _db.collection('support_chats').snapshots();
   }
-  
+
   Stream<QuerySnapshot> getArchivedSupportChatsStream() {
     return _db.collection('archived_chats').snapshots();
+  }
+  Stream<List<UserModel>> getActiveRidersStream() {
+    return _db
+        .collection('users')
+        .where('role', isEqualTo: 'rider')
+        .where('isAvailable', isEqualTo: true) // Filter for online/available riders
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => UserModel.fromFirestore(doc))
+            .where((u) => u.currentLocation != null) // Only return riders with location
+            .toList());
+  }
+
+  Stream<List<OrderModel>> getActiveOrdersStream() {
+    return _db
+        .collection('orders')
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => OrderModel.fromFirestore(doc))
+            .where((o) =>
+                o.status != 'delivered' &&
+                o.status != 'cancelled') // Filter for active orders
+            .toList());
   }
 }

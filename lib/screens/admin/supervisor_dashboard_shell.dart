@@ -8,6 +8,7 @@ import 'modules/analytics_module.dart';
 import 'modules/promotions_module.dart';
 import 'modules/agent_management_module.dart';
 import 'modules/live_support_module.dart';
+import 'modules/operations_map_module.dart';
 import '../../services/database_service.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
@@ -116,6 +117,11 @@ class SupervisorDashboardView extends StatelessWidget {
                       selectedIcon: Icon(Icons.support_agent_rounded, color: Colors.blueAccent),
                       label: Text('Support'),
                     ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.map_outlined),
+                      selectedIcon: Icon(Icons.map_rounded, color: Colors.blueAccent),
+                      label: Text('Map'),
+                    ),
                   ],
                 ),
               if (MediaQuery.of(context).size.width >= 800)
@@ -155,6 +161,11 @@ class SupervisorDashboardView extends StatelessWidget {
                       selectedIcon: Icon(Icons.support_agent_rounded, color: Colors.blueAccent),
                       label: 'Support',
                     ),
+                    NavigationDestination(
+                      icon: Icon(Icons.map_outlined),
+                      selectedIcon: Icon(Icons.map_rounded, color: Colors.blueAccent),
+                      label: 'Map',
+                    ),
                   ],
                 )
               : null,
@@ -173,6 +184,8 @@ class SupervisorDashboardView extends StatelessWidget {
         return const AgentManagementModule();
       case 3:
         return const LiveSupportModule();
+      case 4:
+        return const OperationsMapModule();
       default:
         return const AnalyticsModule();
     }
