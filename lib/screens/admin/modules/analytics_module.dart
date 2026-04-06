@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../bloc/analytics_bloc.dart';
 import 'dart:ui';
+import '../red_flags_screen.dart';
 
 class AnalyticsModule extends StatelessWidget {
   const AnalyticsModule({super.key});
@@ -45,6 +46,8 @@ class AnalyticsView extends StatelessWidget {
                     _buildStatGrid(state),
                     const SizedBox(height: 32),
                     _buildChartSection(state.trends),
+                    const SizedBox(height: 24),
+                    _buildRedFlagsButton(context),
                     const SizedBox(height: 100), // Bottom padding
                   ],
                 ),
@@ -295,6 +298,51 @@ class AnalyticsView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRedFlagsButton(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const RedFlagsScreen()),
+        );
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withAlpha(20),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.redAccent.withAlpha(40), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+              child: const Icon(Icons.shield_outlined, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Red Flag Intelligence',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                  Text(
+                    'Detect anomalies, fraud, and risk in real-time.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.redAccent),
+          ],
+        ),
       ),
     );
   }

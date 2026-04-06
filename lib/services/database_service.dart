@@ -123,10 +123,16 @@ class DatabaseService {
   }
 
   Future<void> updateOrderStatus(String orderId, String newStatus) async {
-    await _db.collection('orders').doc(orderId).update({
+    final Map<String, dynamic> updates = {
       'status': newStatus,
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (newStatus == 'picked_up') {
+      updates['timestamps.pickedUpAt'] = FieldValue.serverTimestamp();
+    }
+
+    await _db.collection('orders').doc(orderId).update(updates);
 
     final orderDoc = await _db.collection('orders').doc(orderId).get();
     if (orderDoc.exists) {
@@ -237,7 +243,7 @@ class DatabaseService {
             .toList());
   }
 
-  Future<void> verifyDelivery(String orderId, String inputPin) async {
+  Future<void> verifyDelivery(String orderId, String inputPin, {GeoPoint? deliveryLocation}) async {
     final doc = await _db.collection('orders').doc(orderId).get();
     if (!doc.exists) throw Exception('Order does not exist');
     final data = doc.data() as Map<String, dynamic>;
@@ -252,6 +258,7 @@ class DatabaseService {
       'status': 'delivered',
       'timestamps.deliveredAt': FieldValue.serverTimestamp(),
       'timestamps.updatedAt': FieldValue.serverTimestamp(),
+      if (deliveryLocation != null) 'deliveryLocation': deliveryLocation,
     });
 
     final customerId = data['customerId'];
@@ -531,5 +538,23 @@ class DatabaseService {
                 o.status != 'delivered' &&
                 o.status != 'cancelled') // Filter for active orders
             .toList());
+  }
+
+  Future<List<OrderModel>> getRecentOrders(Duration duration) async {
+    final now = DateTime.now();
+    final start = now.subtract(duration);
+    final snap = await _db.collection('orders')
+        .where('timestamps.updatedAt', isGreaterThan: Timestamp.fromDate(start))
+        .get();
+    return snap.docs.map((d) => OrderModel.fromFirestore(d)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getRecentReports(Duration duration) async {
+    final now = DateTime.now();
+    final start = now.subtract(duration);
+    final snap = await _db.collection('reports')
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(start))
+        .get();
+    return snap.docs.map((d) => d.data() as Map<String, dynamic>).toList();
   }
 }
