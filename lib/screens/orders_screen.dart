@@ -417,9 +417,20 @@ class _RecentOrderTileState extends State<_RecentOrderTile>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.order.orderName.isNotEmpty
-                          ? widget.order.orderName
-                          : 'Order #${widget.order.id.substring(0, 5)}',
+                      () {
+                        final name = widget.order.orderName;
+                        if (name.startsWith('Order from')) {
+                          final items = widget.order.rawData['items'] as List<dynamic>?;
+                          if (items != null && items.isNotEmpty) {
+                            final firstItem = items.first['name'] as String? ?? 'Item';
+                            if (items.length > 1) {
+                              return '$firstItem + ${items.length - 1} more';
+                            }
+                            return firstItem;
+                          }
+                        }
+                        return name.isNotEmpty ? name : 'Order #${widget.order.id.substring(0, 5)}';
+                      }(),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,

@@ -186,12 +186,23 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          o.orderName.isNotEmpty
-                              ? o.orderName
-                              : 'Order #${o.id.substring(0, 5)}',
+                          () {
+                            final name = o.orderName;
+                            if (name.startsWith('Order from')) {
+                              final items = o.rawData['items'] as List<dynamic>?;
+                              if (items != null && items.isNotEmpty) {
+                                final firstItem = items.first['name'] as String? ?? 'Item';
+                                if (items.length > 1) {
+                                  return '$firstItem + ${items.length - 1} more';
+                                }
+                                return firstItem;
+                              }
+                            }
+                            return name.isNotEmpty ? name : 'Order #${o.id.substring(0, 5)}';
+                          }(),
                           style: const TextStyle(
                             fontWeight: FontWeight.w800,
-                            fontSize: 18,
+                            fontSize: 17,
                             color: Colors.black,
                             letterSpacing: -0.4,
                           ),
@@ -212,6 +223,7 @@ class _AnimatedOrderCardState extends State<AnimatedOrderCard>
                       ],
                     ),
                   ),
+                  const SizedBox(width: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,

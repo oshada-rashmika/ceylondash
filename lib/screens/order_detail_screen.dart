@@ -4,6 +4,7 @@ import '../models/order_model.dart';
 import '../models/user_model.dart';
 import '../services/database_service.dart';
 import '../widgets/top_snackbar.dart';
+import 'support_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final OrderModel order;
@@ -305,6 +306,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final textScaler = MediaQuery.textScalerOf(context);
     final (primaryColor, bgColor) = _getStatusColors(context, widget.order.status);
 
+    final cartItems = widget.order.rawData['items'] as List<dynamic>?;
+    String displayItemName = widget.order.orderName;
+    if (displayItemName.startsWith('Order from') && cartItems != null && cartItems.isNotEmpty) {
+      final firstItem = cartItems.first['name'] as String? ?? 'Item';
+      if (cartItems.length > 1) {
+        displayItemName = '$firstItem + ${cartItems.length - 1} more';
+      } else {
+        displayItemName = firstItem;
+      }
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
@@ -373,7 +385,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         const SizedBox(height: 32),
                         _buildInfoRow('Created', _formatTimestamp(widget.order.timestamps['createdAt'])),
                         const SizedBox(height: 20),
-                        _buildInfoRow('Item', widget.order.orderName),
+                        _buildInfoRow('Item', displayItemName),
                         const SizedBox(height: 20),
                         _buildInfoRow('Shop', _loadingData ? 'Loading...' : (_shopName ?? 'Unknown')),
                         const SizedBox(height: 20),
@@ -408,33 +420,41 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                   const SizedBox(height: 24),
                   if (widget.order.status != 'delivered' && widget.order.status != 'cancelled' && widget.order.status != 'Return Requested')
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.cyan.shade900,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.support_agent_rounded, color: Colors.white, size: 28),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Need help with your order?',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                                Text(
-                                  'Contact our 24/7 support team.',
-                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
-                                ),
-                              ],
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SupportScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.cyan.shade900,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.support_agent_rounded, color: Colors.white, size: 28),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Need help with your order?',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                  Text(
+                                    'Contact our 24/7 support team.',
+                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const Icon(Icons.chevron_right_rounded, color: Colors.white),
-                        ],
+                            const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                          ],
+                        ),
                       ),
                     ),
                 ],
@@ -461,5 +481,3 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 }
-
-

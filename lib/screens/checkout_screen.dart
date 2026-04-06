@@ -924,9 +924,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               final bucket = cart.shopBuckets[widget.shopId];
               if (bucket == null || widget.user == null) return;
 
+              final cartItems = bucket.items.values.toList();
+              String orderDisplayName = 'Order from ${bucket.shopName}';
+              if (cartItems.isNotEmpty) {
+                final firstItemName = cartItems.first.item.name;
+                if (cartItems.length > 1) {
+                  orderDisplayName = '$firstItemName + ${cartItems.length - 1} more';
+                } else {
+                  orderDisplayName = firstItemName;
+                }
+              }
+
               final order = OrderModel(
                 id: '',
-                orderName: 'Order from ${bucket.shopName}',
+                orderName: orderDisplayName,
                 externalPlatformRef: '',
                 sellerId: widget.shopId,
                 customerId: widget.user!.uid,
@@ -938,7 +949,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 timestamps: {'createdAt': FieldValue.serverTimestamp()},
                 rawData: {
                   'totalAmount': total,
-                  'items': bucket.items.values
+                  'items': cartItems
                       .map(
                         (cartItem) => {
                           'name': cartItem.item.name,
