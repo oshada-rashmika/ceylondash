@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/order_model.dart';
+import 'qr_gen.dart' as qr_gen;
 
 class OrderDetailScreen extends StatelessWidget {
   final OrderModel order;
@@ -228,6 +229,35 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => qr_gen.QRGeneratorScreen(order: order),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Generate Qr Code',
+                    style: TextStyle(
+                      fontSize: MediaQuery.textScalerOf(context).scale(16),
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
