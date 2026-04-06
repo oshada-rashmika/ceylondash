@@ -189,6 +189,14 @@ class DatabaseService {
     return snap.docs.map((d) => ShopModel.fromJson(d.id, d.data())).toList();
   }
 
+  Future<ShopModel?> getShop(String id) async {
+    final doc = await _db.collection('shops').doc(id).get();
+    if (doc.exists) {
+      return ShopModel.fromJson(doc.id, doc.data()!);
+    }
+    return null;
+  }
+
   Future<void> updateUserField(String uid, Map<String, dynamic> data) async {
     await _db.collection('users').doc(uid).update(data);
   }
@@ -250,5 +258,14 @@ class DatabaseService {
     await _db.collection('shops').doc(shop3Id).set({'sellerId': seller3Id}, SetOptions(merge: true));
 
     debugPrint('✅ Bot Sellers and Shop Links seeded successfully!');
+  }
+
+  Future<void> createReturnReport(Map<String, dynamic> reportData) async {
+    final reportId = _db.collection('reports').doc().id;
+    await _db.collection('reports').doc(reportId).set({
+      'reportId': reportId,
+      ...reportData,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 }

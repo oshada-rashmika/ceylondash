@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../models/order_model.dart';
 import '../models/user_model.dart';
 import '../services/database_service.dart';
+import '../widgets/top_snackbar.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final OrderModel order;
@@ -17,37 +18,230 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   final DatabaseService _db = DatabaseService();
   String? _riderName;
   String? _sellerName;
-  bool _loadingNames = true;
+  String? _shopName;
+  String? _customerName;
+  bool _loadingData = true;
+  bool _isSubmittingReturn = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchNames();
+    _fetchData();
   }
 
-  Future<void> _fetchNames() async {
+  Future<void> _fetchData() async {
     try {
       final futures = <Future<void>>[];
 
+      // Fetch Rider
       if (widget.order.riderId != null) {
         futures.add(_db.getUser(widget.order.riderId!).then((user) {
           if (mounted) setState(() => _riderName = user?.name);
         }));
       }
 
-      futures.add(_db.getUser(widget.order.sellerId).then((user) {
-        if (mounted) {
-          setState(() {
-            _sellerName = user?.businessName ?? user?.name;
-          });
+      // Fetch Customer Name
+      futures.add(_db.getUser(widget.order.customerId).then((user) {
+        if (mounted) setState(() => _customerName = user?.name);
+      }));
+
+      // Fetch Shop and then the Shop's Seller
+      futures.add(_db.getShop(widget.order.sellerId).then((shop) async {
+        if (shop != null) {
+          if (mounted) setState(() => _shopName = shop.name);
+          
+          if (shop.sellerId != null) {
+            final sellerDoc = await _db.getUser(shop.sellerId!);
+            if (mounted) {
+              setState(() {
+                _sellerName = sellerDoc?.name;
+              });
+            }
+          }
         }
       }));
 
       await Future.wait(futures);
     } catch (e) {
-      debugPrint("Error fetching names: $e");
+      debugPrint("Error fetching details: $e");
     } finally {
-      if (mounted) setState(() => _loadingNames = false);
+      if (mounted) setState(() => _loadingData = false);
+    }
+  }
+
+  void _showReturnBottomSheet() {
+    String? selectedReason;
+    final otherController = TextEditingController();
+    bool isOther = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(32),
+                topRight: Radius.circular(32),
+              ),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+              top: 32,
+              left: 24,
+              right: 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Return the Parcel',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Please tell us why you want to return this item.',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                ...[
+                  'Defective/Damaged',
+                  'Incorrect Item Received',
+                  'Quality not as expected',
+                  'No longer needed',
+                  'Other',
+                ].map((reason) {
+                  final isSelected = selectedReason == reason;
+                  return GestureDetector(
+                    onTap: () {
+                      setModalState(() {
+                        selectedReason = reason;
+                        isOther = reason == 'Other';
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.cyan.withValues(alpha: 0.1) : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? Colors.cyan : Colors.grey.shade200,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                            color: isSelected ? Colors.cyan : Colors.grey.shade400,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            reason,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                              color: isSelected ? Colors.cyan.shade900 : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                if (isOther) ...[
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: otherController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'Please describe the issue...',
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Colors.cyan),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: (selectedReason == null || (isOther && otherController.text.isEmpty))
+                        ? null
+                        : () => _submitReturn(
+                              selectedReason == 'Other' ? otherController.text : selectedReason!,
+                            ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black87,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: const Text('Submit Return Request', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _submitReturn(String reason) async {
+    Navigator.pop(context); // Close bottom sheet
+    setState(() => _isSubmittingReturn = true);
+
+    try {
+      final reportData = {
+        'orderId': widget.order.id,
+        'customerName': _customerName ?? 'Unknown Customer',
+        'shopName': _shopName ?? 'Unknown Shop',
+        'orderedItem': widget.order.orderName,
+        'reason': reason,
+        'status': 'pending',
+      };
+
+      await _db.createReturnReport(reportData);
+      await _db.updateOrderStatus(widget.order.id, 'Return Requested');
+
+      if (mounted) {
+        TopSnackbar.schedulePending(
+          message: 'Return request submitted successfully!',
+          type: SnackbarType.success,
+        );
+        Navigator.pop(context); // Back to order list
+      }
+    } catch (e) {
+      if (mounted) {
+        TopSnackbar.schedulePending(
+          message: 'Failed to submit return: $e',
+          type: SnackbarType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmittingReturn = false);
     }
   }
 
@@ -63,10 +257,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         return '';
       }
     }
-    final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
     final amPm = dt.hour >= 12 ? 'PM' : 'AM';
     final min = dt.minute.toString().padLeft(2, '0');
@@ -75,6 +266,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   IconData _orderIcon(String status) {
     return switch (status) {
+      'Return Requested' => Icons.assignment_return_rounded,
       'preparing' || 'pickup_scheduled' || 'picked_up' => Icons.soup_kitchen_rounded,
       'on_the_way' || 'in_transit' || 'out_for_delivery' => Icons.delivery_dining_rounded,
       'delivered' || 'past' => Icons.check_circle_rounded,
@@ -92,14 +284,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       'picked_up' => 'Picked Up',
       'processing' => 'Processing',
       'assigned' => 'Assigned to Rider',
-      _ => '${s[0].toUpperCase()}${s.substring(1).replaceAll("_", " ")}',
+      _ => s,
     };
   }
 
   (Color, Color) _getStatusColors(BuildContext context, String status) {
     if (status == 'delivered' || status == 'past') {
       return (const Color(0xFF4CAF50), const Color(0xFFE8F5E9));
-    } else if (status == 'cancelled') {
+    } else if (status == 'cancelled' || status == 'Return Requested') {
       return (Colors.red.shade700, Colors.red.shade50);
     } else {
       final primary = Theme.of(context).primaryColor;
@@ -109,184 +301,165 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.order.orderName.isNotEmpty
-        ? widget.order.orderName
-        : 'Order #${widget.order.id.substring(0, 5)}';
-
+    final title = widget.order.orderName.isNotEmpty ? widget.order.orderName : 'Order Details';
     final textScaler = MediaQuery.textScalerOf(context);
     final (primaryColor, bgColor) = _getStatusColors(context, widget.order.status);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FB),
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
-        scrolledUnderElevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87),
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          title,
+          'Track Order',
           style: TextStyle(
-            color: Colors.black,
-            fontSize: textScaler.scale(20),
+            color: Colors.black87,
+            fontSize: textScaler.scale(18),
             fontWeight: FontWeight.w700,
             letterSpacing: -0.5,
           ),
         ),
-        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(24.0),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                spreadRadius: 2,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 2.5, end: 1.0),
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.elasticOut,
-                builder: (context, scale, child) {
-                  return Transform.scale(
-                    scale: scale,
-                    child: Container(
+      body: _isSubmittingReturn
+          ? const Center(child: CircularProgressIndicator(color: Colors.cyan))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          height: 80,
+                          width: 80,
+                          decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+                          child: Icon(_orderIcon(widget.order.status), color: primaryColor, size: 40),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          _readableStatus(widget.order.status),
+                          style: TextStyle(
+                            fontSize: textScaler.scale(24),
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black87,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.order.id,
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 32),
+                        const Divider(height: 1),
+                        const SizedBox(height: 32),
+                        _buildInfoRow('Created', _formatTimestamp(widget.order.timestamps['createdAt'])),
+                        const SizedBox(height: 20),
+                        _buildInfoRow('Item', widget.order.orderName),
+                        const SizedBox(height: 20),
+                        _buildInfoRow('Shop', _loadingData ? 'Loading...' : (_shopName ?? 'Unknown')),
+                        const SizedBox(height: 20),
+                        _buildInfoRow('Seller', _loadingData ? 'Loading...' : (_sellerName ?? 'Unknown')),
+                        const SizedBox(height: 20),
+                        _buildInfoRow('Rider', _loadingData ? 'Loading...' : (_riderName ?? 'Assigning...')),
+                        if (widget.order.status == 'delivered' && !_loadingData) ...[
+                          const SizedBox(height: 48),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: _showReturnBottomSheet,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade50,
+                                foregroundColor: Colors.red.shade700,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(color: Colors.red.shade100, width: 1.5),
+                                ),
+                              ),
+                              child: const Text(
+                                'Return the Parcel',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (widget.order.status != 'delivered' && widget.order.status != 'cancelled' && widget.order.status != 'Return Requested')
+                    Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: bgColor,
-                        shape: BoxShape.circle,
+                        color: Colors.cyan.shade900,
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      child: Icon(
-                        _orderIcon(widget.order.status),
-                        color: primaryColor,
-                        size: 48,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.support_agent_rounded, color: Colors.white, size: 28),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Need help with your order?',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                Text(
+                                  'Contact our 24/7 support team.',
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Order ${_readableStatus(widget.order.status)}',
-                style: TextStyle(
-                  fontSize: textScaler.scale(22),
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 32),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final boxWidth = constraints.constrainWidth();
-                  const dashedWidth = 6.0;
-                  const dashedHeight = 1.5;
-                  final dashCount = (boxWidth / (2 * dashedWidth)).floor();
-                  return Flex(
-                    direction: Axis.horizontal,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(dashCount, (_) {
-                      return SizedBox(
-                        width: dashedWidth,
-                        height: dashedHeight,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(color: Colors.grey.shade300),
-                        ),
-                      );
-                    }),
-                  );
-                },
-              ),
-              const SizedBox(height: 32),
-              Column(
-                children: [
-                  _buildDetailRow(
-                    context,
-                    'Created',
-                    _formatTimestamp(widget.order.timestamps['createdAt']),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildDetailRow(
-                    context,
-                    'Status',
-                    _readableStatus(widget.order.status),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildDetailRow(
-                    context,
-                    'Seller',
-                    _loadingNames ? 'Loading...' : (_sellerName ?? widget.order.sellerId),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildDetailRow(
-                    context,
-                    'Rider',
-                    _loadingNames 
-                      ? 'Loading...' 
-                      : (widget.order.riderId == null ? 'Assigning Rider...' : (_riderName ?? 'Unknown Rider')),
-                  ),
-                  if ((widget.order.status == 'delivered' || widget.order.status == 'past') &&
-                      widget.order.timestamps['deliveredAt'] != null) ...[
-                    const SizedBox(height: 20),
-                    _buildDetailRow(
-                      context,
-                      'Delivered At',
-                      _formatTimestamp(widget.order.timestamps['deliveredAt']),
-                    ),
-                  ],
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
-  Widget _buildDetailRow(BuildContext context, String label, String value) {
-    final textScaler = MediaQuery.textScalerOf(context);
+  Widget _buildInfoRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: textScaler.scale(16),
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        Flexible(
+        Text(label, style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600, fontSize: 15)),
+        const SizedBox(width: 24),
+        Expanded(
           child: Text(
             value,
             textAlign: TextAlign.right,
-            style: TextStyle(
-              fontSize: textScaler.scale(16),
-              color: Colors.black87,
-              fontWeight: FontWeight.w700,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 15),
           ),
         ),
       ],
     );
   }
 }
+
 
