@@ -6,8 +6,13 @@ import '../services/auth_service.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
   final void Function(int tabIndex)? onNavigateToTab;
+  final void Function(String filter)? onNavigateToShipments;
 
-  const SellerDashboardScreen({super.key, this.onNavigateToTab});
+  const SellerDashboardScreen({
+    super.key,
+    this.onNavigateToTab,
+    this.onNavigateToShipments,
+  });
 
   @override
   State<SellerDashboardScreen> createState() => _SellerDashboardScreenState();
@@ -653,7 +658,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                     icon: kpiIcons[i],
                     onTap: () {
                       HapticFeedback.lightImpact();
-                      widget.onNavigateToTab?.call(1);
+                      widget.onNavigateToShipments?.call(entries[i].key);
                     },
                   ),
                 ),
