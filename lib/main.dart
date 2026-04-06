@@ -232,7 +232,7 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
               '/register/rider': const RiderRegisterScreen(),
               '/verify-email': const VerificationPendingScreen(),
               '/home': const CustomerDashboardShell(),
-              '/seller-dashboard': const SellerDashboardScreen(),
+              '/seller-dashboard': const SellerDashboardShell(),
               '/rider-dashboard': const RiderDashboardScreen(),
               '/profile': const ProfileScreen(),
             };
@@ -283,7 +283,7 @@ class _RoleRouterGateState extends State<RoleRouterGate> {
 
   Widget _routeByRole(String role) {
     if (role == 'seller') {
-      return const SellerDashboardScreen();
+      return const SellerDashboardShell();
     } else if (role == 'rider') {
       return const RiderDashboardScreen();
     } else if (role == 'admin') {
