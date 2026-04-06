@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/order_model.dart';
+import '../services/payhere_service.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final OrderModel order;
 
   const OrderDetailScreen({super.key, required this.order});
+
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  bool _isLoadingPayment = false;
+  final PayHereService _payHereService = PayHereService();
 
   String _formatTimestamp(dynamic ts) {
     if (ts == null) return '';
@@ -20,18 +29,7 @@ class OrderDetailScreen extends StatelessWidget {
       }
     }
     final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
     final amPm = dt.hour >= 12 ? 'PM' : 'AM';
@@ -54,6 +52,7 @@ class OrderDetailScreen extends StatelessWidget {
     return switch (s) {
       'on_the_way' => 'On the Way',
       'processing' => 'Processing',
+      'pending' => 'Pending Payment',
       _ => '${s[0].toUpperCase()}${s.substring(1)}',
     };
   }
@@ -69,14 +68,49 @@ class OrderDetailScreen extends StatelessWidget {
     }
   }
 
+  void _startPayment() async {
+    setState(() => _isLoadingPayment = true);
+
+    await _payHereService.startCheckout(
+      context: context,
+      orderId: widget.order.id,
+      amount: (widget.order.rawData['totalAmount'] as num?)?.toDouble() ?? 1000.0, // fallback if totalAmount is missing
+      customerName: "Customer Name", // Replace with real customer data if available
+      customerPhone: "+94771234567", // Replace with real customer phone if available
+      onCompleted: (paymentId) {
+        setState(() => _isLoadingPayment = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Payment Successful! ID: $paymentId")),
+        );
+        // Additional logic like refreshing the order or popping back
+      },
+      onError: (error) {
+        setState(() => _isLoadingPayment = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Payment Error: $error")),
+        );
+      },
+      onCanceled: () {
+        setState(() => _isLoadingPayment = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Payment Canceled")),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final title = order.orderName.isNotEmpty
-        ? order.orderName
-        : 'Order #${order.id.substring(0, 5)}';
+    final title = widget.order.orderName.isNotEmpty
+        ? widget.order.orderName
+        : 'Order #${widget.order.id.substring(0, 5)}';
 
     final textScaler = MediaQuery.textScalerOf(context);
-    final (primaryColor, bgColor) = _getStatusColors(context, order.status);
+    final (primaryColor, bgColor) = _getStatusColors(context, widget.order.status);
+    
+    // Attempting to resolve paymentStatus, otherwise fallback to widget.order.status == 'pending'
+    final paymentStatus = (widget.order.rawData['paymentStatus'] as String?) ?? 'unknown';
+    final needsPayment = paymentStatus == 'pending' || widget.order.status == 'pending';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FB),
@@ -105,6 +139,36 @@ class OrderDetailScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
+      bottomNavigationBar: needsPayment ? SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: ElevatedButton(
+            onPressed: _isLoadingPayment ? null : _startPayment,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 4,
+            ),
+            child: _isLoadingPayment
+              ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                )
+              : Text(
+                  'Pay Now',
+                  style: TextStyle(
+                    fontSize: textScaler.scale(18),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+          ),
+        ),
+      ) : null,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(24.0),
@@ -139,7 +203,7 @@ class OrderDetailScreen extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        _orderIcon(order.status),
+                        _orderIcon(widget.order.status),
                         color: primaryColor,
                         size: 48,
                       ),
@@ -149,7 +213,7 @@ class OrderDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'Order ${_readableStatus(order.status)}',
+                'Order ${_readableStatus(widget.order.status)}',
                 style: TextStyle(
                   fontSize: textScaler.scale(22),
                   fontWeight: FontWeight.bold,
@@ -197,30 +261,30 @@ class OrderDetailScreen extends StatelessWidget {
                           _buildDetailRow(
                             context,
                             'Created',
-                            _formatTimestamp(order.timestamps['createdAt']),
+                            _formatTimestamp(widget.order.timestamps['createdAt']),
                           ),
                           const SizedBox(height: 20),
                           _buildDetailRow(
                             context,
                             'Status',
-                            _readableStatus(order.status),
+                            _readableStatus(widget.order.status),
                           ),
                           const SizedBox(height: 20),
-                          _buildDetailRow(context, 'Seller ID', order.sellerId),
+                          _buildDetailRow(context, 'Seller ID', widget.order.sellerId),
                           const SizedBox(height: 20),
                           _buildDetailRow(
                             context,
                             'Rider ID',
-                            order.riderId ?? 'Assigning Rider...',
+                            widget.order.riderId ?? 'Assigning Rider...',
                           ),
-                          if ((order.status == 'delivered' ||
-                                  order.status == 'past') &&
-                              order.timestamps['deliveredAt'] != null) ...[
+                          if ((widget.order.status == 'delivered' ||
+                                  widget.order.status == 'past') &&
+                              widget.order.timestamps['deliveredAt'] != null) ...[
                             const SizedBox(height: 20),
                             _buildDetailRow(
                               context,
                               'Delivered At',
-                              _formatTimestamp(order.timestamps['deliveredAt']),
+                              _formatTimestamp(widget.order.timestamps['deliveredAt']),
                             ),
                           ],
                         ],
