@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
-  const SellerDashboardScreen({super.key});
+  final void Function(int tabIndex)? onNavigateToTab;
+
+  const SellerDashboardScreen({super.key, this.onNavigateToTab});
 
   @override
   State<SellerDashboardScreen> createState() => _SellerDashboardScreenState();
@@ -664,7 +666,10 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 ),
               ),
               GestureDetector(
-                onTap: () => HapticFeedback.lightImpact(),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  widget.onNavigateToTab?.call(1);
+                },
                 child: Text(
                   'See All',
                   style: TextStyle(

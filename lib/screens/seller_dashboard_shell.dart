@@ -66,7 +66,7 @@ class _SellerDashboardShellState extends State<SellerDashboardShell>
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const SellerDashboardScreen(),
+      SellerDashboardScreen(onNavigateToTab: _onNavTap),
       const SellerShipmentsTab(),
       ChatListScreen(isActive: _currentIndex == 2),
       const ProfileScreen(),
