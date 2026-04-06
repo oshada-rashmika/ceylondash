@@ -19,6 +19,7 @@ class SellerDashboardShell extends StatefulWidget {
 class _SellerDashboardShellState extends State<SellerDashboardShell>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  String? _shipmentFilter;
 
   late final AnimationController _menuCtrl;
   late final Animation<double> _menuAnim;
@@ -48,7 +49,19 @@ class _SellerDashboardShellState extends State<SellerDashboardShell>
     if (_currentIndex == index) return;
     if (_isMenuOpen) _toggleMenu();
     HapticFeedback.lightImpact();
-    setState(() => _currentIndex = index);
+    setState(() {
+      _currentIndex = index;
+      if (index != 1) _shipmentFilter = null;
+    });
+  }
+
+  void _onNavigateToShipments(String filter) {
+    if (_isMenuOpen) _toggleMenu();
+    HapticFeedback.lightImpact();
+    setState(() {
+      _shipmentFilter = filter;
+      _currentIndex = 1;
+    });
   }
 
   void _toggleMenu() {
@@ -66,8 +79,14 @@ class _SellerDashboardShellState extends State<SellerDashboardShell>
   @override
   Widget build(BuildContext context) {
     final screens = [
-      SellerDashboardScreen(onNavigateToTab: _onNavTap),
-      const SellerShipmentsTab(),
+      SellerDashboardScreen(
+        onNavigateToTab: _onNavTap,
+        onNavigateToShipments: _onNavigateToShipments,
+      ),
+      SellerShipmentsTab(
+        key: ValueKey('shipments_$_shipmentFilter'),
+        initialFilter: _shipmentFilter,
+      ),
       ChatListScreen(isActive: _currentIndex == 2),
       const SellerProfileScreen(),
     ];
