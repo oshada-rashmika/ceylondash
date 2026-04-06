@@ -26,6 +26,18 @@ class Validators {
     return null;
   }
 
+  static String? validateSupervisorPassword(String? value) {
+    if (value == null || value.isEmpty) return 'Password is required';
+    if (value.length < 8) return 'Minimum 8 characters';
+    if (!RegExp(r'[0-9]').hasMatch(value)) return 'Need a number';
+    if (!RegExp(
+      r'[!@#\$%\^&\*\(\)_\+\-=\[\]\{\};:,\.<>\?/\\|`~]',
+    ).hasMatch(value)) {
+      return 'Need a special character';
+    }
+    return null;
+  }
+
   static bool hasMinLength(String v) => v.length >= 8;
   static bool hasUppercase(String v) => RegExp(r'[A-Z]').hasMatch(v);
   static bool hasNumber(String v) => RegExp(r'[0-9]').hasMatch(v);

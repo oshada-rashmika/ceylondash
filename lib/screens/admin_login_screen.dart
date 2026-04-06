@@ -9,8 +9,8 @@ import '../widgets/password_input_field.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/top_snackbar.dart';
 import 'admin/admin_dashboard_screen.dart';
-
-import 'admin/supervisor_dashboard_screen.dart';
+import '../utils/validators.dart';
+import 'admin/supervisor_dashboard_shell.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   final String portalType;
@@ -72,15 +72,24 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
         _passwordCtrl.text,
       );
 
-      final user = await _dbService.getUser(cred.user!.uid);
-      final role = user?.role ?? 'customer';
+      var user = await _dbService.getUser(cred.user!.uid);
+      
+      // Fallback: the UID in database might be outdated (manual creation)
+      if (user == null && cred.user?.email != null) {
+        debugPrint('🔍 UID lookup failed, searching for email: ${cred.user!.email}');
+        user = await _dbService.getUserByEmail(cred.user!.email!);
+      }
+
+      final role = (user?.role ?? 'customer').trim().toLowerCase();
+      
+      debugPrint('🔑 Resolved Role: UID=${cred.user!.uid}, Role=$role');
 
       if (!mounted) return;
 
       if (role == 'supervisor') {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const SupervisorDashboardScreen()),
+          MaterialPageRoute(builder: (_) => const SupervisorDashboardShell()),
           (route) => false,
         );
       } else if (role == 'agent') {
@@ -192,6 +201,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen>
                     PasswordInputField(
                       controller: _passwordCtrl,
                       showRequirements: false,
+                      validator: widget.portalType == 'supervisor'
+                          ? Validators.validateSupervisorPassword
+                          : Validators.validatePassword,
                     ),
                   ),
                   const SizedBox(height: 32),
