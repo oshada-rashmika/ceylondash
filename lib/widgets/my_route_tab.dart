@@ -20,16 +20,37 @@ class MyRouteTab extends StatelessWidget {
 
         final activeJobs = state.activeRouteJobs;
 
-        return Column(
+        return Stack(
           children: [
-            Expanded(
-              flex: 6,
-              child: _buildMap(activeJobs),
-            ),
-            Expanded(
-              flex: 4,
-              child: _buildJobList(activeJobs),
-            ),
+            // Ensure the map takes the full height of the stack
+            Positioned.fill(child: _buildMap(activeJobs)),
+            if (activeJobs.isNotEmpty)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 20,
+                child: _buildJobList(activeJobs),
+              ),
+            if (activeJobs.isEmpty)
+              Positioned(
+                bottom: 40,
+                left: 20,
+                right: 20,
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      'No active jobs to display.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ),
           ],
         );
       },
@@ -39,12 +60,16 @@ class MyRouteTab extends StatelessWidget {
   Widget _buildMap(List<OrderModel> jobs) {
     // Default to a central coordinate for Sri Lanka
     final center = const LatLng(7.8731, 80.7718);
-    
+
     // Markers
     final markers = jobs.map((job) {
       LatLng markerPos;
-      if (job.dropoffLocation.latitude != 0 && job.dropoffLocation.longitude != 0) {
-        markerPos = LatLng(job.dropoffLocation.latitude, job.dropoffLocation.longitude);
+      if (job.dropoffLocation.latitude != 0 &&
+          job.dropoffLocation.longitude != 0) {
+        markerPos = LatLng(
+          job.dropoffLocation.latitude,
+          job.dropoffLocation.longitude,
+        );
       } else {
         markerPos = center; // TODO: Geocode dropoffAddress to LatLng
       }
@@ -57,10 +82,7 @@ class MyRouteTab extends StatelessWidget {
     }).toList();
 
     return FlutterMap(
-      options: MapOptions(
-        initialCenter: center,
-        initialZoom: 7.0,
-      ),
+      options: MapOptions(initialCenter: center, initialZoom: 7.0),
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -73,15 +95,21 @@ class MyRouteTab extends StatelessWidget {
 
   Widget _buildJobList(List<OrderModel> jobs) {
     if (jobs.isEmpty) {
-      return const Center(child: Text('No active jobs to display.'));
+      return const SizedBox.shrink();
     }
-    return ListView.builder(
-      itemCount: jobs.length,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemBuilder: (context, index) {
-        final job = jobs[index];
-        return ActiveJobCard(order: job);
-      },
+    return SizedBox(
+      height: 230,
+      child: PageView.builder(
+        controller: PageController(viewportFraction: 0.9),
+        itemCount: jobs.length,
+        itemBuilder: (context, index) {
+          final job = jobs[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: ActiveJobCard(order: job),
+          );
+        },
+      ),
     );
   }
 }
@@ -102,11 +130,19 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
     try {
       await DatabaseService().updateOrderStatus(widget.order.id, 'delivered');
       if (mounted) {
-        TopSnackbar.show(context, message: 'Status updated to Delivered!', type: SnackbarType.success);
+        TopSnackbar.show(
+          context,
+          message: 'Status updated to Delivered!',
+          type: SnackbarType.success,
+        );
       }
     } catch (e) {
       if (mounted) {
-        TopSnackbar.show(context, message: 'Update failed', type: SnackbarType.error);
+        TopSnackbar.show(
+          context,
+          message: 'Update failed',
+          type: SnackbarType.error,
+        );
       }
     } finally {
       if (mounted) setState(() => _isUpdating = false);
@@ -115,53 +151,153 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
 
   @override
   Widget build(BuildContext context) {
-    final dropoff = widget.order.dropoffAddress.isNotEmpty ? widget.order.dropoffAddress : 'Customer location';
-    final name = widget.order.orderName.isNotEmpty ? widget.order.orderName : 'Order #${widget.order.id.substring(0, 8)}';
+    final dropoff = widget.order.dropoffAddress.isNotEmpty
+        ? widget.order.dropoffAddress
+        : 'Customer location';
+    final name = widget.order.orderName.isNotEmpty
+        ? widget.order.orderName
+        : 'Order #${widget.order.id.substring(0, 8)}';
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Colors.white,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
-                Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
+                    color: Colors.cyan.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.shopping_bag_outlined,
+                    color: Colors.cyan.shade700,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'ID: ${widget.order.id.substring(0, 8).toUpperCase()}',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.cyan.shade200),
                     color: Colors.cyan.shade50,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(widget.order.status, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.cyan.shade700)),
+                  child: Text(
+                    widget.order.status.replaceAll('_', ' ').toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      letterSpacing: 0.5,
+                      color: Colors.cyan.shade800,
+                    ),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.location_on, color: Colors.blue, size: 20),
+                Icon(Icons.location_on, color: Colors.red.shade400, size: 20),
                 const SizedBox(width: 8),
-                Expanded(child: Text(dropoff, style: const TextStyle(color: Colors.black87, fontSize: 14))),
+                Expanded(
+                  child: Text(
+                    dropoff,
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 14,
+                      height: 1.4,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: widget.order.status == 'delivered' || _isUpdating ? null : _updateStatus,
-                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: widget.order.status == 'delivered' || _isUpdating
+                    ? null
+                    : _updateStatus,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.cyan.shade600,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                child: _isUpdating
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Mark as Delivered', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                icon: _isUpdating
+                    ? const SizedBox.shrink()
+                    : const Icon(Icons.check_circle_outline, size: 22),
+                label: _isUpdating
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text(
+                        'Mark as Delivered',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
               ),
             ),
           ],
