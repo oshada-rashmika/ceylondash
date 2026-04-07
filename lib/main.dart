@@ -15,6 +15,7 @@ import 'screens/role_selection_screen.dart';
 import 'screens/customer_register_screen.dart';
 import 'screens/seller_register_screen.dart';
 import 'screens/rider_register_screen.dart';
+import 'screens/seller_dashboard_shell.dart';
 import 'screens/rider_dashboard_screen.dart';
 import 'screens/verification_pending_screen.dart';
 import 'screens/customer_dashboard_shell.dart';
@@ -235,7 +236,7 @@ class _CeylonDashAppState extends State<CeylonDashApp> {
               '/register/rider': const RiderRegisterScreen(),
               '/verify-email': const VerificationPendingScreen(),
               '/home': const CustomerDashboardShell(),
-              '/seller-dashboard': const SellerDashboardScreen(),
+              '/seller-dashboard': const SellerDashboardShell(),
               '/rider-dashboard': const RiderDashboardScreen(),
               '/profile': const ProfileScreen(),
             };
@@ -315,7 +316,7 @@ class _RoleRouterGateState extends State<RoleRouterGate> {
 
   Widget _routeByRole(String role) {
     if (role == 'seller') {
-      return const SellerDashboardScreen();
+      return const SellerDashboardShell();
     } else if (role == 'rider') {
       return const RiderDashboardScreen();
     } else if (role == 'admin') {

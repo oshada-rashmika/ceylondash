@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class SellerShipmentsTab extends StatefulWidget {
-  const SellerShipmentsTab({super.key});
+  final String? initialFilter;
+
+  const SellerShipmentsTab({super.key, this.initialFilter});
 
   @override
   State<SellerShipmentsTab> createState() => _SellerShipmentsTabState();
@@ -14,7 +16,7 @@ class _SellerShipmentsTabState extends State<SellerShipmentsTab> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
   String _searchQuery = '';
-  String _selectedFilter = 'All';
+  late String _selectedFilter;
 
   final List<String> _filters = [
     'All',
@@ -118,6 +120,7 @@ class _SellerShipmentsTabState extends State<SellerShipmentsTab> {
   @override
   void initState() {
     super.initState();
+    _selectedFilter = widget.initialFilter ?? 'All';
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text.trim());
     });

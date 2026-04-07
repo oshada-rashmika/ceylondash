@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'seller_dashboard_screen.dart';
 import 'seller_shipments_tab.dart';
 import 'chat_list_screen.dart';
-import 'profile_screen.dart';
+import 'seller_profile_screen.dart';
 
 class SellerDashboardShell extends StatefulWidget {
   const SellerDashboardShell({super.key});
@@ -19,6 +19,7 @@ class SellerDashboardShell extends StatefulWidget {
 class _SellerDashboardShellState extends State<SellerDashboardShell>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  String? _shipmentFilter;
 
   late final AnimationController _menuCtrl;
   late final Animation<double> _menuAnim;
@@ -48,7 +49,19 @@ class _SellerDashboardShellState extends State<SellerDashboardShell>
     if (_currentIndex == index) return;
     if (_isMenuOpen) _toggleMenu();
     HapticFeedback.lightImpact();
-    setState(() => _currentIndex = index);
+    setState(() {
+      _currentIndex = index;
+      if (index != 1) _shipmentFilter = null;
+    });
+  }
+
+  void _onNavigateToShipments(String filter) {
+    if (_isMenuOpen) _toggleMenu();
+    HapticFeedback.lightImpact();
+    setState(() {
+      _shipmentFilter = filter;
+      _currentIndex = 1;
+    });
   }
 
   void _toggleMenu() {
@@ -66,10 +79,16 @@ class _SellerDashboardShellState extends State<SellerDashboardShell>
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const SellerDashboardScreen(),
-      const SellerShipmentsTab(),
+      SellerDashboardScreen(
+        onNavigateToTab: _onNavTap,
+        onNavigateToShipments: _onNavigateToShipments,
+      ),
+      SellerShipmentsTab(
+        key: ValueKey('shipments_$_shipmentFilter'),
+        initialFilter: _shipmentFilter,
+      ),
       ChatListScreen(isActive: _currentIndex == 2),
-      const ProfileScreen(),
+      const SellerProfileScreen(),
     ];
 
     return Scaffold(
@@ -172,6 +191,7 @@ class _SellerDashboardShellState extends State<SellerDashboardShell>
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   _toggleMenu();
+                  _handleFabAction(labels[index]);
                 },
                 child: Icon(icons[index], color: Colors.cyan.shade700, size: 20),
               ),
@@ -298,6 +318,492 @@ class _SellerDashboardShellState extends State<SellerDashboardShell>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ─── FAB ACTION HANDLER ────────────────────────────────────
+  void _handleFabAction(String label) {
+    switch (label) {
+      case 'New Shipment':
+        _showNewShipmentSheet();
+        break;
+      case 'Bulk Pickup':
+        _showBulkPickupSheet();
+        break;
+      case 'Rate Calc':
+        _showRateCalcSheet();
+        break;
+    }
+  }
+
+  // ─── NEW SHIPMENT BOTTOM SHEET ─────────────────────────────
+  void _showNewShipmentSheet() {
+    final recipientCtrl = TextEditingController();
+    final cityCtrl = TextEditingController();
+    final codCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.cyan.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(Icons.local_shipping_rounded,
+                          color: Colors.cyan.shade700, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    const Text(
+                      'New Shipment',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _sheetField('Recipient Name', recipientCtrl, Icons.person_rounded),
+                const SizedBox(height: 14),
+                _sheetField('City', cityCtrl, Icons.location_on_rounded),
+                const SizedBox(height: 14),
+                _sheetField('COD Amount (Rs.)', codCtrl, Icons.payments_rounded,
+                    keyboardType: TextInputType.number),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Shipment created successfully!'),
+                          backgroundColor: Colors.cyan.shade700,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.cyan.shade700,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Create Shipment',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── BULK PICKUP BOTTOM SHEET ──────────────────────────────
+  void _showBulkPickupSheet() {
+    int pickupCount = 1;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.inventory_2_rounded,
+                          color: Colors.indigo, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    const Text(
+                      'Bulk Pickup',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F7),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Number of Packages',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          _counterBtn(Icons.remove_rounded, () {
+                            if (pickupCount > 1) {
+                              setSheetState(() => pickupCount--);
+                            }
+                          }),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              '$pickupCount',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          _counterBtn(Icons.add_rounded, () {
+                            setSheetState(() => pickupCount++);
+                          }),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Bulk pickup requested for $pickupCount package${pickupCount > 1 ? 's' : ''}!'),
+                          backgroundColor: Colors.indigo,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Request Pickup',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── RATE CALCULATOR BOTTOM SHEET ──────────────────────────
+  void _showRateCalcSheet() {
+    double weight = 1.0;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final rate = _calculateRate(weight);
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.calculate_rounded,
+                            color: Colors.orange, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      const Text(
+                        'Rate Calculator',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Package Weight (kg)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _counterBtn(Icons.remove_rounded, () {
+                        if (weight > 0.5) {
+                          setSheetState(() => weight -= 0.5);
+                        }
+                      }),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            '${weight.toStringAsFixed(1)} kg',
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                      _counterBtn(Icons.add_rounded, () {
+                        setSheetState(() => weight += 0.5);
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.cyan.shade600, Colors.cyan.shade800],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Estimated Rate',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Rs. ${rate.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Standard delivery • Island-wide',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.orange.withOpacity(0.12)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded,
+                            color: Colors.orange.shade700, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Rates may vary based on destination and package dimensions.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade800,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  double _calculateRate(double weight) {
+    // Base rate + per-kg pricing
+    const baseRate = 350.0;
+    const perKg = 80.0;
+    return baseRate + (weight * perKg);
+  }
+
+  // ─── SHEET HELPERS ─────────────────────────────────────────
+  Widget _sheetField(String label, TextEditingController ctrl, IconData icon,
+      {TextInputType keyboardType = TextInputType.text}) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: keyboardType,
+      cursorColor: Colors.cyan,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14, fontWeight: FontWeight.w500),
+        prefixIcon: Icon(icon, color: Colors.grey.shade400, size: 20),
+        filled: true,
+        fillColor: const Color(0xFFF5F5F7),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.cyan.shade300, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+    );
+  }
+
+  Widget _counterBtn(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        width: 36, height: 36,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: Colors.black87, size: 20),
       ),
     );
   }
