@@ -167,14 +167,21 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
               surfaceTintColor: Colors.white,
               elevation: 0.5,
               shadowColor: Colors.black.withValues(alpha: 0.05),
-              title: const Text(
-                'Rider Dashboard',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
+              title: StreamBuilder<UserModel?>(
+                stream: _db.streamUser(uid),
+                builder: (context, snapshot) {
+                  final name = snapshot.data?.name ?? 'Rider';
+                  final displayTitle = name == 'Rider' ? 'Rider Dashboard' : "${name.split(' ').first}'s Dashboard";
+                  return Text(
+                    displayTitle,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                  );
+                },
               ),
               actions: [
                 Row(
