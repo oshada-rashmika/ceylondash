@@ -26,12 +26,19 @@ class DatabaseService {
     for (final doc in snapshot.docs) {
       final data = doc.data();
       final type = data['type'] as String? ?? 'seasonal';
-      final activeMonths = (data['activeMonths'] as List<dynamic>?)?.map((e) => e as int).toList() ?? [];
+      final activeMonths =
+          (data['activeMonths'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toList() ??
+          [];
       final region = data['targetRegion'] as String? ?? '';
 
       // Rule: General promotions OR (Valid Region AND Valid Month)
-      final matchesRegion = region.isEmpty || userAddress.toLowerCase().contains(region.toLowerCase());
-      final isTimeActive = activeMonths.isEmpty || activeMonths.contains(currentMonth);
+      final matchesRegion =
+          region.isEmpty ||
+          userAddress.toLowerCase().contains(region.toLowerCase());
+      final isTimeActive =
+          activeMonths.isEmpty || activeMonths.contains(currentMonth);
       final isGeneral = type == 'general';
 
       if (isGeneral || (matchesRegion && isTimeActive)) {
@@ -44,11 +51,12 @@ class DatabaseService {
   Future<void> createPromotion(PromotionModel promotion) async {
     final docRef = _db.collection('promotions').doc();
     await docRef.set(promotion.toMap());
-    
+
     // Notify all customers about the new promotion
     await broadcastNotification(
       title: 'New Special Offer! 🎁',
-      body: 'A new promotion "${promotion.title}" is now available. Check it out!',
+      body:
+          'A new promotion "${promotion.title}" is now available. Check it out!',
       type: NotificationType.promo,
       relatedId: docRef.id,
     );
@@ -112,7 +120,8 @@ class DatabaseService {
         id: '',
         userId: userId ?? order.customerId,
         title: 'Order Placed! 🛍️',
-        body: 'Your order #${orderRef.id.substring(0, 5).toUpperCase()} has been successfully placed.',
+        body:
+            'Your order #${orderRef.id.substring(0, 5).toUpperCase()} has been successfully placed.',
         type: NotificationType.order,
         createdAt: DateTime.now(),
         relatedId: orderRef.id,
@@ -141,11 +150,13 @@ class DatabaseService {
       final customerId = orderDoc.data()?['customerId'];
       if (customerId != null) {
         String title = 'Order Updated';
-        String body = 'Your order status is now ${newStatus.replaceAll('_', ' ')}';
+        String body =
+            'Your order status is now ${newStatus.replaceAll('_', ' ')}';
 
         if (newStatus == 'out_for_delivery') {
           title = 'Out for Delivery! 🛵';
-          body = 'Your rider is out for delivery. Your order will be delivered within next few hours.';
+          body =
+              'Your rider is out for delivery. Your order will be delivered within next few hours.';
         } else if (newStatus == 'delivered') {
           title = 'Package Delivered! 🎉';
           body = 'Your package has been successfully delivered. Thank you!';
@@ -182,7 +193,8 @@ class DatabaseService {
             id: '',
             userId: customerId,
             title: 'Rider Assigned! 🛵',
-            body: 'A rider has been assigned to your order. They will pick it up soon!',
+            body:
+                'A rider has been assigned to your order. They will pick it up soon!',
             type: NotificationType.order,
             createdAt: DateTime.now(),
             relatedId: orderId,
@@ -228,7 +240,7 @@ class DatabaseService {
     final orderDoc = await _db.collection('orders').doc(orderId).get();
     if (orderDoc.exists) {
       final customerId = orderDoc.data()?['customerId'];
-      
+
       // Fetch rider's details to include their name
       final riderDoc = await _db.collection('users').doc(riderId).get();
       final riderName = riderDoc.data()?['name'] ?? 'Your rider';
@@ -239,7 +251,8 @@ class DatabaseService {
             id: '',
             userId: customerId,
             title: 'Order Claimed! 🚚',
-            body: '$riderName has claimed your order! It is scheduled to be delivered within 3 working days.',
+            body:
+                '$riderName has claimed your order! It is scheduled to be delivered within 3 working days.',
             type: NotificationType.order,
             createdAt: DateTime.now(),
             relatedId: orderId,
@@ -254,20 +267,41 @@ class DatabaseService {
         .collection('orders')
         .where('riderId', isEqualTo: riderUid)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => OrderModel.fromFirestore(d))
-            .where((o) =>
-                o.status == 'on_the_way' || o.status == 'out_for_delivery')
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => OrderModel.fromFirestore(d))
+              .where(
+                (o) =>
+                    o.status == 'on_the_way' || o.status == 'out_for_delivery',
+              )
+              .toList(),
+        );
   }
 
-  Future<void> verifyDelivery(String orderId, String inputPin, {GeoPoint? deliveryLocation}) async {
+  Stream<List<OrderModel>> getDeliveryHistoryStream(String riderUid) {
+    return _db
+        .collection('orders')
+        .where('riderId', isEqualTo: riderUid)
+        .where('status', isEqualTo: 'delivered')
+        .orderBy('timestamps.deliveredAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
+    });
+  }
+
+  Future<void> verifyDelivery(
+    String orderId,
+    String inputPin, {
+    GeoPoint? deliveryLocation,
+  }) async {
     final doc = await _db.collection('orders').doc(orderId).get();
     if (!doc.exists) throw Exception('Order does not exist');
     final data = doc.data() as Map<String, dynamic>;
-    final verifiedPin = data['verification']?['handoverPin'] ?? 
-                        data['rawData']?['handoverPin'] ?? 
-                        data['handoverPin'];
+    final verifiedPin =
+        data['verification']?['handoverPin'] ??
+        data['rawData']?['handoverPin'] ??
+        data['handoverPin'];
     if (verifiedPin != null && verifiedPin.toString() != inputPin) {
       throw Exception('Incorrect PIN');
     }
@@ -280,13 +314,29 @@ class DatabaseService {
     });
 
     final customerId = data['customerId'];
+    final riderId = data['riderId'];
+
     if (customerId != null) {
       await createNotification(
         NotificationModel(
           id: '',
           userId: customerId,
-          title: 'Order Delivered',
-          body: 'Your order has been safely delivered. Enjoy!',
+          title: 'Package Delivered! 🎉',
+          body: 'Your package has been successfully delivered. Thank you for choosing CeylonDash!',
+          type: NotificationType.order,
+          createdAt: DateTime.now(),
+          relatedId: orderId,
+        ),
+      );
+    }
+
+    if (riderId != null) {
+      await createNotification(
+        NotificationModel(
+          id: '',
+          userId: riderId,
+          title: 'Delivery Successful! 🏆',
+          body: 'You have successfully completed the delivery. Great job!',
           type: NotificationType.order,
           createdAt: DateTime.now(),
           relatedId: orderId,
@@ -316,7 +366,7 @@ class DatabaseService {
     // 1. Gadget Hub
     final shop1Id = 'Cv38tAlSKDEoKOSz2aMI';
     final seller1Id = 'U7T5r95C7RXJKjcjwHW9VG2VIGvl';
-    
+
     final seller1Ref = _db.collection('users').doc(seller1Id);
     await seller1Ref.set({
       'uid': seller1Id,
@@ -329,13 +379,15 @@ class DatabaseService {
       'businessAddress': 'SVDJHDSFSFE',
       'shopId': shop1Id,
     }, SetOptions(merge: true));
-    
-    await _db.collection('shops').doc(shop1Id).set({'sellerId': seller1Id}, SetOptions(merge: true));
+
+    await _db.collection('shops').doc(shop1Id).set({
+      'sellerId': seller1Id,
+    }, SetOptions(merge: true));
 
     // 2. Urban Wear (Existing test seller)
     final shop2Id = 'Uij5NuEdftwRTf0eVUmY';
     final seller2Id = 'test_seller_456';
-    
+
     final seller2Ref = _db.collection('users').doc(seller2Id);
     await seller2Ref.set({
       'uid': seller2Id,
@@ -346,10 +398,14 @@ class DatabaseService {
       'businessAddress': 'Colombo 07',
       'shopId': shop2Id,
     }, SetOptions(merge: true));
-    
-    await _db.collection('shops').doc(shop2Id).set({'sellerId': seller2Id}, SetOptions(merge: true));
 
-    await _db.collection('shops').doc(shop2Id).set({'sellerId': seller2Id}, SetOptions(merge: true));
+    await _db.collection('shops').doc(shop2Id).set({
+      'sellerId': seller2Id,
+    }, SetOptions(merge: true));
+
+    await _db.collection('shops').doc(shop2Id).set({
+      'sellerId': seller2Id,
+    }, SetOptions(merge: true));
 
     debugPrint('✅ Bot Sellers and Shop Links seeded successfully!');
   }
@@ -402,11 +458,16 @@ class DatabaseService {
         .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => NotificationModel.fromFirestore(d)).toList());
+        .map(
+          (snap) =>
+              snap.docs.map((d) => NotificationModel.fromFirestore(d)).toList(),
+        );
   }
 
   Future<void> markNotificationAsRead(String notificationId) async {
-    await _db.collection('notifications').doc(notificationId).update({'isRead': true});
+    await _db.collection('notifications').doc(notificationId).update({
+      'isRead': true,
+    });
   }
 
   Future<void> deleteNotification(String notificationId) async {
@@ -440,7 +501,11 @@ class DatabaseService {
 
   Future<int> getActiveUsersCount() async {
     try {
-      final snap = await _db.collection('users').where('role', isEqualTo: 'customer').count().get();
+      final snap = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'customer')
+          .count()
+          .get();
       return snap.count ?? 0;
     } catch (_) {
       return 0;
@@ -449,7 +514,11 @@ class DatabaseService {
 
   Future<int> getActiveRidersCount() async {
     try {
-      final snap = await _db.collection('users').where('role', isEqualTo: 'rider').count().get();
+      final snap = await _db
+          .collection('users')
+          .where('role', isEqualTo: 'rider')
+          .count()
+          .get();
       return snap.count ?? 0;
     } catch (_) {
       return 0;
@@ -460,14 +529,23 @@ class DatabaseService {
     try {
       final now = DateTime.now();
       final sevenDaysAgo = now.subtract(const Duration(days: 7));
-      
-      final snap = await _db.collection('orders')
+
+      final snap = await _db
+          .collection('orders')
           .where('createdAt', isGreaterThan: Timestamp.fromDate(sevenDaysAgo))
           .get();
 
       // Initialize map for 7 days
-      final trends = {0: 0, 1: 0, 2: 0, 3: 4, 4: 0, 5: 0, 6: 0}; // Add some fallback defaults if empty
-      
+      final trends = {
+        0: 0,
+        1: 0,
+        2: 0,
+        3: 4,
+        4: 0,
+        5: 0,
+        6: 0,
+      }; // Add some fallback defaults if empty
+
       for (var doc in snap.docs) {
         final data = doc.data();
         final timestamp = data['createdAt'] as Timestamp?;
@@ -481,13 +559,24 @@ class DatabaseService {
       }
       return trends;
     } catch (_) {
-      return {0: 1, 1: 3, 2: 2, 3: 5, 4: 3, 5: 4, 6: 6}; // Graceful fallback with dummy data
+      return {
+        0: 1,
+        1: 3,
+        2: 2,
+        3: 5,
+        4: 3,
+        5: 4,
+        6: 6,
+      }; // Graceful fallback with dummy data
     }
   }
 
   Future<double> getTotalRevenue() async {
     try {
-      final snap = await _db.collection('orders').where('status', isEqualTo: 'delivered').get();
+      final snap = await _db
+          .collection('orders')
+          .where('status', isEqualTo: 'delivered')
+          .get();
       double total = 0;
       for (var doc in snap.docs) {
         final data = doc.data();
@@ -500,9 +589,14 @@ class DatabaseService {
   }
 
   Stream<List<UserModel>> getAgentsStream() {
-    return _db.collection('users').where('role', isEqualTo: 'agent').snapshots().map(
-      (snap) => snap.docs.map((doc) => UserModel.fromFirestore(doc)).toList()
-    );
+    return _db
+        .collection('users')
+        .where('role', isEqualTo: 'agent')
+        .snapshots()
+        .map(
+          (snap) =>
+              snap.docs.map((doc) => UserModel.fromFirestore(doc)).toList(),
+        );
   }
 
   Future<void> createAgentDocument(UserModel agent) async {
@@ -514,9 +608,14 @@ class DatabaseService {
   }
 
   Stream<List<PromotionModel>> streamAllPromotions() {
-    return _db.collection('promotions').snapshots().map(
-      (snap) => snap.docs.map((doc) => PromotionModel.fromMap(doc.id, doc.data())).toList()
-    );
+    return _db
+        .collection('promotions')
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((doc) => PromotionModel.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
   }
 
   Future<void> updatePromotion(String id, Map<String, dynamic> data) async {
@@ -534,34 +633,45 @@ class DatabaseService {
   Stream<QuerySnapshot> getArchivedSupportChatsStream() {
     return _db.collection('archived_chats').snapshots();
   }
+
   Stream<List<UserModel>> getActiveRidersStream() {
     return _db
         .collection('users')
         .where('role', isEqualTo: 'rider')
-        .where('isAvailable', isEqualTo: true) // Filter for online/available riders
+        .where(
+          'isAvailable',
+          isEqualTo: true,
+        ) // Filter for online/available riders
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => UserModel.fromFirestore(doc))
-            .where((u) => u.currentLocation != null) // Only return riders with location
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((doc) => UserModel.fromFirestore(doc))
+              .where(
+                (u) => u.currentLocation != null,
+              ) // Only return riders with location
+              .toList(),
+        );
   }
 
   Stream<List<OrderModel>> getActiveOrdersStream() {
     return _db
         .collection('orders')
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => OrderModel.fromFirestore(doc))
-            .where((o) =>
-                o.status != 'delivered' &&
-                o.status != 'cancelled') // Filter for active orders
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((doc) => OrderModel.fromFirestore(doc))
+              .where(
+                (o) => o.status != 'delivered' && o.status != 'cancelled',
+              ) // Filter for active orders
+              .toList(),
+        );
   }
 
   Future<List<OrderModel>> getRecentOrders(Duration duration) async {
     final now = DateTime.now();
     final start = now.subtract(duration);
-    final snap = await _db.collection('orders')
+    final snap = await _db
+        .collection('orders')
         .where('timestamps.updatedAt', isGreaterThan: Timestamp.fromDate(start))
         .get();
     return snap.docs.map((d) => OrderModel.fromFirestore(d)).toList();
@@ -570,7 +680,8 @@ class DatabaseService {
   Future<List<Map<String, dynamic>>> getRecentReports(Duration duration) async {
     final now = DateTime.now();
     final start = now.subtract(duration);
-    final snap = await _db.collection('reports')
+    final snap = await _db
+        .collection('reports')
         .where('createdAt', isGreaterThan: Timestamp.fromDate(start))
         .get();
     return snap.docs.map((d) => d.data() as Map<String, dynamic>).toList();

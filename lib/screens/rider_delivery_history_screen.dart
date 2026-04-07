@@ -26,11 +26,11 @@ class _RiderDeliveryHistoryScreenState extends State<RiderDeliveryHistoryScreen>
     return _db
         .collection('orders')
         .where('riderId', isEqualTo: _uid)
+        .where('status', isEqualTo: 'delivered')
         .snapshots()
         .map((snap) {
       final list = snap.docs
           .map((doc) => OrderModel.fromFirestore(doc))
-          .where((o) => o.status == 'delivered')
           .toList();
       
       list.sort((a, b) {
@@ -76,10 +76,10 @@ class _RiderDeliveryHistoryScreenState extends State<RiderDeliveryHistoryScreen>
 
                 final jobs = snapshot.data ?? [];
                 if (jobs.isEmpty) {
-                  return Center(
+                  return const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children: [
                         Icon(Icons.history, size: 64, color: Colors.black26),
                         SizedBox(height: 16),
                         Text('No completed deliveries yet.', style: TextStyle(color: Colors.black54, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: -0.3)),
@@ -177,3 +177,4 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 }
+

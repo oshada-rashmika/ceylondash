@@ -13,6 +13,7 @@ import '../services/rider_service.dart';
 import '../widgets/job_card.dart';
 import '../widgets/my_route_tab.dart';
 import '../screens/rider_qr_scanner_screen.dart';
+import '../screens/rider_delivery_history_screen.dart';
 
 class RiderDashboardScreen extends StatefulWidget {
   const RiderDashboardScreen({super.key});
@@ -148,12 +149,7 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
               ],
             ),
       const MyRouteTab(),
-      const Center(
-        child: Text(
-          'Chat',
-          style: TextStyle(color: Colors.black54, fontSize: 18),
-        ),
-      ),
+      const RiderDeliveryHistoryScreen(), // Replaced Chat with Delivery History
       const ProfileScreen(),
     ];
 
@@ -387,10 +383,10 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildNavItem(
-                    Icons.chat_bubble_outline_rounded,
-                    Icons.chat_rounded,
+                    Icons.history_outlined,
+                    Icons.history_rounded,
                     2,
-                    'Chat',
+                    'History',
                   ),
                   _buildNavItem(
                     Icons.person_outline_rounded,

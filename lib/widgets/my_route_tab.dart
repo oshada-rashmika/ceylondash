@@ -204,7 +204,10 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
   void _updateStatusToOutForDelivery() async {
     setState(() => _isUpdating = true);
     try {
-      await DatabaseService().updateOrderStatus(widget.order.id, 'out_for_delivery');
+      await DatabaseService().updateOrderStatus(
+        widget.order.id,
+        'out_for_delivery',
+      );
       if (mounted) {
         TopSnackbar.show(
           context,
@@ -410,11 +413,18 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
                       ? const SizedBox(
                           width: 24,
                           height: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
                         )
                       : const Text(
                           'Start Delivery To Customer',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.3),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                 ),
               )
@@ -447,11 +457,18 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
                       ? const SizedBox(
                           width: 24,
                           height: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
                         )
                       : const Text(
                           'Scan QR to Deliver',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.3),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                 ),
               ),
