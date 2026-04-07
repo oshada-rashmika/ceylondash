@@ -1518,6 +1518,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         ],
       ),
     );
+  }
+
   // ─── LEADERBOARD OVERVIEW CARD ─────────────────────────────
   Widget _buildLeaderboardCard() {
     // Demo leaderboard data
