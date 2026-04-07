@@ -2,13 +2,57 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../blocs/rider_bloc.dart';
 import '../models/order_model.dart';
 import '../services/database_service.dart';
 import 'top_snackbar.dart';
 
-class MyRouteTab extends StatelessWidget {
+class MyRouteTab extends StatefulWidget {
   const MyRouteTab({super.key});
+
+  @override
+  State<MyRouteTab> createState() => _MyRouteTabState();
+}
+
+class _MyRouteTabState extends State<MyRouteTab> with TickerProviderStateMixin {
+  final MapController _mapController = MapController();
+  final PageController _pageController = PageController(viewportFraction: 0.9);
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _animatedMapMove(LatLng destLocation, double destZoom) {
+    // Create some tweens. These serve to split up the transition from one location to another.
+    // In our case, we want to split the transition be<…>
+    final latTween = Tween<double>(begin: _mapController.camera.center.latitude, end: destLocation.latitude);
+    final lngTween = Tween<double>(begin: _mapController.camera.center.longitude, end: destLocation.longitude);
+    final zoomTween = Tween<double>(begin: _mapController.camera.zoom, end: destZoom);
+
+    // Create a animation controller that has a duration and a TickerProvider.
+    final controller = AnimationController(duration: const Duration(milliseconds: 500), vsync: this);
+    // The animation determines what path the animation will take. You can try different Curves values, although I found fastOutSlowIn to be my favorite.
+    final Animation<double> animation = CurvedAnimation(parent: controller, curve: Curves.fastOutSlowIn);
+
+    controller.addListener(() {
+      _mapController.move(
+          LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+          zoomTween.evaluate(animation));
+    });
+
+    animation.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        controller.dispose();
+      } else if (status == AnimationStatus.dismissed) {
+        controller.dispose();
+      }
+    });
+
+    controller.forward();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +72,7 @@ class MyRouteTab extends StatelessWidget {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: 20,
+                bottom: 80, // Moved up to prevent overlapping with FAB / bottom nav
                 child: _buildJobList(activeJobs),
               ),
             if (activeJobs.isEmpty)
@@ -82,7 +126,8 @@ class MyRouteTab extends StatelessWidget {
     }).toList();
 
     return FlutterMap(
-      options: MapOptions(initialCenter: center, initialZoom: 7.0),
+      mapController: _mapController,
+      options: MapOptions(initialCenter: center, initialZoom: 12.0),
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -98,9 +143,18 @@ class MyRouteTab extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return SizedBox(
-      height: 230,
+      height: 280, // Increased height to accommodate extra button
       child: PageView.builder(
-        controller: PageController(viewportFraction: 0.9),
+        controller: _pageController,
+        onPageChanged: (index) {
+          final job = jobs[index];
+          if (job.dropoffLocation.latitude != 0 && job.dropoffLocation.longitude != 0) {
+            _animatedMapMove(
+              LatLng(job.dropoffLocation.latitude, job.dropoffLocation.longitude),
+              15.0, // zoom level
+            );
+          }
+        },
         itemCount: jobs.length,
         itemBuilder: (context, index) {
           final job = jobs[index];
@@ -262,7 +316,47 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  if (widget.order.dropoffLocation.latitude != 0) {
+                    final lat = widget.order.dropoffLocation.latitude;
+                    final lng = widget.order.dropoffLocation.longitude;
+                    final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    } else {
+                      if (mounted && context.mounted) {
+                        TopSnackbar.show(context, message: 'Could not open maps', type: SnackbarType.error);
+                      }
+                    }
+                  } else {
+                    if (mounted && context.mounted) {
+                      TopSnackbar.show(context, message: 'Invalid location coordinates', type: SnackbarType.error);
+                    }
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.blue.shade700,
+                  side: BorderSide(color: Colors.blue.shade200),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.map_outlined, size: 20),
+                label: const Text(
+                  'Open in Google Maps',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
               height: 50,
