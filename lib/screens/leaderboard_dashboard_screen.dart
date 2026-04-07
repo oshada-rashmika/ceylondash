@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class LeaderboardDashboardScreen extends StatefulWidget {
-  const LeaderboardDashboardScreen({super.key});
+  final bool isRider;
+
+  const LeaderboardDashboardScreen({super.key, this.isRider = false});
 
   @override
   State<LeaderboardDashboardScreen> createState() =>
@@ -27,6 +29,23 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
     {'name': 'Your Business', 'deliveries': 187, 'onTime': 96.5, 'rank': 12, 'isSelf': true},
   ];
 
+  final List<Map<String, dynamic>> _riders = [
+    {'name': 'Anton Jayakody', 'deliveries': 342, 'onTime': 98.5, 'rank': 1},
+    {'name': 'Amal Perera', 'deliveries': 298, 'onTime': 97.2, 'rank': 2},
+    {'name': 'John Doe', 'deliveries': 261, 'onTime': 95.8, 'rank': 3},
+    {'name': 'Saman Kumara', 'deliveries': 245, 'onTime': 96.0, 'rank': 4},
+    {'name': 'Nimal Perera', 'deliveries': 230, 'onTime': 94.5, 'rank': 5},
+    {'name': 'Kamal Silva', 'deliveries': 210, 'onTime': 93.2, 'rank': 6},
+    {'name': 'Nuwan Pradeep', 'deliveries': 195, 'onTime': 92.1, 'rank': 7},
+    {'name': 'Dasun Shanaka', 'deliveries': 190, 'onTime': 91.5, 'rank': 8},
+    {'name': 'Kusal Mendis', 'deliveries': 188, 'onTime': 90.8, 'rank': 9},
+    {'name': 'Charith Asalanka', 'deliveries': 185, 'onTime': 96.0, 'rank': 10},
+    {'name': 'Wanindu Hasaranga', 'deliveries': 180, 'onTime': 89.5, 'rank': 11},
+    {'name': 'You', 'deliveries': 187, 'onTime': 96.5, 'rank': 12, 'isSelf': true},
+  ];
+
+  List<Map<String, dynamic>> get _currentList => widget.isRider ? _riders : _sellers;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,9 +61,9 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
             Navigator.pop(context);
           },
         ),
-        title: const Text(
-          'Seller Leaderboard',
-          style: TextStyle(
+        title: Text(
+          widget.isRider ? 'Rider Leaderboard' : 'Seller Leaderboard',
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w800,
             fontSize: 20,
@@ -63,9 +82,9 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
                 children: [
                   _buildMyRankBanner(),
                   const SizedBox(height: 32),
-                  const Text(
-                    'TOP SELLERS',
-                    style: TextStyle(
+                  Text(
+                    widget.isRider ? 'TOP RIDERS' : 'TOP SELLERS',
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: Colors.white54,
@@ -82,10 +101,10 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  final seller = _sellers[index];
-                  return _buildLeaderboardTile(seller);
+                  final person = _currentList[index];
+                  return _buildLeaderboardTile(person);
                 },
-                childCount: _sellers.length,
+                childCount: _currentList.length,
               ),
             ),
           ),
@@ -166,9 +185,9 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Top 5% of Sellers',
-                  style: TextStyle(
+                Text(
+                  'Top 5% of ${widget.isRider ? 'Riders' : 'Sellers'}',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,

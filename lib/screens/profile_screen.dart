@@ -1539,7 +1539,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         HapticFeedback.lightImpact();
         Navigator.push(
           context,
-          SlidePageRoute(page: const LeaderboardDashboardScreen()),
+          SlidePageRoute(page: const LeaderboardDashboardScreen(isRider: true)),
         );
       },
       child: Container(
