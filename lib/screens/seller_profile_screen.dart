@@ -1821,6 +1821,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
           const SizedBox(height: 24),
         ],
       ),
+    ),
     );
   }
 }
