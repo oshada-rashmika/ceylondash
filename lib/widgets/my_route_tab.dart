@@ -29,19 +29,35 @@ class _MyRouteTabState extends State<MyRouteTab> with TickerProviderStateMixin {
   void _animatedMapMove(LatLng destLocation, double destZoom) {
     // Create some tweens. These serve to split up the transition from one location to another.
     // In our case, we want to split the transition be<…>
-    final latTween = Tween<double>(begin: _mapController.camera.center.latitude, end: destLocation.latitude);
-    final lngTween = Tween<double>(begin: _mapController.camera.center.longitude, end: destLocation.longitude);
-    final zoomTween = Tween<double>(begin: _mapController.camera.zoom, end: destZoom);
+    final latTween = Tween<double>(
+      begin: _mapController.camera.center.latitude,
+      end: destLocation.latitude,
+    );
+    final lngTween = Tween<double>(
+      begin: _mapController.camera.center.longitude,
+      end: destLocation.longitude,
+    );
+    final zoomTween = Tween<double>(
+      begin: _mapController.camera.zoom,
+      end: destZoom,
+    );
 
     // Create a animation controller that has a duration and a TickerProvider.
-    final controller = AnimationController(duration: const Duration(milliseconds: 500), vsync: this);
+    final controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
     // The animation determines what path the animation will take. You can try different Curves values, although I found fastOutSlowIn to be my favorite.
-    final Animation<double> animation = CurvedAnimation(parent: controller, curve: Curves.fastOutSlowIn);
+    final Animation<double> animation = CurvedAnimation(
+      parent: controller,
+      curve: Curves.fastOutSlowIn,
+    );
 
     controller.addListener(() {
       _mapController.move(
-          LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
-          zoomTween.evaluate(animation));
+        LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+        zoomTween.evaluate(animation),
+      );
     });
 
     animation.addStatusListener((status) {
@@ -73,7 +89,8 @@ class _MyRouteTabState extends State<MyRouteTab> with TickerProviderStateMixin {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: 110, // Moved up further to comfortably clear the FAB and nav bar
+                bottom:
+                    110, // Moved up further to comfortably clear the FAB and nav bar
                 child: _buildJobList(activeJobs),
               ),
             if (activeJobs.isEmpty)
@@ -149,9 +166,13 @@ class _MyRouteTabState extends State<MyRouteTab> with TickerProviderStateMixin {
         controller: _pageController,
         onPageChanged: (index) {
           final job = jobs[index];
-          if (job.dropoffLocation.latitude != 0 && job.dropoffLocation.longitude != 0) {
+          if (job.dropoffLocation.latitude != 0 &&
+              job.dropoffLocation.longitude != 0) {
             _animatedMapMove(
-              LatLng(job.dropoffLocation.latitude, job.dropoffLocation.longitude),
+              LatLng(
+                job.dropoffLocation.latitude,
+                job.dropoffLocation.longitude,
+              ),
               15.0, // zoom level
             );
           }
@@ -326,17 +347,30 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
                   if (widget.order.dropoffLocation.latitude != 0) {
                     final lat = widget.order.dropoffLocation.latitude;
                     final lng = widget.order.dropoffLocation.longitude;
-                    final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+                    final url = Uri.parse(
+                      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
+                    );
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
                     } else {
                       if (mounted && context.mounted) {
-                        TopSnackbar.show(context, message: 'Could not open maps', type: SnackbarType.error);
+                        TopSnackbar.show(
+                          context,
+                          message: 'Could not open maps',
+                          type: SnackbarType.error,
+                        );
                       }
                     }
                   } else {
                     if (mounted && context.mounted) {
-                      TopSnackbar.show(context, message: 'Invalid location coordinates', type: SnackbarType.error);
+                      TopSnackbar.show(
+                        context,
+                        message: 'Invalid location coordinates',
+                        type: SnackbarType.error,
+                      );
                     }
                   }
                 },
@@ -350,10 +384,7 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
                 icon: const Icon(Icons.map_outlined, size: 20),
                 label: const Text(
                   'Open in Google Maps',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 ),
               ),
             ),
@@ -382,7 +413,10 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
                 ),
                 icon: _isUpdating
                     ? const SizedBox.shrink()
-                    : const Icon(Icons.qr_code_scanner, size: 22), // Changed icon to QR
+                    : const Icon(
+                        Icons.qr_code_scanner,
+                        size: 22,
+                      ), // Changed icon to QR
                 label: _isUpdating
                     ? const SizedBox(
                         width: 24,
