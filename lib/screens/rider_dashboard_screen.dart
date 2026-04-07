@@ -167,14 +167,21 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
               surfaceTintColor: Colors.white,
               elevation: 0.5,
               shadowColor: Colors.black.withValues(alpha: 0.05),
-              title: const Text(
-                'Rider Dashboard',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
+              title: StreamBuilder<UserModel?>(
+                stream: _db.streamUser(uid),
+                builder: (context, snapshot) {
+                  final name = snapshot.data?.name ?? 'Rider';
+                  final displayTitle = name == 'Rider' ? 'Rider Dashboard' : "${name.split(' ').first}'s Dashboard";
+                  return Text(
+                    displayTitle,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
+                  );
+                },
               ),
               actions: [
                 Row(
@@ -211,25 +218,26 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
       body: Stack(
         children: [
           IndexedStack(index: _currentIndex, children: screens),
-          Positioned(
-            right: 16,
-            bottom: MediaQuery.of(context).padding.bottom + 90,
-            child: FloatingActionButton(
-              heroTag: 'independent_qr_scanner_fab',
-              backgroundColor: Colors.cyan,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
-                );
-              },
-              child: const Icon(Icons.qr_code_scanner_rounded),
+          if (_currentIndex != 1)
+            Positioned(
+              right: 16,
+              bottom: MediaQuery.of(context).padding.bottom + 90,
+              child: FloatingActionButton(
+                heroTag: 'independent_qr_scanner_fab',
+                backgroundColor: Colors.cyan,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
+                  );
+                },
+                child: const Icon(Icons.qr_code_scanner_rounded),
+              ),
             ),
-          ),
           if (_isMenuOpen || _menuCtrl.isAnimating)
             Positioned.fill(
               child: AnimatedBuilder(
