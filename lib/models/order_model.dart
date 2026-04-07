@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uuid/uuid.dart';
 
 class OrderModel {
   final String id;
@@ -14,6 +15,7 @@ class OrderModel {
   final Map<String, dynamic> verification;
   final Map<String, dynamic> timestamps;
   final Map<String, dynamic> rawData;
+  final String qrCodeUuid;
 
   OrderModel({
     required this.id,
@@ -29,7 +31,8 @@ class OrderModel {
     required this.verification,
     required this.timestamps,
     required this.rawData,
-  });
+    String? qrCodeUuid,
+  }) : qrCodeUuid = qrCodeUuid ?? const Uuid().v4();
 
   factory OrderModel.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
@@ -47,6 +50,7 @@ class OrderModel {
       verification: data['verification'] ?? {},
       timestamps: data['timestamps'] ?? {},
       rawData: data,
+      qrCodeUuid: data['qrCodeUuid'] ?? const Uuid().v4(),
     );
   }
 
@@ -125,6 +129,7 @@ class OrderModel {
       'dropoffLocation': dropoffLocation,
       'dropoffAddress': dropoffAddress,
       'verification': verification,
+      'qrCodeUuid': qrCodeUuid,
       'timestamps': {
         'createdAt': timestamps['createdAt'] ?? FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
