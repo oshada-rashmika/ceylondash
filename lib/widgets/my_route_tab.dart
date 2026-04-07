@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../blocs/rider_bloc.dart';
 import '../models/order_model.dart';
 import '../services/database_service.dart';
+import '../screens/rider_qr_scanner_screen.dart';
 import 'top_snackbar.dart';
 
 class MyRouteTab extends StatefulWidget {
@@ -72,7 +73,7 @@ class _MyRouteTabState extends State<MyRouteTab> with TickerProviderStateMixin {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: 80, // Moved up to prevent overlapping with FAB / bottom nav
+                bottom: 110, // Moved up further to comfortably clear the FAB and nav bar
                 child: _buildJobList(activeJobs),
               ),
             if (activeJobs.isEmpty)
@@ -363,7 +364,14 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
               child: ElevatedButton.icon(
                 onPressed: widget.order.status == 'delivered' || _isUpdating
                     ? null
-                    : _updateStatus,
+                    : () {
+                        // Open the QR scanner instead of directly updating
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const RiderQRScannerScreen(),
+                          ),
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan.shade600,
                   foregroundColor: Colors.white,
@@ -374,7 +382,7 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
                 ),
                 icon: _isUpdating
                     ? const SizedBox.shrink()
-                    : const Icon(Icons.check_circle_outline, size: 22),
+                    : const Icon(Icons.qr_code_scanner, size: 22), // Changed icon to QR
                 label: _isUpdating
                     ? const SizedBox(
                         width: 24,
@@ -385,7 +393,7 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
                         ),
                       )
                     : const Text(
-                        'Mark as Delivered',
+                        'Scan QR to Deliver',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
