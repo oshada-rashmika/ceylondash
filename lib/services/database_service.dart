@@ -286,8 +286,10 @@ class DatabaseService {
         .orderBy('timestamps.deliveredAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
-    });
+          return snapshot.docs
+              .map((doc) => OrderModel.fromFirestore(doc))
+              .toList();
+        });
   }
 
   Future<void> verifyDelivery(
@@ -322,7 +324,8 @@ class DatabaseService {
           id: '',
           userId: customerId,
           title: 'Package Delivered! 🎉',
-          body: 'Your package has been successfully delivered. Thank you for choosing CeylonDash!',
+          body:
+              'Your package has been successfully delivered. Thank you for choosing CeylonDash!',
           type: NotificationType.order,
           createdAt: DateTime.now(),
           relatedId: orderId,

@@ -8,10 +8,12 @@ class RiderDeliveryHistoryScreen extends StatefulWidget {
   const RiderDeliveryHistoryScreen({super.key});
 
   @override
-  State<RiderDeliveryHistoryScreen> createState() => _RiderDeliveryHistoryScreenState();
+  State<RiderDeliveryHistoryScreen> createState() =>
+      _RiderDeliveryHistoryScreenState();
 }
 
-class _RiderDeliveryHistoryScreenState extends State<RiderDeliveryHistoryScreen> {
+class _RiderDeliveryHistoryScreenState
+    extends State<RiderDeliveryHistoryScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   late final String? _uid;
 
@@ -29,20 +31,26 @@ class _RiderDeliveryHistoryScreenState extends State<RiderDeliveryHistoryScreen>
         .where('status', isEqualTo: 'delivered')
         .snapshots()
         .map((snap) {
-      final list = snap.docs
-          .map((doc) => OrderModel.fromFirestore(doc))
-          .toList();
-      
-      list.sort((a, b) {
-        final ta = a.timestamps['deliveredAt'];
-        final tb = b.timestamps['deliveredAt'];
-        if (ta is Timestamp && tb is Timestamp) {
-          return tb.compareTo(ta); // descending
-        }
-        return 0; // fallback
-      });
-      return list;
-    });
+          final list = snap.docs
+              .map((doc) => OrderModel.fromFirestore(doc))
+              .toList();
+
+          list.sort((a, b) {
+            final ta =
+                a.timestamps['deliveredAt'] ??
+                a.timestamps['updatedAt'] ??
+                a.rawData['createdAt'];
+            final tb =
+                b.timestamps['deliveredAt'] ??
+                b.timestamps['updatedAt'] ??
+                b.rawData['createdAt'];
+            if (ta is Timestamp && tb is Timestamp) {
+              return tb.compareTo(ta); // descending
+            }
+            return 0; // fallback
+          });
+          return list;
+        });
   }
 
   @override
@@ -50,7 +58,14 @@ class _RiderDeliveryHistoryScreenState extends State<RiderDeliveryHistoryScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
-        title: const Text('Delivery History', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black87, letterSpacing: -0.5)),
+        title: const Text(
+          'Delivery History',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Colors.black87,
+            letterSpacing: -0.5,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black87),
@@ -62,14 +77,19 @@ class _RiderDeliveryHistoryScreenState extends State<RiderDeliveryHistoryScreen>
               stream: _getHistoryStream(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.cyan));
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.cyan),
+                  );
                 }
-                
+
                 if (snapshot.hasError) {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
-                      child: Text('Error loading history: ${snapshot.error}', textAlign: TextAlign.center),
+                      child: Text(
+                        'Error loading history: ${snapshot.error}',
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   );
                 }
@@ -82,7 +102,15 @@ class _RiderDeliveryHistoryScreenState extends State<RiderDeliveryHistoryScreen>
                       children: [
                         Icon(Icons.history, size: 64, color: Colors.black26),
                         SizedBox(height: 16),
-                        Text('No completed deliveries yet.', style: TextStyle(color: Colors.black54, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: -0.3)),
+                        Text(
+                          'No completed deliveries yet.',
+                          style: TextStyle(
+                            color: Colors.black54,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -91,7 +119,10 @@ class _RiderDeliveryHistoryScreenState extends State<RiderDeliveryHistoryScreen>
                 return ListView.builder(
                   itemCount: jobs.length,
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 16,
+                  ),
                   itemBuilder: (context, index) {
                     final job = jobs[index];
                     return _HistoryCard(order: job);
@@ -110,15 +141,36 @@ class _HistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fee = order.rawData['deliveryFee'] ?? order.rawData['codAmount'] ?? 0;
-    
-    final deliveredTs = order.timestamps['deliveredAt'];
-    String formattedDate = 'Unknown date';
+
+    final deliveredTs =
+        order.timestamps['deliveredAt'] ??
+        order.timestamps['updatedAt'] ??
+        order.rawData['createdAt'];
+
+    String formattedDate = 'Processing Date';
     if (deliveredTs is Timestamp) {
-      formattedDate = DateFormat('MMM d, yyyy • h:mm a').format(deliveredTs.toDate());
+      formattedDate = DateFormat(
+        'MMM d, yyyy • h:mm a',
+      ).format(deliveredTs.toDate());
+    }
+
+    final handoverPin =
+        order.verification['handoverPin'] ?? order.rawData['handoverPin'];
+    String proofMethod = 'Location Verified';
+    IconData proofIcon = Icons.location_on_outlined;
+
+    if (handoverPin != null) {
+      proofMethod = 'Verified via PIN Code';
+      proofIcon = Icons.password_rounded;
+    } else if (order.rawData['qrCodeUuid'] != null) {
+      proofMethod = 'Verified via QR Code';
+      proofIcon = Icons.qr_code_scanner_rounded;
     }
 
     final pickup = order.rawData['pickupAddress'] ?? 'Shop Location';
-    final dropoff = order.dropoffAddress.isNotEmpty ? order.dropoffAddress : 'Customer Location';
+    final dropoff = order.dropoffAddress.isNotEmpty
+        ? order.dropoffAddress
+        : 'Customer Location';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -128,7 +180,11 @@ class _HistoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
         boxShadow: const [
-          BoxShadow(color: Color(0x05000000), blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color(0x05000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -137,16 +193,30 @@ class _HistoryCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(formattedDate, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black54, fontSize: 13)),
+              Text(
+                formattedDate,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black54,
+                  fontSize: 13,
+                ),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   'LKR $fee',
-                  style: TextStyle(fontWeight: FontWeight.w800, color: Colors.green.shade800, fontSize: 14),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: Colors.green.shade800,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],
@@ -156,7 +226,15 @@ class _HistoryCard extends StatelessWidget {
             children: [
               const Icon(Icons.circle, size: 10, color: Colors.blue),
               const SizedBox(width: 12),
-              Expanded(child: Text(pickup, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14))),
+              Expanded(
+                child: Text(
+                  pickup,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
             ],
           ),
           Container(
@@ -169,12 +247,43 @@ class _HistoryCard extends StatelessWidget {
             children: [
               const Icon(Icons.location_on, size: 14, color: Colors.red),
               const SizedBox(width: 10),
-              Expanded(child: Text(dropoff, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14))),
+              Expanded(
+                child: Text(
+                  dropoff,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(proofIcon, size: 16, color: Colors.indigo),
+                const SizedBox(width: 8),
+                Text(
+                  proofMethod,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 }
-

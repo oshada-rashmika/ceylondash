@@ -19,10 +19,10 @@ class RiderService {
         return false;
       }
     }
-    
+
     if (permission == LocationPermission.deniedForever) {
       return false;
-    } 
+    }
 
     return true;
   }
@@ -44,9 +44,7 @@ class RiderService {
   }
 
   Future<void> updateRiderAvailability(String uid, bool isAvailable) async {
-    await _db.updateUserFields(uid, {
-      'isAvailable': isAvailable,
-    });
+    await _db.updateUserFields(uid, {'isAvailable': isAvailable});
   }
 
   Stream<List<OrderModel>> getPendingJobsStream() {

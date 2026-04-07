@@ -25,7 +25,7 @@ class RiderDashboardScreen extends StatefulWidget {
 class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
-  
+
   late final RiderBloc _riderBloc;
 
   late final AnimationController _menuCtrl;
@@ -66,8 +66,6 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
     });
   }
 
-
-
   @override
   void dispose() {
     _riderBloc.close();
@@ -98,13 +96,13 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    
+
     return BlocProvider.value(
       value: _riderBloc,
       child: BlocBuilder<RiderBloc, RiderState>(
         builder: (context, riderState) {
           final isOnline = riderState.isAvailable;
-          
+
           final screens = [
             Stack(
               children: [
@@ -132,14 +130,19 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
-                            Icon(Icons.location_off, size: 64, color: Colors.black45),
+                            Icon(
+                              Icons.location_off,
+                              size: 64,
+                              color: Colors.black45,
+                            ),
                             SizedBox(height: 16),
                             Text(
                               "Go Online to view available jobs",
                               style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black54),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black54,
+                              ),
                             ),
                           ],
                         ),
@@ -148,123 +151,135 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                   ),
               ],
             ),
-      const MyRouteTab(),
-      const RiderDeliveryHistoryScreen(), // Replaced Chat with Delivery History
-      const ProfileScreen(),
-    ];
+            const MyRouteTab(),
+            const RiderDeliveryHistoryScreen(), // Replaced Chat with Delivery History
+            const ProfileScreen(),
+          ];
 
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: const Color(0xFFF9F9FB),
-      appBar: _currentIndex == 3
-          ? null
-          : AppBar(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
-              elevation: 0.5,
-              shadowColor: Colors.black.withValues(alpha: 0.05),
-              title: StreamBuilder<UserModel?>(
-                stream: _db.streamUser(uid),
-                builder: (context, snapshot) {
-                  final name = snapshot.data?.name ?? 'Rider';
-                  final displayTitle = name == 'Rider' ? 'Rider Dashboard' : "${name.split(' ').first}'s Dashboard";
-                  return Text(
-                    displayTitle,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
-                  );
-                },
-              ),
-              actions: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      isOnline ? 'Online' : 'Offline',
-                      style: TextStyle(
-                        color: isOnline
-                            ? Colors.green.shade600
-                            : Colors.black45,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Switch(
-                      value: isOnline,
-                      onChanged: (val) {
-                        if (uid.isNotEmpty) {
-                          _riderBloc.add(ToggleAvailabilityStatus(isAvailable: val, uid: uid));
-                        }
+          return Scaffold(
+            extendBody: true,
+            backgroundColor: const Color(0xFFF9F9FB),
+            appBar: _currentIndex == 3
+                ? null
+                : AppBar(
+                    backgroundColor: Colors.white,
+                    surfaceTintColor: Colors.white,
+                    elevation: 0.5,
+                    shadowColor: Colors.black.withValues(alpha: 0.05),
+                    title: StreamBuilder<UserModel?>(
+                      stream: _db.streamUser(uid),
+                      builder: (context, snapshot) {
+                        final name = snapshot.data?.name ?? 'Rider';
+                        final displayTitle = name == 'Rider'
+                            ? 'Rider Dashboard'
+                            : "${name.split(' ').first}'s Dashboard";
+                        return Text(
+                          displayTitle,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
+                        );
                       },
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: Colors.green.shade500,
-                      inactiveThumbColor: Colors.white,
-                      inactiveTrackColor: Colors.grey.shade300,
                     ),
-                  ],
-                ),
-                const SizedBox(width: 16),
+                    actions: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isOnline ? 'Online' : 'Offline',
+                            style: TextStyle(
+                              color: isOnline
+                                  ? Colors.green.shade600
+                                  : Colors.black45,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Switch(
+                            value: isOnline,
+                            onChanged: (val) {
+                              if (uid.isNotEmpty) {
+                                _riderBloc.add(
+                                  ToggleAvailabilityStatus(
+                                    isAvailable: val,
+                                    uid: uid,
+                                  ),
+                                );
+                              }
+                            },
+                            activeThumbColor: Colors.white,
+                            activeTrackColor: Colors.green.shade500,
+                            inactiveThumbColor: Colors.white,
+                            inactiveTrackColor: Colors.grey.shade300,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                    ],
+                  ),
+            body: Stack(
+              children: [
+                IndexedStack(index: _currentIndex, children: screens),
+                if (_currentIndex != 1)
+                  Positioned(
+                    right: 16,
+                    bottom: MediaQuery.of(context).padding.bottom + 90,
+                    child: FloatingActionButton(
+                      heroTag: 'independent_qr_scanner_fab',
+                      backgroundColor: Colors.cyan,
+                      foregroundColor: Colors.white,
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RiderQRScannerScreen(),
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.qr_code_scanner_rounded),
+                    ),
+                  ),
+                if (_isMenuOpen || _menuCtrl.isAnimating)
+                  Positioned.fill(
+                    child: AnimatedBuilder(
+                      animation: _menuCtrl,
+                      builder: (context, child) {
+                        return IgnorePointer(
+                          ignoring: !_isMenuOpen,
+                          child: GestureDetector(
+                            onTap: _toggleMenu,
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: 5.0 * _menuCtrl.value,
+                                sigmaY: 5.0 * _menuCtrl.value,
+                              ),
+                              child: Container(
+                                color: Colors.black.withValues(
+                                  alpha: 0.3 * _menuCtrl.value,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
               ],
             ),
-      body: Stack(
-        children: [
-          IndexedStack(index: _currentIndex, children: screens),
-          if (_currentIndex != 1)
-            Positioned(
-              right: 16,
-              bottom: MediaQuery.of(context).padding.bottom + 90,
-              child: FloatingActionButton(
-                heroTag: 'independent_qr_scanner_fab',
-                backgroundColor: Colors.cyan,
-                foregroundColor: Colors.white,
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
-                  );
-                },
-                child: const Icon(Icons.qr_code_scanner_rounded),
-              ),
-            ),
-          if (_isMenuOpen || _menuCtrl.isAnimating)
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _menuCtrl,
-                builder: (context, child) {
-                  return IgnorePointer(
-                    ignoring: !_isMenuOpen,
-                    child: GestureDetector(
-                      onTap: _toggleMenu,
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(
-                          sigmaX: 5.0 * _menuCtrl.value,
-                          sigmaY: 5.0 * _menuCtrl.value,
-                        ),
-                        child: Container(
-                          color: Colors.black.withValues(
-                            alpha: 0.3 * _menuCtrl.value,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-        ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: _buildRadialFab(),
-      bottomNavigationBar: _buildBottomAppBar(),
-    );
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerDocked,
+            floatingActionButton: _buildRadialFab(),
+            bottomNavigationBar: _buildBottomAppBar(),
+          );
         },
       ),
     );
@@ -332,7 +347,9 @@ class _RiderDashboardScreenState extends State<RiderDashboardScreen>
                   if (context.mounted) {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const RiderQRScannerScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const RiderQRScannerScreen(),
+                      ),
                     );
                   }
                 });
