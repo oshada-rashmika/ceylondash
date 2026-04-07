@@ -201,14 +201,14 @@ class ActiveJobCard extends StatefulWidget {
 class _ActiveJobCardState extends State<ActiveJobCard> {
   bool _isUpdating = false;
 
-  void _updateStatus() async {
+  void _updateStatusToOutForDelivery() async {
     setState(() => _isUpdating = true);
     try {
-      await DatabaseService().updateOrderStatus(widget.order.id, 'delivered');
+      await DatabaseService().updateOrderStatus(widget.order.id, 'out_for_delivery');
       if (mounted) {
         TopSnackbar.show(
           context,
-          message: 'Status updated to Delivered!',
+          message: 'Order updated! Customer notified.',
           type: SnackbarType.success,
         );
       }
@@ -389,53 +389,72 @@ class _ActiveJobCardState extends State<ActiveJobCard> {
               ),
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: widget.order.status == 'delivered' || _isUpdating
-                    ? null
-                    : () {
-                        // Open the QR scanner instead of directly updating
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const RiderQRScannerScreen(),
-                          ),
-                        );
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan.shade600,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+            if (widget.order.status != 'out_for_delivery')
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _isUpdating ? null : _updateStatusToOutForDelivery,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade500,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
+                  icon: _isUpdating
+                      ? const SizedBox.shrink()
+                      : const Icon(Icons.delivery_dining, size: 22),
+                  label: _isUpdating
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : const Text(
+                          'Start Delivery To Customer',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.3),
+                        ),
                 ),
-                icon: _isUpdating
-                    ? const SizedBox.shrink()
-                    : const Icon(
-                        Icons.qr_code_scanner,
-                        size: 22,
-                      ), // Changed icon to QR
-                label: _isUpdating
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: widget.order.status == 'delivered' || _isUpdating
+                      ? null
+                      : () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const RiderQRScannerScreen(),
+                            ),
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.cyan.shade600,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: _isUpdating
+                      ? const SizedBox.shrink()
+                      : const Icon(Icons.qr_code_scanner, size: 22),
+                  label: _isUpdating
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : const Text(
+                          'Scan QR to Deliver',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.3),
                         ),
-                      )
-                    : const Text(
-                        'Scan QR to Deliver',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
+                ),
               ),
-            ),
           ],
         ),
       ),

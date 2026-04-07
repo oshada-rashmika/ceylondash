@@ -130,6 +130,8 @@ class DatabaseService {
 
     if (newStatus == 'picked_up') {
       updates['timestamps.pickedUpAt'] = FieldValue.serverTimestamp();
+    } else if (newStatus == 'out_for_delivery') {
+      // No specific timestamp for it right now, could add if needed
     }
 
     await _db.collection('orders').doc(orderId).update(updates);
@@ -138,12 +140,23 @@ class DatabaseService {
     if (orderDoc.exists) {
       final customerId = orderDoc.data()?['customerId'];
       if (customerId != null) {
+        String title = 'Order Updated';
+        String body = 'Your order status is now ${newStatus.replaceAll('_', ' ')}';
+
+        if (newStatus == 'out_for_delivery') {
+          title = 'Out for Delivery! 🛵';
+          body = 'Your rider is out for delivery. Your order will be delivered within next few hours.';
+        } else if (newStatus == 'delivered') {
+          title = 'Package Delivered! 🎉';
+          body = 'Your package has been successfully delivered. Thank you!';
+        }
+
         await createNotification(
           NotificationModel(
             id: '',
             userId: customerId,
-            title: 'Order Updated',
-            body: 'Your order status is now ${newStatus.replaceAll('_', ' ')}',
+            title: title,
+            body: body,
             type: NotificationType.order,
             createdAt: DateTime.now(),
             relatedId: orderId,
@@ -215,13 +228,18 @@ class DatabaseService {
     final orderDoc = await _db.collection('orders').doc(orderId).get();
     if (orderDoc.exists) {
       final customerId = orderDoc.data()?['customerId'];
+      
+      // Fetch rider's details to include their name
+      final riderDoc = await _db.collection('users').doc(riderId).get();
+      final riderName = riderDoc.data()?['name'] ?? 'Your rider';
+
       if (customerId != null) {
         await createNotification(
           NotificationModel(
             id: '',
             userId: customerId,
-            title: 'Rider on the way! 🚀',
-            body: 'Your rider has claimed the order and is heading to the restaurant.',
+            title: 'Order Claimed! 🚚',
+            body: '$riderName has claimed your order! It is scheduled to be delivered within 3 working days.',
             type: NotificationType.order,
             createdAt: DateTime.now(),
             relatedId: orderId,
