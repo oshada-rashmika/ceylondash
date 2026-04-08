@@ -198,7 +198,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Seller Hub',
+                  'Gadget Hub',
                   style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w800,
