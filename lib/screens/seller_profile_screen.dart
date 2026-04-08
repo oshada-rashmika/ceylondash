@@ -1529,19 +1529,6 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
           return const SizedBox.shrink(); 
         }
 
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        Navigator.push(
-          context,
-          SlidePageRoute(page: const LeaderboardDashboardScreen()),
-        );
-      },
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
         final data = snapshot.data!;
         final int sellerRank = data['sellerRank'] as int;
         final int totalSellers = data['totalSellers'] as int;
@@ -1551,14 +1538,22 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
         final List<dynamic> topSellersList = data['topSellers'] as List<dynamic>;
         final List<Map<String, dynamic>> topSellers = List<Map<String, dynamic>>.from(topSellersList);
 
-        return Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              SlidePageRoute(page: const LeaderboardDashboardScreen()),
+            );
+          },
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
