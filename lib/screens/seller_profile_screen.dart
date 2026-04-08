@@ -30,6 +30,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
   UserModel? _user;
   bool _loading = true;
   bool _isSigningOut = false;
+  Future<Map<String, dynamic>>? _leaderboardFuture;
 
   late final AnimationController _animCtrl;
   late final Animation<double> _fade;
@@ -63,6 +64,9 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
         setState(() {
           _user = user;
           _loading = false;
+          if (_leaderboardFuture == null && user != null) {
+            _leaderboardFuture = _db.getSellerLeaderboardMetrics(user.uid);
+          }
         });
         if (!_animCtrl.isCompleted) _animCtrl.forward();
       },
@@ -1504,17 +1508,26 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
 
   // ─── LEADERBOARD OVERVIEW CARD ─────────────────────────────
   Widget _buildLeaderboardCard() {
-    // Demo leaderboard data
-    const int sellerRank = 12;
-    const int totalSellers = 240;
-    const int totalDeliveries = 187;
-    const double onTimeRate = 96.5;
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _leaderboardFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            width: double.infinity,
+            height: 380, // Approximate height to prevent jump
+            decoration: BoxDecoration(
+              color: const Color(0xFF16213E),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(color: Colors.amber),
+            ),
+          );
+        }
 
-    final List<Map<String, dynamic>> topSellers = [
-      {'name': 'DailyMart LK', 'deliveries': 342, 'rank': 1},
-      {'name': 'Island Threads', 'deliveries': 298, 'rank': 2},
-      {'name': 'SpicePack Co.', 'deliveries': 261, 'rank': 3},
-    ];
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const SizedBox.shrink(); 
+        }
 
     return GestureDetector(
       onTap: () {
@@ -1529,6 +1542,20 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
         decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+        final data = snapshot.data!;
+        final int sellerRank = data['sellerRank'] as int;
+        final int totalSellers = data['totalSellers'] as int;
+        final int totalDeliveries = data['totalDeliveries'] as int;
+        final double onTimeRate = (data['onTimeRate'] as num).toDouble();
+        
+        final List<dynamic> topSellersList = data['topSellers'] as List<dynamic>;
+        final List<Map<String, dynamic>> topSellers = List<Map<String, dynamic>>.from(topSellersList);
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1637,10 +1664,10 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
                         ),
                       ],
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Text(
                         '#$sellerRank',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
@@ -1822,6 +1849,8 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
         ],
       ),
     ),
+    );
+      },
     );
   }
 }

@@ -689,4 +689,58 @@ class DatabaseService {
         .get();
     return snap.docs.map((d) => d.data() as Map<String, dynamic>).toList();
   }
+
+  // --- Seller Leaderboard Methods ---
+
+  Future<Map<String, dynamic>> getSellerLeaderboardMetrics(String sellerId) async {
+    // 1. Get total sellers
+    final sellersSnap = await _db.collection('users').where('role', isEqualTo: 'seller').get();
+    final allSellers = sellersSnap.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
+    final totalSellers = allSellers.length;
+
+    // 2. Sort sellers by trustScore (descending)
+    allSellers.sort((a, b) => (b.trustScore ?? 0).compareTo(a.trustScore ?? 0));
+
+    // 3. Find current seller rank
+    int sellerRank = allSellers.indexWhere((s) => s.uid == sellerId) + 1;
+    if (sellerRank == 0) sellerRank = totalSellers > 0 ? totalSellers : 1;
+
+    // 4. Get total deliveries for current seller
+    final deliveriesSnap = await _db
+        .collection('orders')
+        .where('sellerId', isEqualTo: sellerId)
+        .where('status', isEqualTo: 'delivered')
+        .count()
+        .get();
+    final totalDeliveries = deliveriesSnap.count ?? 0;
+
+    // 5. Top 3 sellers
+    final topSellers = <Map<String, dynamic>>[];
+    for (var i = 0; i < allSellers.length && i < 3; i++) {
+        final topSeller = allSellers[i];
+        final topId = topSeller.uid;
+        final topDCount = await _db
+            .collection('orders')
+            .where('sellerId', isEqualTo: topId)
+            .where('status', isEqualTo: 'delivered')
+            .count()
+            .get();
+        
+        topSellers.add({
+            'name': (topSeller.businessName?.isNotEmpty == true) 
+                ? topSeller.businessName 
+                : topSeller.name,
+            'deliveries': topDCount.count ?? 0,
+            'rank': i + 1,
+        });
+    }
+
+    return {
+      'sellerRank': sellerRank,
+      'totalSellers': totalSellers,
+      'totalDeliveries': totalDeliveries,
+      'onTimeRate': 98.5, // Visual fallback
+      'topSellers': topSellers,
+    };
+  }
 }
