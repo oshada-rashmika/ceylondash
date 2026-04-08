@@ -13,6 +13,7 @@ import '../widgets/top_snackbar.dart';
 import '../widgets/slide_page_route.dart';
 import 'map_selection_screen.dart';
 import 'settings_screen.dart';
+import 'leaderboard_dashboard_screen.dart';
 
 class SellerProfileScreen extends StatefulWidget {
   const SellerProfileScreen({super.key});
@@ -1515,9 +1516,17 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
       {'name': 'SpicePack Co.', 'deliveries': 261, 'rank': 3},
     ];
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.push(
+          context,
+          SlidePageRoute(page: const LeaderboardDashboardScreen()),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
           begin: Alignment.topLeft,
@@ -1812,6 +1821,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen>
           const SizedBox(height: 24),
         ],
       ),
+    ),
     );
   }
 }
