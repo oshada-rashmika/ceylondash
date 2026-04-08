@@ -4,8 +4,13 @@ import 'package:flutter/services.dart';
 
 class LeaderboardDashboardScreen extends StatefulWidget {
   final bool isRider;
+  final bool isCustomer;
 
-  const LeaderboardDashboardScreen({super.key, this.isRider = false});
+  const LeaderboardDashboardScreen({
+    super.key, 
+    this.isRider = false,
+    this.isCustomer = false,
+  });
 
   @override
   State<LeaderboardDashboardScreen> createState() =>
@@ -44,7 +49,25 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
     {'name': 'You', 'deliveries': 187, 'onTime': 96.5, 'rank': 12, 'isSelf': true},
   ];
 
-  List<Map<String, dynamic>> get _currentList => widget.isRider ? _riders : _sellers;
+  final List<Map<String, dynamic>> _customers = [
+    {'name': 'Amal Silva', 'deliveries': 89, 'onTime': 12500, 'rank': 1},
+    {'name': 'Kasun Perera', 'deliveries': 75, 'onTime': 10200, 'rank': 2},
+    {'name': 'Nimal Fernando', 'deliveries': 62, 'onTime': 8900, 'rank': 3},
+    {'name': 'Chaminda Vaas', 'deliveries': 58, 'onTime': 7800, 'rank': 4},
+    {'name': 'Mahela Jayawardene', 'deliveries': 54, 'onTime': 7100, 'rank': 5},
+    {'name': 'You', 'deliveries': 45, 'onTime': 6200, 'rank': 6, 'isSelf': true},
+    {'name': 'Kumar Sangakkara', 'deliveries': 42, 'onTime': 5800, 'rank': 7},
+    {'name': 'Sanath Jayasuriya', 'deliveries': 38, 'onTime': 5200, 'rank': 8},
+    {'name': 'Arjuna Ranatunga', 'deliveries': 35, 'onTime': 4900, 'rank': 9},
+    {'name': 'Muttiah Muralitharan', 'deliveries': 31, 'onTime': 4200, 'rank': 10},
+    {'name': 'Aravinda de Silva', 'deliveries': 28, 'onTime': 3800, 'rank': 11},
+    {'name': 'Lasith Malinga', 'deliveries': 25, 'onTime': 3500, 'rank': 12},
+  ];
+
+  List<Map<String, dynamic>> get _currentList {
+    if (widget.isCustomer) return _customers;
+    return widget.isRider ? _riders : _sellers;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +85,9 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
           },
         ),
         title: Text(
-          widget.isRider ? 'Rider Leaderboard' : 'Seller Leaderboard',
+          widget.isCustomer 
+              ? 'Top Customers' 
+              : (widget.isRider ? 'Rider Leaderboard' : 'Seller Leaderboard'),
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w800,
@@ -83,7 +108,9 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
                   _buildMyRankBanner(),
                   const SizedBox(height: 32),
                   Text(
-                    widget.isRider ? 'TOP RIDERS' : 'TOP SELLERS',
+                    widget.isCustomer 
+                        ? 'TOP BUYERS' 
+                        : (widget.isRider ? 'TOP RIDERS' : 'TOP SELLERS'),
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
@@ -186,7 +213,7 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Top 5% of ${widget.isRider ? 'Riders' : 'Sellers'}',
+                  'Top 5% of ${widget.isCustomer ? 'Shoppers' : (widget.isRider ? 'Riders' : 'Sellers')}',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -277,7 +304,7 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
                     Icon(CupertinoIcons.cube_box_fill, size: 12, color: Colors.white.withValues(alpha: 0.4)),
                     const SizedBox(width: 4),
                     Text(
-                      '${seller['deliveries']} deliveries',
+                      '${seller['deliveries']} ${widget.isCustomer ? 'orders' : 'deliveries'}',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -288,7 +315,9 @@ class _LeaderboardDashboardScreenState extends State<LeaderboardDashboardScreen>
                     Icon(CupertinoIcons.timer, size: 12, color: Colors.white.withValues(alpha: 0.4)),
                     const SizedBox(width: 4),
                     Text(
-                      '${seller['onTime']}% on-time',
+                      widget.isCustomer 
+                          ? '${seller['onTime']} pts' 
+                          : '${seller['onTime']}% on-time',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
