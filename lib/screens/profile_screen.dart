@@ -1243,7 +1243,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           const SizedBox(height: 24),
                           _buildPremiumCard(),
                           const SizedBox(height: 24),
-                          if (_user?.role == 'rider') ...[
+                          if (_user?.role == 'rider' || _user?.role == 'customer') ...[
                             _buildLeaderboardCard(),
                             const SizedBox(height: 24),
                           ],
@@ -1522,24 +1522,37 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   // ─── LEADERBOARD OVERVIEW CARD ─────────────────────────────
   Widget _buildLeaderboardCard() {
+    final bool isCustomer = _user?.role == 'customer';
+    
     // Demo leaderboard data
-    const int riderRank = 12;
-    const int totalRiders = 240;
-    const int totalDeliveries = 187;
-    const double onTimeRate = 96.5;
+    final int rank = isCustomer ? 6 : 12;
+    final int totalCount = isCustomer ? 1500 : 240;
+    final int activityCount = isCustomer ? 45 : 187;
+    final String metric = isCustomer ? '12.5k' : '96.5%';
+    final String metricLabel = isCustomer ? 'Points' : 'On-Time Rate';
 
-    final List<Map<String, dynamic>> topRiders = [
-      {'name': 'Anton Jayakody', 'deliveries': 342, 'rank': 1},
-      {'name': 'Amal Perera', 'deliveries': 298, 'rank': 2},
-      {'name': 'John Doe', 'deliveries': 261, 'rank': 3},
-    ];
+    final List<Map<String, dynamic>> topList = isCustomer
+        ? [
+            {'name': 'Amal Silva', 'count': 89, 'rank': 1},
+            {'name': 'Kasun Perera', 'count': 75, 'rank': 2},
+            {'name': 'Nimal Fernando', 'count': 62, 'rank': 3},
+          ]
+        : [
+            {'name': 'Anton Jayakody', 'count': 342, 'rank': 1},
+            {'name': 'Amal Perera', 'count': 298, 'rank': 2},
+            {'name': 'John Doe', 'count': 261, 'rank': 3},
+          ];
 
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
         Navigator.push(
           context,
-          SlidePageRoute(page: const LeaderboardDashboardScreen(isRider: true)),
+          SlidePageRoute(
+              page: LeaderboardDashboardScreen(
+            isRider: !isCustomer,
+            isCustomer: isCustomer,
+          )),
         );
       },
       child: Container(
@@ -1657,7 +1670,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                       child: Center(
                         child: Text(
-                          '#$riderRank',
+                          '#$rank',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
@@ -1682,7 +1695,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '#$riderRank of $totalRiders riders',
+                            '#$rank of $totalCount ${isCustomer ? "shoppers" : "riders"}',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
@@ -1701,7 +1714,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         alignment: Alignment.center,
                         children: [
                           CircularProgressIndicator(
-                            value: 1 - (riderRank / totalRiders),
+                            value: 1 - (rank / totalCount),
                             strokeWidth: 4,
                             backgroundColor:
                                 Colors.white.withValues(alpha: 0.08),
@@ -1734,8 +1747,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Expanded(
                     child: _LeaderboardStat(
                       icon: CupertinoIcons.cube_box_fill,
-                      label: 'Deliveries',
-                      value: '$totalDeliveries',
+                      label: isCustomer ? 'Orders' : 'Deliveries',
+                      value: '$activityCount',
                     ),
                   ),
                   Container(
@@ -1745,23 +1758,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                   Expanded(
                     child: _LeaderboardStat(
-                      icon: CupertinoIcons.timer,
-                      label: 'On-Time Rate',
-                      value: '$onTimeRate%',
+                      icon: isCustomer ? CupertinoIcons.star_fill : CupertinoIcons.timer,
+                      label: metricLabel,
+                      value: metric,
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            // ── Top Riders List ──
+            // ── Top List ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'TOP RIDERS',
+                    isCustomer ? 'TOP BUYERS' : 'TOP RIDERS',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -1770,8 +1783,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                   const SizedBox(height: 12),
-                  ...topRiders.map((rider) {
-                    final rank = rider['rank'] as int;
+                  ...topList.map((person) {
+                    final rank = person['rank'] as int;
                     final medalColors = [
                       const Color(0xFFFFD700), // gold
                       const Color(0xFFC0C0C0), // silver
@@ -1812,7 +1825,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                rider['name'] as String,
+                                person['name'] as String,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -1821,7 +1834,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ),
                             Text(
-                              '${rider['deliveries']} deliveries',
+                              '${person['count']} ${isCustomer ? "orders" : "deliveries"}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
