@@ -84,6 +84,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
     super.initState();
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
+      _db.seedBotSellers();
       _orderStream = _db.streamSellerOrders(uid);
     }
     _staggerCtrl = AnimationController(

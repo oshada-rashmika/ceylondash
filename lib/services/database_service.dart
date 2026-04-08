@@ -378,20 +378,39 @@ class DatabaseService {
   Future<void> seedBotSellers() async {
     // 1. Gadget Hub
     final shop1Id = 'Cv38tAlSKDEoKOSz2aMI';
-    final seller1Id = 'U7T5r95C7RXJKjcjwHW9VG2VIGvl';
+    final seller1Id = 'U7T5r95C7RXJKjcjwHW9VG2VIGv1';
 
     final seller1Ref = _db.collection('users').doc(seller1Id);
     await seller1Ref.set({
       'uid': seller1Id,
-      'name': 'SENUKA',
+      'name': 'ASILA',
       'email': 'ranasingheasila@gmail.com',
       'fcmToken': '',
       'phone': '+94768223528',
       'role': 'seller',
-      'businessName': 'Gadget Hub',
+      'businessName': 'COOLD WAR',
       'businessAddress': 'SVDJHDSFSFE',
       'shopId': shop1Id,
     }, SetOptions(merge: true));
+
+    // Seed 4 test orders for ASILA to populate dashboard graphs
+    final statuses = ['processing', 'on_the_way', 'delivered', 'returned'];
+    for (int i = 0; i < 4; i++) {
+      await _db.collection('orders').doc('TEST_ORDER_ASILA_$i').set({
+        'sellerId': seller1Id,
+        'customerId': 'fake_customer_123',
+        'status': statuses[i],
+        'externalPlatformRef': 'WBL-ASILA-00$i',
+        'totalAmount': (i + 1) * 1500.0,
+        'codAmount': (i + 1) * 1500.0,
+        'dropoffAddress': '12$i Colombo Street, Western Province, Sri Lanka',
+        'customerName': 'Test Customer $i',
+        'timestamps': {
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      }, SetOptions(merge: true));
+    }
 
     await _db.collection('shops').doc(shop1Id).set({
       'sellerId': seller1Id,
