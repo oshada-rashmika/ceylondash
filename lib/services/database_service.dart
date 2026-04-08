@@ -220,6 +220,16 @@ class DatabaseService {
         );
   }
 
+  Stream<List<OrderModel>> streamSellerOrders(String sellerId) {
+    return _db
+        .collection('orders')
+        .where('sellerId', isEqualTo: sellerId)
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map((d) => OrderModel.fromFirestore(d)).toList(),
+        );
+  }
+
   Stream<List<OrderModel>> getPendingJobsStream() {
     return _db
         .collection('orders')

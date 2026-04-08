@@ -2,6 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../models/order_model.dart';
+import '../services/database_service.dart';
 import '../services/auth_service.dart';
 
 class SellerDashboardScreen extends StatefulWidget {
@@ -25,43 +28,45 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   late final List<Animation<double>> _fades;
   late final List<Animation<Offset>> _slides;
 
-  // --- Demo Data ---
-  final Map<String, int> _kpis = {
-    'Pending': 12,
-    'In Transit': 34,
-    'Delivered': 187,
-    'Returned': 3,
-  };
+  final DatabaseService _db = DatabaseService();
+  Stream<List<OrderModel>>? _orderStream;
+  
+  final int _issueCount = 2; // For notifications
 
-  final List<Map<String, dynamic>> _activeShipments = [
-    {
-      'waybill': 'CYD-2026-00012345',
-      'recipient': 'Amaya Silva',
-      'city': 'Kandy',
-      'status': 'in_transit',
-      'cod': 7500.00,
-    },
-    {
-      'waybill': 'CYD-2026-00012346',
-      'recipient': 'Kasun Fernando',
-      'city': 'Galle',
-      'status': 'pickup_scheduled',
-      'cod': 3200.00,
-    },
-    {
-      'waybill': 'CYD-2026-00012347',
-      'recipient': 'Nimali Perera',
-      'city': 'Colombo',
-      'status': 'out_for_delivery',
-      'cod': 0.0,
-    },
-  ];
+  Map<String, int> _calcKpis(List<OrderModel> orders) {
+    int pending = 0, transit = 0, delivered = 0, returned = 0;
+    for (var o in orders) {
+      if (['processing', 'pickup_scheduled', 'assigned'].contains(o.status)) pending++;
+      else if (['on_the_way', 'out_for_delivery'].contains(o.status)) transit++;
+      else if (o.status == 'delivered') delivered++;
+      else if (['returned', 'cancelled', 'failed'].contains(o.status)) returned++;
+    }
+    return {
+      'Pending': pending,
+      'In Transit': transit,
+      'Delivered': delivered,
+      'Returned': returned,
+    };
+  }
 
-  final int _issueCount = 2;
+  List<OrderModel> _getActiveShipments(List<OrderModel> orders) {
+    final active = orders.where((o) => !['delivered', 'returned', 'cancelled', 'failed'].contains(o.status)).toList();
+    active.sort((a, b) {
+      final tA = a.timestamps['createdAt']?.toDate();
+      final tB = b.timestamps['createdAt']?.toDate();
+      if (tA == null || tB == null) return 0;
+      return tB.compareTo(tA);
+    });
+    return active.take(3).toList();
+  }
 
   @override
   void initState() {
     super.initState();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      _orderStream = _db.streamSellerOrders(uid);
+    }
     _staggerCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -106,35 +111,47 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FB),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            slivers: [
-              SliverToBoxAdapter(child: SizedBox(height: topPad + 24)),
-              SliverToBoxAdapter(child: _anim(0, _buildHeader())),
-              const SliverToBoxAdapter(child: SizedBox(height: 28)),
-              SliverToBoxAdapter(child: _anim(1, _buildKpiRow())),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              SliverToBoxAdapter(child: _anim(2, _buildFinancialCard())),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              SliverToBoxAdapter(child: _anim(3, _buildQuickActions())),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              SliverToBoxAdapter(child: _anim(4, _buildActiveShipmentsPreview())),
-              if (_issueCount > 0)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                    child: _anim(4, _buildIssueAlert()),
-                  ),
+      body: StreamBuilder<List<OrderModel>>(
+        stream: _orderStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+             return const Center(child: CircularProgressIndicator(color: Colors.cyan));
+          }
+          final orders = snapshot.data ?? [];
+          final kpis = _calcKpis(orders);
+          final activeShipments = _getActiveShipments(orders);
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
                 ),
-              const SliverToBoxAdapter(child: SizedBox(height: 140)),
-            ],
-          ),
-        ),
+                slivers: [
+                  SliverToBoxAdapter(child: SizedBox(height: topPad + 24)),
+                  SliverToBoxAdapter(child: _anim(0, _buildHeader())),
+                  const SliverToBoxAdapter(child: SizedBox(height: 28)),
+                  SliverToBoxAdapter(child: _anim(1, _buildKpiRow(kpis))),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  SliverToBoxAdapter(child: _anim(2, _buildFinancialCard())),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  SliverToBoxAdapter(child: _anim(3, _buildQuickActions())),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  SliverToBoxAdapter(child: _anim(4, _buildActiveShipmentsPreview(activeShipments))),
+                  if (_issueCount > 0)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                        child: _anim(4, _buildIssueAlert()),
+                      ),
+                    ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 140)),
+                ],
+              ),
+            ),
+          );
+        }
       ),
     );
   }
@@ -613,8 +630,8 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   }
 
   // ─── KPI CARDS ────────────────────────────────────────────
-  Widget _buildKpiRow() {
-    final entries = _kpis.entries.toList();
+  Widget _buildKpiRow(Map<String, int> kpis) {
+    final entries = kpis.entries.toList();
     final kpiColors = [
       Colors.amber,
       Colors.blue,
@@ -872,7 +889,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   }
 
   // ─── ACTIVE SHIPMENTS PREVIEW ─────────────────────────────
-  Widget _buildActiveShipmentsPreview() {
+  Widget _buildActiveShipmentsPreview(List<OrderModel> activeShipments) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -907,23 +924,23 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
             ],
           ),
           const SizedBox(height: 16),
-          if (_activeShipments.isEmpty)
+          if (activeShipments.isEmpty)
             _buildEmptyState(
               Icons.local_shipping_outlined,
               'No Active Shipments',
               'Create your first shipment to get started.',
             )
           else
-            ...List.generate(_activeShipments.length, (i) {
-              final s = _activeShipments[i];
+            ...List.generate(activeShipments.length, (i) {
+              final s = activeShipments[i];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _ShipmentCard(
-                  waybill: s['waybill'] as String,
-                  recipient: s['recipient'] as String,
-                  city: s['city'] as String,
-                  status: s['status'] as String,
-                  cod: s['cod'] as double,
+                  waybill: s.id.toUpperCase(),
+                  recipient: s.rawData['customerName']?.toString() ?? 'Customer',
+                  city: s.dropoffAddress.isNotEmpty ? s.dropoffAddress.split(',').last.trim() : 'Unknown',
+                  status: s.status,
+                  cod: (s.rawData['totalAmount'] ?? s.rawData['codAmount'] ?? 0).toDouble(),
                 ),
               );
             }),
