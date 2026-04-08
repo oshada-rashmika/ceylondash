@@ -60,6 +60,25 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
     return active.take(3).toList();
   }
 
+  Map<String, double> _calcFinancials(List<OrderModel> orders) {
+    double collected = 0;
+    double pending = 0;
+
+    for (var o in orders) {
+      final amt = (o.rawData['totalAmount'] ?? o.rawData['codAmount'] ?? 0).toDouble();
+      if (o.status == 'delivered') {
+        collected += amt;
+      } else if (!['returned', 'cancelled', 'failed'].contains(o.status)) {
+        pending += amt;
+      }
+    }
+
+    return {
+      'collected': collected,
+      'pending': pending,
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,9 +153,9 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                   const SliverToBoxAdapter(child: SizedBox(height: 28)),
                   SliverToBoxAdapter(child: _anim(1, _buildKpiRow(kpis))),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                  SliverToBoxAdapter(child: _anim(2, _buildFinancialCard())),
+                  SliverToBoxAdapter(child: _anim(2, _buildFinancialCard(_calcFinancials(orders)))),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                  SliverToBoxAdapter(child: _anim(3, _buildQuickActions())),
+                  SliverToBoxAdapter(child: _anim(3, _buildQuickActions(activeShipments))),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
                   SliverToBoxAdapter(child: _anim(4, _buildActiveShipmentsPreview(activeShipments))),
                   if (_issueCount > 0)
@@ -688,7 +707,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   }
 
   // ─── FINANCIAL & COD TRACKER ──────────────────────────────
-  Widget _buildFinancialCard() {
+  Widget _buildFinancialCard(Map<String, double> financials) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -743,7 +762,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 Expanded(
                   child: _FinancialStat(
                     label: 'COD Collected',
-                    value: 'Rs. 125,400',
+                    value: 'Rs. ${financials['collected']!.toStringAsFixed(0)}',
                     icon: Icons.payments_rounded,
                   ),
                 ),
@@ -751,7 +770,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 Expanded(
                   child: _FinancialStat(
                     label: 'Pending Payout',
-                    value: 'Rs. 45,600',
+                    value: 'Rs. ${financials['pending']!.toStringAsFixed(0)}',
                     icon: Icons.schedule_rounded,
                   ),
                 ),
@@ -789,7 +808,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   }
 
   // ─── QUICK ACTIONS ────────────────────────────────────────
-  void _handleQuickAction(String label) {
+  void _handleQuickAction(String label, List<OrderModel> activeShipments) {
     HapticFeedback.lightImpact();
     switch (label) {
       case 'New Shipment':
@@ -799,12 +818,12 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
         _showBulkPickupSheet(context);
         break;
       case 'Print Labels':
-        _showPrintLabelsSheet(context);
+        _showPrintLabelsSheet(context, activeShipments);
         break;
     }
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(List<OrderModel> activeShipments) {
     final actions = [
       {'icon': Icons.local_shipping_rounded, 'label': 'New Shipment', 'color': Colors.cyan},
       {'icon': Icons.inventory_2_rounded, 'label': 'Bulk Pickup', 'color': Colors.indigo},
@@ -836,7 +855,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                     right: i == actions.length - 1 ? 0 : 5,
                   ),
                   child: GestureDetector(
-                    onTap: () => _handleQuickAction(a['label'] as String),
+                    onTap: () => _handleQuickAction(a['label'] as String, activeShipments),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       decoration: BoxDecoration(
@@ -1337,7 +1356,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
   }
 
   // ─── PRINT LABELS BOTTOM SHEET ─────────────────────────────
-  void _showPrintLabelsSheet(BuildContext context) {
+  void _showPrintLabelsSheet(BuildContext context, List<OrderModel> activeShipments) {
     final selectedWaybills = <String>{};
 
     showModalBottomSheet(
@@ -1394,17 +1413,17 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                       onTap: () {
                         setSheetState(() {
                           if (selectedWaybills.length ==
-                              _activeShipments.length) {
+                              activeShipments.length) {
                             selectedWaybills.clear();
                           } else {
-                            for (var s in _activeShipments) {
-                              selectedWaybills.add(s['waybill'] as String);
+                            for (var s in activeShipments) {
+                              selectedWaybills.add(s.id.toUpperCase());
                             }
                           }
                         });
                       },
                       child: Text(
-                        selectedWaybills.length == _activeShipments.length
+                        selectedWaybills.length == activeShipments.length
                             ? 'Deselect All'
                             : 'Select All',
                         style: TextStyle(
@@ -1422,11 +1441,11 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                 child: ListView.separated(
                   shrinkWrap: true,
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                  itemCount: _activeShipments.length,
+                  itemCount: activeShipments.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) {
-                    final s = _activeShipments[i];
-                    final waybill = s['waybill'] as String;
+                    final s = activeShipments[i];
+                    final waybill = s.id.toUpperCase();
                     final isSelected = selectedWaybills.contains(waybill);
                     return GestureDetector(
                       onTap: () {
@@ -1476,7 +1495,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    s['recipient'] as String,
+                                    s.rawData['customerName']?.toString() ?? 'Customer',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
@@ -1496,7 +1515,7 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen>
                               ),
                             ),
                             Text(
-                              s['city'] as String,
+                              s.dropoffAddress.isNotEmpty ? s.dropoffAddress.split(',').last.trim() : 'Unknown',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
