@@ -2,6 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
+
+import '../models/order_model.dart';
+import '../services/database_service.dart';
 
 class SellerShipmentsTab extends StatefulWidget {
   final String? initialFilter;
@@ -34,85 +39,35 @@ class _SellerShipmentsTabState extends State<SellerShipmentsTab> {
     'Returned': 'returned',
   };
 
-  // --- Demo Data ---
-  final List<Map<String, dynamic>> _allShipments = [
-    {
-      'waybill': 'CYD-2026-00012345',
-      'recipient': 'Amaya Silva',
-      'city': 'Kandy',
-      'status': 'in_transit',
-      'cod': 7500.00,
-      'date': '14 Mar',
-    },
-    {
-      'waybill': 'CYD-2026-00012346',
-      'recipient': 'Kasun Fernando',
-      'city': 'Galle',
-      'status': 'pickup_scheduled',
-      'cod': 3200.00,
-      'date': '14 Mar',
-    },
-    {
-      'waybill': 'CYD-2026-00012347',
-      'recipient': 'Nimali Perera',
-      'city': 'Colombo',
-      'status': 'out_for_delivery',
-      'cod': 0.0,
-      'date': '13 Mar',
-    },
-    {
-      'waybill': 'CYD-2026-00012340',
-      'recipient': 'Saman Jayasinghe',
-      'city': 'Negombo',
-      'status': 'delivered',
-      'cod': 4800.00,
-      'date': '13 Mar',
-    },
-    {
-      'waybill': 'CYD-2026-00012339',
-      'recipient': 'Dilani Rajapakse',
-      'city': 'Matara',
-      'status': 'delivered',
-      'cod': 2100.00,
-      'date': '12 Mar',
-    },
-    {
-      'waybill': 'CYD-2026-00012338',
-      'recipient': 'Ruwan Wickramasinghe',
-      'city': 'Jaffna',
-      'status': 'returned',
-      'cod': 5600.00,
-      'date': '12 Mar',
-    },
-    {
-      'waybill': 'CYD-2026-00012337',
-      'recipient': 'Thilini Bandara',
-      'city': 'Anuradhapura',
-      'status': 'delivered',
-      'cod': 1950.00,
-      'date': '11 Mar',
-    },
-  ];
+  late Stream<List<OrderModel>> _orderStream;
 
-  List<Map<String, dynamic>> get _filteredShipments {
-    var list = _allShipments;
+  List<OrderModel> _getFilteredShipments(List<OrderModel> orders) {
+    var list = orders;
 
     // Filter by status
     if (_selectedFilter != 'All') {
       final s = _filterToStatus[_selectedFilter]!;
-      list = list.where((item) => item['status'] == s).toList();
+      list = list.where((item) => item.status == s).toList();
     }
 
     // Filter by search
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       list = list.where((item) {
-        final r = (item['recipient'] as String).toLowerCase();
-        final w = (item['waybill'] as String).toLowerCase();
-        final c = (item['city'] as String).toLowerCase();
+        final r = (item.rawData['customerName']?.toString() ?? 'Customer').toLowerCase();
+        final w = item.id.toLowerCase();
+        final c = (item.dropoffAddress.isNotEmpty ? item.dropoffAddress.split(',').last.trim() : 'Unknown').toLowerCase();
         return r.contains(q) || w.contains(q) || c.contains(q);
       }).toList();
     }
+    
+    // Sort youngest first
+    list.sort((a, b) {
+      final tA = a.timestamps['createdAt']?.toDate();
+      final tB = b.timestamps['createdAt']?.toDate();
+      if (tA == null || tB == null) return 0;
+      return tB.compareTo(tA);
+    });
 
     return list;
   }
@@ -120,6 +75,9 @@ class _SellerShipmentsTabState extends State<SellerShipmentsTab> {
   @override
   void initState() {
     super.initState();
+    final sellerId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    _orderStream = DatabaseService().streamSellerOrders(sellerId);
+
     _selectedFilter = widget.initialFilter ?? 'All';
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text.trim());
@@ -139,11 +97,19 @@ class _SellerShipmentsTabState extends State<SellerShipmentsTab> {
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
-    final shipments = _filteredShipments;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FB),
-      body: CustomScrollView(
+      body: StreamBuilder<List<OrderModel>>(
+        stream: _orderStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: Colors.cyan));
+          }
+          final orders = snapshot.data ?? [];
+          final shipments = _getFilteredShipments(orders);
+
+          return CustomScrollView(
         physics: const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         ),
@@ -265,15 +231,21 @@ class _SellerShipmentsTabState extends State<SellerShipmentsTab> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final s = shipments[index];
+                  String displayDate = 'Unknown';
+                  if (s.timestamps.containsKey('createdAt') && s.timestamps['createdAt'] != null) {
+                    final dt = s.timestamps['createdAt']!.toDate();
+                    displayDate = DateFormat('dd MMM').format(dt);
+                  }
+
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                     child: _ShipmentListCard(
-                      waybill: s['waybill'] as String,
-                      recipient: s['recipient'] as String,
-                      city: s['city'] as String,
-                      status: s['status'] as String,
-                      cod: s['cod'] as double,
-                      date: s['date'] as String,
+                      waybill: s.id.toUpperCase(),
+                      recipient: s.rawData['customerName']?.toString() ?? 'Customer',
+                      city: s.dropoffAddress.isNotEmpty ? s.dropoffAddress.split(',').last.trim() : 'Unknown',
+                      status: s.status,
+                      cod: (s.rawData['totalAmount'] ?? s.rawData['codAmount'] ?? 0).toDouble(),
+                      date: displayDate,
                     ),
                   );
                 },
@@ -283,6 +255,8 @@ class _SellerShipmentsTabState extends State<SellerShipmentsTab> {
 
           const SliverToBoxAdapter(child: SizedBox(height: 140)),
         ],
+      );
+        },
       ),
     );
   }
